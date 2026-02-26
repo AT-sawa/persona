@@ -1,7 +1,6 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
+import HeroForm from "./HeroForm";
 
 export default function Hero() {
   return (
@@ -82,46 +81,8 @@ export default function Hero() {
           </Link>
         </div>
 
-        {/* Right: Form */}
-        <div className="bg-white/95 backdrop-blur-sm border border-border p-6 shadow-[0_4px_24px_rgba(0,0,0,0.07)]">
-          <p className="text-[13px] font-bold text-navy mb-4 pb-2.5 border-b-2 border-blue flex items-center gap-1.5">
-            <span className="w-1 h-4 bg-blue shrink-0" />
-            フリーコンサル登録フォーム
-          </p>
-          <div className="mb-2.5">
-            <label className="block text-[11px] font-bold text-[#888] mb-0.5">
-              メールアドレス<span className="text-[#E15454] text-[10px] ml-0.5">*必須</span>
-            </label>
-            <input
-              type="email"
-              placeholder="example@email.com"
-              className="w-full px-[11px] py-[9px] border border-border text-[13px] text-text outline-none bg-[#fafafa] transition-colors focus:border-blue focus:bg-white"
-            />
-          </div>
-          <div className="mb-2.5">
-            <label className="block text-[11px] font-bold text-[#888] mb-0.5">
-              お勤め経験のあるコンサルファーム
-              <span className="text-[#E15454] text-[10px] ml-0.5">*必須</span>
-            </label>
-            <select className="w-full px-[11px] py-[9px] border border-border text-[13px] text-text outline-none bg-[#fafafa] transition-colors focus:border-blue focus:bg-white">
-              <option>選択してください</option>
-              <option>McKinsey &amp; Company</option>
-              <option>BCG</option>
-              <option>Deloitte</option>
-              <option>PwC</option>
-              <option>アクセンチュア</option>
-              <option>A.T. Kearney</option>
-              <option>Roland Berger</option>
-              <option>その他</option>
-            </select>
-          </div>
-          <button className="w-full py-3 bg-blue text-white border-none text-sm font-bold cursor-pointer transition-colors hover:bg-blue-dark">
-            無料で登録する
-          </button>
-          <p className="text-[10px] text-[#aaa] text-center mt-1.5">
-            登録無料・専門コーディネーターよりご連絡します
-          </p>
-        </div>
+        {/* Right: Form (client component) */}
+        <HeroForm />
       </div>
     </section>
   );

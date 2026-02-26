@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import RegisterForm from "./RegisterForm";
 
 export default function Register() {
   return (
@@ -41,75 +41,8 @@ export default function Register() {
           />
         </div>
 
-        {/* Right: Form */}
-        <div className="bg-white border border-border p-8 shadow-[0_4px_20px_rgba(0,0,0,0.05)]">
-          <p className="text-[15px] font-black text-navy pb-3 border-b-2 border-blue mb-5">
-            フリーコンサル登録フォーム
-          </p>
-          {[
-            { label: "氏名", type: "text", placeholder: "山田 太郎", required: true },
-            { label: "電話番号", type: "tel", placeholder: "090-0000-0000", required: true },
-            { label: "メールアドレス", type: "email", placeholder: "example@email.com", required: true },
-          ].map((field) => (
-            <div key={field.label} className="mb-3">
-              <label className="block text-[11px] font-bold text-[#888] mb-1">
-                {field.label}
-                {field.required && (
-                  <span className="text-[#E15454] text-[10px] ml-0.5"> *必須</span>
-                )}
-              </label>
-              <input
-                type={field.type}
-                placeholder={field.placeholder}
-                className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
-              />
-            </div>
-          ))}
-          <div className="mb-3">
-            <label className="block text-[11px] font-bold text-[#888] mb-1">
-              お勤め経験のあるコンサルファーム
-              <span className="text-[#E15454] text-[10px] ml-0.5"> *必須</span>
-            </label>
-            <select className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white">
-              <option>選択してください</option>
-              <option>McKinsey &amp; Company</option>
-              <option>BCG</option>
-              <option>Deloitte</option>
-              <option>PwC</option>
-              <option>アクセンチュア</option>
-              <option>A.T. Kearney</option>
-              <option>Roland Berger</option>
-              <option>EY</option>
-              <option>KPMG</option>
-              <option>その他</option>
-            </select>
-          </div>
-          <div className="mb-3">
-            <label className="block text-[11px] font-bold text-[#888] mb-1">
-              フリーコンサル経験
-            </label>
-            <select className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white">
-              <option>選択してください</option>
-              <option>業務改革/業務改善/BPR</option>
-              <option>戦略</option>
-              <option>DX推進</option>
-              <option>PMO</option>
-              <option>SAP</option>
-              <option>新規事業</option>
-              <option>その他</option>
-            </select>
-          </div>
-          <button className="w-full py-3.5 bg-blue text-white border-none text-[15px] font-bold cursor-pointer transition-colors hover:bg-blue-dark mt-1">
-            登録する
-          </button>
-          <p className="text-[10px] text-[#aaa] text-center mt-2">
-            ご登録いただきますと
-            <Link href="#" className="text-blue">
-              プライバシーポリシー
-            </Link>
-            に同意したものとみなします
-          </p>
-        </div>
+        {/* Right: Form (client component) */}
+        <RegisterForm />
       </div>
     </section>
   );

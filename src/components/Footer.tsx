@@ -26,17 +26,17 @@ export default function Footer() {
             </p>
             <ul className="list-none flex flex-col gap-[9px]">
               <li>
-                <Link href="#" className="text-xs text-white/30 transition-colors hover:text-white">
+                <Link href="/" className="text-xs text-white/30 transition-colors hover:text-white">
                   PERSONAとは
                 </Link>
               </li>
               <li>
-                <Link href="#cases" className="text-xs text-white/30 transition-colors hover:text-white">
+                <Link href="/cases" className="text-xs text-white/30 transition-colors hover:text-white">
                   案件一覧
                 </Link>
               </li>
               <li>
-                <Link href="#register" className="text-xs text-white/30 transition-colors hover:text-white">
+                <Link href="/auth/register" className="text-xs text-white/30 transition-colors hover:text-white">
                   無料登録
                 </Link>
               </li>
@@ -48,12 +48,12 @@ export default function Footer() {
             </p>
             <ul className="list-none flex flex-col gap-[9px]">
               <li>
-                <Link href="#" className="text-xs text-white/30 transition-colors hover:text-white">
+                <Link href="/for-enterprise" className="text-xs text-white/30 transition-colors hover:text-white">
                   企業様へ
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-xs text-white/30 transition-colors hover:text-white">
+                <Link href="/for-enterprise#contact" className="text-xs text-white/30 transition-colors hover:text-white">
                   お問い合わせ
                 </Link>
               </li>
