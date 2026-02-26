@@ -15,6 +15,29 @@ export const metadata: Metadata = {
   },
 };
 
+const enterpriseFaqs = [
+  {
+    q: "どのような人材が登録していますか？",
+    a: "McKinsey、BCG、Deloitte、PwC、アクセンチュアなど大手コンサルティングファーム出身者を中心に、1,200名以上のコンサルタントが登録しています。全員、弊社独自の審査を通過したプロフェッショナルです。",
+  },
+  {
+    q: "最短どのくらいでアサイン可能ですか？",
+    a: "お問い合わせから最短1週間での稼働開始実績がございます。通常は2〜3週間でのアサインが目安です。緊急のニーズにも可能な限り対応いたします。",
+  },
+  {
+    q: "契約期間の柔軟性はありますか？",
+    a: "1ヶ月単位での契約が可能です。プロジェクトの進捗に応じた期間延長や、稼働率の変更にも柔軟に対応いたします。",
+  },
+  {
+    q: "費用体系を教えてください",
+    a: "コンサルタントのスキル・経験に応じた月額報酬制です。大手ファームと比較して、同等以上の品質を40〜60%のコストでご提供いたします。詳細はお問い合わせください。",
+  },
+  {
+    q: "秘密保持契約（NDA）は締結できますか？",
+    a: "はい。プロジェクト開始前に個別のNDA締結に対応しております。コンサルタント個人とも別途NDAを締結することが可能です。",
+  },
+];
+
 export default function ForEnterprisePage() {
   return (
     <>
@@ -243,28 +266,7 @@ export default function ForEnterprisePage() {
             </p>
             <h2 className="text-lg font-black text-navy mb-6">よくあるご質問</h2>
             <div className="flex flex-col gap-3">
-              {[
-                {
-                  q: "どのような人材が登録していますか？",
-                  a: "McKinsey、BCG、Deloitte、PwC、アクセンチュアなど大手コンサルティングファーム出身者を中心に、1,200名以上のコンサルタントが登録しています。全員、弊社独自の審査を通過したプロフェッショナルです。",
-                },
-                {
-                  q: "最短どのくらいでアサイン可能ですか？",
-                  a: "お問い合わせから最短1週間での稼働開始実績がございます。通常は2〜3週間でのアサインが目安です。緊急のニーズにも可能な限り対応いたします。",
-                },
-                {
-                  q: "契約期間の柔軟性はありますか？",
-                  a: "1ヶ月単位での契約が可能です。プロジェクトの進捗に応じた期間延長や、稼働率の変更にも柔軟に対応いたします。",
-                },
-                {
-                  q: "費用体系を教えてください",
-                  a: "コンサルタントのスキル・経験に応じた月額報酬制です。大手ファームと比較して、同等以上の品質を40〜60%のコストでご提供いたします。詳細はお問い合わせください。",
-                },
-                {
-                  q: "秘密保持契約（NDA）は締結できますか？",
-                  a: "はい。プロジェクト開始前に個別のNDA締結に対応しております。コンサルタント個人とも別途NDAを締結することが可能です。",
-                },
-              ].map((faq) => (
+              {enterpriseFaqs.map((faq) => (
                 <details key={faq.q} className="border border-border bg-white group">
                   <summary className="p-5 cursor-pointer text-sm font-bold text-navy flex justify-between items-center gap-4">
                     <span>{faq.q}</span>
@@ -315,7 +317,7 @@ export default function ForEnterprisePage() {
       </main>
       <Footer />
 
-      {/* JSON-LD Structured Data */}
+      {/* JSON-LD Structured Data — Service */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -325,13 +327,31 @@ export default function ForEnterprisePage() {
             name: "PERSONA 企業向けフリーコンサルタント紹介サービス",
             provider: {
               "@type": "Organization",
-              name: "PERSONA",
+              name: "PERSONA（ペルソナ）",
               url: "https://persona-consultant.com",
             },
             description:
               "コンサルファーム出身のフリーランスコンサルタントを企業プロジェクトにマッチング。戦略・DX推進・PMO・SAP導入支援に対応。",
             areaServed: { "@type": "Country", name: "Japan" },
             serviceType: "Consulting Staffing",
+          }),
+        }}
+      />
+      {/* JSON-LD Structured Data — FAQPage */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: enterpriseFaqs.map((faq) => ({
+              "@type": "Question",
+              name: faq.q,
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: faq.a,
+              },
+            })),
           }),
         }}
       />

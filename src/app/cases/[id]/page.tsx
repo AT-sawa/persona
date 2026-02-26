@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import EntryForm from "@/components/EntryForm";
@@ -51,6 +52,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
+    alternates: {
+      canonical: `/cases/${id}`,
+    },
     openGraph: {
       title,
       description,
@@ -104,6 +108,32 @@ export default async function CaseDetailPage({ params }: Props) {
     skills: caseData.must_req,
   };
 
+  // BreadcrumbList JSON-LD
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "ホーム",
+        item: "https://persona-consultant.com",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "案件一覧",
+        item: "https://persona-consultant.com/cases",
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: caseData.title,
+        item: `https://persona-consultant.com/cases/${id}`,
+      },
+    ],
+  };
+
   const rows = [
     { label: "案件番号", value: caseData.case_no },
     { label: "カテゴリ", value: caseData.category },
@@ -129,6 +159,22 @@ export default async function CaseDetailPage({ params }: Props) {
       <Header />
       <main className="py-[72px] px-6 bg-gray-bg min-h-screen">
         <div className="max-w-[800px] mx-auto">
+          {/* Breadcrumbs */}
+          <nav
+            aria-label="パンくずリスト"
+            className="text-xs text-[#888] mb-4 flex items-center gap-1.5"
+          >
+            <Link href="/" className="hover:text-blue transition-colors">
+              ホーム
+            </Link>
+            <span>/</span>
+            <Link href="/cases" className="hover:text-blue transition-colors">
+              案件一覧
+            </Link>
+            <span>/</span>
+            <span className="text-navy">{caseData.title}</span>
+          </nav>
+
           <p className="text-[10px] font-bold text-blue tracking-[0.18em] uppercase mb-2">
             CASE DETAIL
           </p>
@@ -185,6 +231,10 @@ export default async function CaseDetailPage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
     </>
   );

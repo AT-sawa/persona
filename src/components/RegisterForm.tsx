@@ -182,7 +182,7 @@ export default function RegisterForm() {
       </button>
       <p className="text-[10px] text-[#aaa] text-center mt-2">
         ご登録いただきますと
-        <Link href="#" className="text-blue">
+        <Link href="/privacy" className="text-blue">
           プライバシーポリシー
         </Link>
         に同意したものとみなします

@@ -7,6 +7,7 @@ const items = [
     title: "独自の顧客ネットワークで\n100万円〜250万円の高単価案件\n常時100件以上を取り扱い",
     text: "PERSONAで登録・案件検索依頼をすることで、他社エージェントの案件にも効率的に簡単エントリー。面倒だった稼働共有や複数回の面談の手間が省けます。",
     img: "/images/feature_1.jpeg",
+    imgAlt: "PERSONAの独自ネットワークによる高単価フリーコンサル案件",
   },
   {
     num: "02",
@@ -14,6 +15,7 @@ const items = [
     title: "10社以上のエージェントと連携\nここだけで他社案件にも効率的にエントリー",
     text: "PERSONA一つで複数エージェントの案件に一括アクセス。個別登録・個別面談の手間を大幅に削減できます。",
     img: "/images/feature_2.png",
+    imgAlt: "複数エージェント案件に一括アクセスできるPERSONAの仕組み",
   },
   {
     num: "03",
@@ -21,6 +23,7 @@ const items = [
     title: "コンサル出身者が作った\nフリーコンサル案件紹介サービス\nコンサルの理想のサービスを実現。",
     text: "フリーコンサルとして活動する中で「このようなサービスがあれば良いな」を詰め込みました。担当エージェントは全員ファーム出身かつフリーコンサル経験者。",
     img: "/images/feature_3.png",
+    imgAlt: "コンサル出身者が設計したPERSONAのサービス体験",
   },
 ];
 
@@ -62,7 +65,7 @@ export default function Strengths() {
               <div>
                 <Image
                   src={item.img}
-                  alt=""
+                  alt={item.imgAlt}
                   width={380}
                   height={220}
                   className="w-full rounded"

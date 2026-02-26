@@ -58,6 +58,15 @@ export default function CasesSection({ cases }: CasesSectionProps) {
         <p className="text-center text-[13px] text-[#888] py-5 border border-border border-t-0 bg-[#fafafa]">
           この他にも多くのフリーコンサル案件をご提案可能です。
         </p>
+        {/* Cross-link to blog */}
+        <div className="mt-6 text-center">
+          <Link
+            href="/blog"
+            className="text-[13px] font-bold text-blue hover:underline"
+          >
+            フリーコンサル関連の記事を読む →
+          </Link>
+        </div>
       </div>
     </section>
   );

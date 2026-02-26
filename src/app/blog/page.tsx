@@ -6,6 +6,11 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "ブログ",
+  description:
+    "フリーコンサルタントのキャリア、案件獲得のコツ、DXトレンドなど実務に役立つ情報を発信。PERSONA公式ブログ。",
+  alternates: {
+    canonical: "/blog",
+  },
 };
 
 export default function BlogPage() {

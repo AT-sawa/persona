@@ -9,6 +9,7 @@ import CasesSection from "@/components/CasesSection";
 import Strengths from "@/components/Strengths";
 import Story from "@/components/Story";
 import Firms from "@/components/Firms";
+import HomeFAQ from "@/components/HomeFAQ";
 import Register from "@/components/Register";
 import Footer from "@/components/Footer";
 
@@ -38,6 +39,21 @@ async function getCases() {
 export default async function Home() {
   const cases = await getCases();
 
+  // WebSite JSON-LD — declares site entity for search engines & AI
+  const webSiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "PERSONA（ペルソナ）",
+    url: "https://persona-consultant.com",
+    description:
+      "コンサルティングファーム出身者のためのフリーコンサル案件紹介プラットフォーム。",
+    publisher: {
+      "@type": "Organization",
+      name: "PERSONA（ペルソナ）",
+      url: "https://persona-consultant.com",
+    },
+  };
+
   return (
     <>
       <Header />
@@ -49,8 +65,13 @@ export default async function Home() {
       <Strengths />
       <Story />
       <Firms />
+      <HomeFAQ />
       <Register />
       <Footer />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteJsonLd) }}
+      />
     </>
   );
 }

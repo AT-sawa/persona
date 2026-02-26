@@ -30,9 +30,9 @@ export default function Hero() {
       <div className="relative max-w-[1160px] mx-auto grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-10 items-center px-6 pt-[52px] pb-10">
         {/* Left */}
         <div>
-          <p className="text-[11px] font-bold text-blue tracking-[0.12em] uppercase mb-3.5">
-            フリーコンサル案件紹介サービス
-          </p>
+          <h1 className="text-[11px] font-bold text-blue tracking-[0.12em] uppercase mb-3.5">
+            フリーコンサル案件紹介サービス PERSONA（ペルソナ）
+          </h1>
           <Image
             src="/images/persona_logo_hero.png"
             alt="PERSONA フリーコンサルクラウド"

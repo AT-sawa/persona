@@ -12,6 +12,7 @@ export interface BlogPost {
   date?: string;
   description?: string;
   category?: string;
+  keywords?: string[];
   content?: string;
   [key: string]: unknown;
 }

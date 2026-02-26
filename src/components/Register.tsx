@@ -34,7 +34,7 @@ export default function Register() {
           </ul>
           <Image
             src="/images/free_banner.png"
-            alt=""
+            alt="PERSONA登録無料 — フリーコンサル案件紹介"
             width={400}
             height={120}
             className="max-w-[400px] w-full"

@@ -68,7 +68,7 @@ export default function Story() {
           <div>
             <Image
               src="/images/story_person.jpeg"
-              alt=""
+              alt="PERSONAの創業背景 — フリーコンサルの課題を解決するプラットフォーム"
               width={560}
               height={400}
               className="w-full rounded"

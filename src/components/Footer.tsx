@@ -70,7 +70,7 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-xs text-white/30 transition-colors hover:text-white">
+                <Link href="/privacy" className="text-xs text-white/30 transition-colors hover:text-white">
                   プライバシーポリシー
                 </Link>
               </li>
