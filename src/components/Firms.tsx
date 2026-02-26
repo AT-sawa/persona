@@ -17,6 +17,8 @@ export default function Firms() {
             width={960}
             height={120}
             className="w-full"
+            sizes="(max-width: 960px) 100vw, 960px"
+            loading="lazy"
           />
         </div>
       </div>

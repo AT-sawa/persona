@@ -1,13 +1,8 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import RegisterLink from "./RegisterLink";
 
 export default function Header() {
-  const pathname = usePathname();
-  const isHome = pathname === "/";
-
   return (
     <header className="sticky top-0 z-[200] bg-white border-b border-border shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
       <div className="max-w-[1160px] mx-auto flex items-center px-6 h-[60px] gap-6">
@@ -18,6 +13,7 @@ export default function Header() {
             width={140}
             height={36}
             className="h-9 w-auto object-contain"
+            priority
           />
         </Link>
         <nav className="ml-auto flex items-center gap-1.5">
@@ -39,12 +35,7 @@ export default function Header() {
           >
             企業向け
           </Link>
-          <Link
-            href={isHome ? "#register" : "/auth/register"}
-            className="border border-blue text-blue px-[18px] py-2 text-[13px] font-bold transition-colors hover:bg-blue hover:text-white"
-          >
-            無料登録
-          </Link>
+          <RegisterLink />
         </nav>
       </div>
     </header>

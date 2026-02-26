@@ -49,6 +49,7 @@ export default function About() {
               width={420}
               height={280}
               className="w-full rounded"
+              sizes="(max-width: 1024px) 100vw, 420px"
             />
           </div>
         </div>

@@ -39,6 +39,7 @@ export default function Hero() {
             width={280}
             height={80}
             className="max-w-[280px] mb-5"
+            priority
           />
           <ul className="list-none mb-6 flex flex-col gap-2">
             {[

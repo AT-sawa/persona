@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
         hostname: "persona-consultant.com",
       },
     ],
+    formats: ["image/avif", "image/webp"],
   },
 };
 

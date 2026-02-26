@@ -72,6 +72,7 @@ export default function Story() {
               width={560}
               height={400}
               className="w-full rounded"
+              sizes="(max-width: 1024px) 100vw, 50vw"
             />
           </div>
         </div>

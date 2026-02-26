@@ -1,3 +1,5 @@
+export const revalidate = 3600; // ISR: revalidate home page every hour
+
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import Ticker from "@/components/Ticker";

@@ -66,6 +66,7 @@ export default function Strengths() {
                   width={380}
                   height={220}
                   className="w-full rounded"
+                  sizes="(max-width: 1024px) 100vw, 380px"
                 />
               </div>
             </div>
