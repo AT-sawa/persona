@@ -1,0 +1,79 @@
+import type { MetadataRoute } from "next";
+
+const BASE_URL = "https://persona-consultant.com";
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Static pages
+  const staticPages: MetadataRoute.Sitemap = [
+    {
+      url: BASE_URL,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 1,
+    },
+    {
+      url: `${BASE_URL}/cases`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 0.9,
+    },
+    {
+      url: `${BASE_URL}/blog`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
+    {
+      url: `${BASE_URL}/for-enterprise`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+  ];
+
+  // Dynamic case pages from Supabase
+  let casePages: MetadataRoute.Sitemap = [];
+  if (
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  ) {
+    try {
+      const { createClient } = await import("@/lib/supabase/server");
+      const supabase = await createClient();
+      const { data: cases } = await supabase
+        .from("cases")
+        .select("id, published_at")
+        .eq("is_active", true);
+
+      if (cases) {
+        casePages = cases.map((c) => ({
+          url: `${BASE_URL}/cases/${c.id}`,
+          lastModified: c.published_at
+            ? new Date(c.published_at)
+            : new Date(),
+          changeFrequency: "weekly" as const,
+          priority: 0.8,
+        }));
+      }
+    } catch {
+      // Supabase not available — skip dynamic pages
+    }
+  }
+
+  // Blog posts
+  let blogPages: MetadataRoute.Sitemap = [];
+  try {
+    const { getAllPosts } = await import("@/lib/blog");
+    const posts = getAllPosts();
+    blogPages = posts.map((p) => ({
+      url: `${BASE_URL}/blog/${p.slug}`,
+      lastModified: p.date ? new Date(p.date) : new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    }));
+  } catch {
+    // No blog posts yet
+  }
+
+  return [...staticPages, ...casePages, ...blogPages];
+}

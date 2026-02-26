@@ -1,51 +1,62 @@
-"use client";
-
-import { useEffect, useState, useMemo } from "react";
-import { createClient } from "@/lib/supabase/client";
-import type { Case } from "@/lib/types";
-import Link from "next/link";
+import type { Metadata } from "next";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import CaseFilters from "@/components/CaseFilters";
+import type { Case } from "@/lib/types";
 
-export default function CasesPage() {
-  const [cases, setCases] = useState<Case[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState<string>("all");
+export const metadata: Metadata = {
+  title: "フリーコンサル案件一覧",
+  description:
+    "戦略・DX・PMO・SAP等のフリーコンサル案件を常時100件以上掲載。高単価（100〜250万円/月）案件をフリーワード・カテゴリで検索できます。",
+  openGraph: {
+    title: "フリーコンサル案件一覧 | PERSONA",
+    description:
+      "コンサルファーム出身者向けフリーコンサル案件。常時100件以上、月額100〜250万円の高単価案件を掲載中。",
+  },
+};
 
-  useEffect(() => {
-    async function fetchCases() {
-      try {
-        const supabase = createClient();
-        const { data } = await supabase
-          .from("cases")
-          .select("*")
-          .eq("is_active", true)
-          .order("published_at", { ascending: false });
-        setCases(data ?? []);
-      } catch {
-        setCases([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchCases();
-  }, []);
+// Revalidate every 10 minutes for fresh case data
+export const revalidate = 600;
 
-  const filtered = useMemo(() => {
-    return cases.filter((c) => {
-      if (category !== "all" && c.category !== category) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        const searchable = [c.title, c.must_req, c.description, c.industry]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        if (!searchable.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [cases, search, category]);
+async function getCases(): Promise<Case[]> {
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  ) {
+    return [];
+  }
+  try {
+    const { createClient } = await import("@/lib/supabase/server");
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("cases")
+      .select("*")
+      .eq("is_active", true)
+      .order("published_at", { ascending: false });
+    return (data as Case[]) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export default async function CasesPage() {
+  const cases = await getCases();
+
+  // Structured data for SEO (JobPosting collection)
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "フリーコンサル案件一覧",
+    description:
+      "PERSONAが提供するフリーコンサル案件一覧。戦略・DX・PMO・SAP等の高単価案件を掲載。",
+    numberOfItems: cases.length,
+    itemListElement: cases.slice(0, 30).map((c, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      url: `https://persona-consultant.com/cases/${c.id}`,
+      name: c.title,
+    })),
+  };
 
   return (
     <>
@@ -58,75 +69,22 @@ export default function CasesPage() {
           <h1 className="text-[clamp(22px,3vw,30px)] font-black text-navy leading-[1.35] mb-1.5">
             フリーコンサル<em className="not-italic text-blue">案件一覧</em>
           </h1>
+          <p className="text-sm text-[#555] mt-2 mb-1 leading-[1.8]">
+            戦略・DX推進・PMO・SAP導入支援など、コンサルティングファーム出身者向けのフリーコンサル案件を掲載しています。
+          </p>
           <div className="w-9 h-[3px] bg-blue mt-3 mb-8" />
 
-          {/* Filters */}
-          <div className="flex flex-wrap gap-4 mb-8">
-            <input
-              type="text"
-              placeholder="フリーワード検索（タイトル・スキル）"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 min-w-[240px] px-4 py-2.5 border border-border text-sm bg-white outline-none focus:border-blue"
-            />
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="px-4 py-2.5 border border-border text-sm bg-white outline-none focus:border-blue"
-            >
-              <option value="all">すべてのカテゴリ</option>
-              <option value="IT">IT</option>
-              <option value="非IT">非IT</option>
-            </select>
-          </div>
-
-          {loading ? (
-            <p className="text-sm text-[#888] text-center py-10">
-              読み込み中...
-            </p>
-          ) : filtered.length === 0 ? (
-            <p className="text-sm text-[#888] text-center py-10">
-              該当する案件がありません。
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
-              {filtered.map((c) => (
-                <Link
-                  key={c.id}
-                  href={`/cases/${c.id}`}
-                  className="bg-white p-[18px_16px] transition-colors hover:bg-[#f0f8ff] block"
-                >
-                  <p className="text-[13px] font-bold text-navy leading-[1.5] mb-2.5 min-h-[40px]">
-                    {c.title}
-                  </p>
-                  {c.industry && (
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      <span className="text-[10px] font-bold text-blue bg-[#EBF7FD] px-2 py-0.5">
-                        {c.industry}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex items-baseline justify-between pt-2 border-t border-border">
-                    <span className="text-[10px] text-[#aaa]">報酬金額</span>
-                    <span className="text-[13px] font-extrabold text-blue">
-                      {c.fee || "お問い合わせ"}
-                    </span>
-                  </div>
-                  {c.occupancy && (
-                    <div className="flex items-baseline justify-between pt-1">
-                      <span className="text-[10px] text-[#aaa]">稼働率</span>
-                      <span className="text-[12px] text-[#555]">
-                        {c.occupancy}
-                      </span>
-                    </div>
-                  )}
-                </Link>
-              ))}
-            </div>
-          )}
+          {/* Client-side filter/search */}
+          <CaseFilters cases={cases} />
         </div>
       </main>
       <Footer />
+
+      {/* JSON-LD structured data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
     </>
   );
 }
