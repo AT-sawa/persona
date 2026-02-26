@@ -15,9 +15,25 @@ CREATE TABLE IF NOT EXISTS inquiries (
 ALTER TABLE inquiries ENABLE ROW LEVEL SECURITY;
 
 -- Allow anonymous users to insert (for LP forms)
-CREATE POLICY "inquiries_anon_insert" ON inquiries
-  FOR INSERT TO anon WITH CHECK (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'inquiries_anon_insert' AND tablename = 'inquiries'
+  ) THEN
+    CREATE POLICY "inquiries_anon_insert" ON inquiries
+      FOR INSERT TO anon WITH CHECK (true);
+  END IF;
+END
+$$;
 
 -- Only service_role can read inquiries
-CREATE POLICY "inquiries_service_read" ON inquiries
-  FOR SELECT TO service_role USING (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'inquiries_service_read' AND tablename = 'inquiries'
+  ) THEN
+    CREATE POLICY "inquiries_service_read" ON inquiries
+      FOR SELECT TO service_role USING (true);
+  END IF;
+END
+$$;
