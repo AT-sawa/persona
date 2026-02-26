@@ -1,26 +1,46 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --blue: #1fabe9;
+  --blue-dark: #0F8DD7;
+  --navy: #091747;
+  --text: #292929;
+  --gray: #F6F6F6;
+  --border: #e3e6eb;
+  --accent: #7DC7FF;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-blue: var(--blue);
+  --color-blue-dark: var(--blue-dark);
+  --color-navy: var(--navy);
+  --color-text: var(--text);
+  --color-gray-bg: var(--gray);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--navy);
+  background: #fff;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Ticker animation */
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.ticker-track {
+  display: flex;
+  white-space: nowrap;
+  animation: ticker 35s linear infinite;
+  width: max-content;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
 }
