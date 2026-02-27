@@ -12,6 +12,10 @@ interface Stats {
   inquiries: number;
 }
 
+function Icon({ name, className = "" }: { name: string; className?: string }) {
+  return <span className={`material-symbols-rounded ${className}`}>{name}</span>;
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
@@ -108,21 +112,21 @@ export default function AdminPage() {
             href="/dashboard/admin/cases/new"
             className="p-4 border border-border text-center hover:bg-[#fafafa] transition-colors"
           >
-            <span className="text-2xl block mb-1">➕</span>
+            <span className="text-2xl block mb-1"><Icon name="add" className="text-[24px]" /></span>
             <span className="text-[13px] font-bold text-navy">案件を追加</span>
           </Link>
           <Link
             href="/dashboard/admin/cases/import"
             className="p-4 border border-border text-center hover:bg-[#fafafa] transition-colors"
           >
-            <span className="text-2xl block mb-1">📥</span>
+            <span className="text-2xl block mb-1"><Icon name="download" className="text-[24px]" /></span>
             <span className="text-[13px] font-bold text-navy">CSV一括インポート</span>
           </Link>
           <Link
             href="/dashboard/admin/entries"
             className="p-4 border border-border text-center hover:bg-[#fafafa] transition-colors"
           >
-            <span className="text-2xl block mb-1">📨</span>
+            <span className="text-2xl block mb-1"><Icon name="forward_to_inbox" className="text-[24px]" /></span>
             <span className="text-[13px] font-bold text-navy">エントリー確認</span>
           </Link>
         </div>

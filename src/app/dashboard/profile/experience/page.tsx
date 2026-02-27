@@ -16,6 +16,10 @@ const EMPTY_FORM = {
   skills_used: [] as string[],
 };
 
+function Icon({ name, className = "" }: { name: string; className?: string }) {
+  return <span className={`material-symbols-rounded ${className}`}>{name}</span>;
+}
+
 export default function ExperiencePage() {
   const router = useRouter();
   const [experiences, setExperiences] = useState<UserExperience[]>([]);
@@ -300,7 +304,7 @@ export default function ExperiencePage() {
       {/* Experience List */}
       {experiences.length === 0 && !editing ? (
         <div className="bg-white border border-border p-8 text-center">
-          <p className="text-[40px] mb-3">📋</p>
+          <p className="text-[40px] mb-3"><Icon name="assignment" className="text-[40px]" /></p>
           <p className="text-[14px] font-bold text-navy mb-2">
             職務経歴がまだ登録されていません
           </p>

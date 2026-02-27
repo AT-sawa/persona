@@ -23,6 +23,10 @@ const STATUS_OPTIONS = [
   { value: "rejected", label: "不採用" },
 ];
 
+function Icon({ name, className = "" }: { name: string; className?: string }) {
+  return <span className={`material-symbols-rounded ${className}`}>{name}</span>;
+}
+
 export default function AdminEntriesPage() {
   const router = useRouter();
   const [entries, setEntries] = useState<AdminEntry[]>([]);
@@ -137,7 +141,7 @@ export default function AdminEntriesPage() {
                   </p>
                   {entry.message && (
                     <p className="text-[12px] text-[#888] mt-1 line-clamp-2">
-                      💬 {entry.message}
+                      <Icon name="chat_bubble" className="text-[14px] align-middle" /> {entry.message}
                     </p>
                   )}
                   <p className="text-[11px] text-[#aaa] mt-1">

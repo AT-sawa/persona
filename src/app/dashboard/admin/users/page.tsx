@@ -6,6 +6,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types";
 
+function Icon({ name, className = "" }: { name: string; className?: string }) {
+  return <span className={`material-symbols-rounded ${className}`}>{name}</span>;
+}
+
 export default function AdminUsersPage() {
   const router = useRouter();
   const [users, setUsers] = useState<Profile[]>([]);
@@ -110,11 +114,11 @@ export default function AdminUsersPage() {
                   {u.phone && ` ・ ${u.phone}`}
                 </p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#888] mt-1">
-                  {u.prefecture && <span>📍 {u.prefecture}</span>}
-                  {u.years_experience && <span>📅 経験{u.years_experience}年</span>}
+                  {u.prefecture && <span><Icon name="location_on" className="text-[14px] align-middle" /> {u.prefecture}</span>}
+                  {u.years_experience && <span><Icon name="calendar_today" className="text-[14px] align-middle" /> 経験{u.years_experience}年</span>}
                   {u.remote_preference && (
                     <span>
-                      🏠{" "}
+                      <Icon name="home" className="text-[14px] align-middle" />{" "}
                       {{
                         remote_only: "フルリモート",
                         hybrid: "ハイブリッド",

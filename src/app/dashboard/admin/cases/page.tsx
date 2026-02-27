@@ -6,6 +6,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { Case } from "@/lib/types";
 
+function Icon({ name, className = "" }: { name: string; className?: string }) {
+  return <span className={`material-symbols-rounded ${className}`}>{name}</span>;
+}
+
 export default function AdminCasesPage() {
   const router = useRouter();
   const [cases, setCases] = useState<Case[]>([]);
@@ -160,12 +164,12 @@ export default function AdminCasesPage() {
                   {c.title}
                 </p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#888]">
-                  {c.fee && <span>💰 {c.fee}</span>}
-                  {c.location && <span>📍 {c.location}</span>}
-                  {c.industry && <span>🏢 {c.industry}</span>}
+                  {c.fee && <span><Icon name="payments" className="text-[14px] align-middle" /> {c.fee}</span>}
+                  {c.location && <span><Icon name="location_on" className="text-[14px] align-middle" /> {c.location}</span>}
+                  {c.industry && <span><Icon name="business" className="text-[14px] align-middle" /> {c.industry}</span>}
                   {c.created_at && (
                     <span>
-                      📅 {new Date(c.created_at).toLocaleDateString("ja-JP")}
+                      <Icon name="calendar_today" className="text-[14px] align-middle" /> {new Date(c.created_at).toLocaleDateString("ja-JP")}
                     </span>
                   )}
                 </div>

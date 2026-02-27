@@ -15,6 +15,10 @@ interface EntryWithCase extends Entry {
   };
 }
 
+function Icon({ name, className = "" }: { name: string; className?: string }) {
+  return <span className={`material-symbols-rounded ${className}`}>{name}</span>;
+}
+
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
   pending: { label: "審査中", color: "text-blue bg-[#EBF7FD]" },
   reviewing: { label: "書類選考中", color: "text-[#8b5cf6] bg-[#f5f3ff]" },
@@ -70,7 +74,7 @@ export default function EntriesPage() {
 
       {entries.length === 0 ? (
         <div className="bg-white border border-border p-8 text-center">
-          <p className="text-[40px] mb-3">✉️</p>
+          <p className="text-[40px] mb-3"><Icon name="mail" className="text-[40px]" /></p>
           <p className="text-[14px] font-bold text-navy mb-2">
             エントリー履歴がありません
           </p>
@@ -104,14 +108,14 @@ export default function EntriesPage() {
                     </p>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#888]">
                       {entry.cases?.fee && (
-                        <span>💰 {entry.cases.fee}</span>
+                        <span><Icon name="payments" className="text-[14px] align-middle" /> {entry.cases.fee}</span>
                       )}
                       {entry.cases?.location && (
-                        <span>📍 {entry.cases.location}</span>
+                        <span><Icon name="location_on" className="text-[14px] align-middle" /> {entry.cases.location}</span>
                       )}
                       {entry.created_at && (
                         <span>
-                          📅{" "}
+                          <Icon name="calendar_today" className="text-[14px] align-middle" />{" "}
                           {new Date(entry.created_at).toLocaleDateString(
                             "ja-JP"
                           )}
@@ -120,7 +124,7 @@ export default function EntriesPage() {
                     </div>
                     {entry.message && (
                       <p className="text-[12px] text-[#666] mt-2 line-clamp-1">
-                        💬 {entry.message}
+                        <Icon name="chat_bubble" className="text-[14px] align-middle" /> {entry.message}
                       </p>
                     )}
                   </div>

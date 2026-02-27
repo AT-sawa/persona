@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { calculateScore } from "@/lib/matching/calculateScore";
+import { Resend } from "resend";
 import type { Case, Profile, UserPreferences, UserExperience } from "@/lib/types";
 
 export async function POST() {
@@ -101,6 +102,52 @@ export async function POST() {
         .delete()
         .eq("user_id", user.id)
         .not("case_id", "in", `(${matchedCaseIds.join(",")})`);
+    }
+
+    // Send email notification for high-score matches
+    const topMatches = filtered.filter((r) => r.score >= 60).slice(0, 5);
+    if (
+      topMatches.length > 0 &&
+      profile.email &&
+      process.env.RESEND_API_KEY
+    ) {
+      try {
+        const caseMap = new Map(cases.map((c) => [c.id, c]));
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        const fromEmail =
+          process.env.FROM_EMAIL || "noreply@persona-consultant.com";
+
+        const caseLines = topMatches
+          .map((m) => {
+            const c = caseMap.get(m.case_id);
+            return c
+              ? `- ${c.title}（マッチ度 ${m.score}%）${c.fee ? ` / ${c.fee}` : ""}`
+              : null;
+          })
+          .filter(Boolean)
+          .join("\n");
+
+        await resend.emails.send({
+          from: `PERSONA <${fromEmail}>`,
+          to: profile.email,
+          subject: `【PERSONA】あなたにマッチする案件が${topMatches.length}件見つかりました`,
+          text: [
+            `${profile.full_name || ""}さん`,
+            "",
+            `AIマッチングの結果、マッチ度60%以上の案件が${topMatches.length}件見つかりました。`,
+            "",
+            caseLines,
+            "",
+            "詳細はダッシュボードからご確認ください。",
+            "https://persona-app-orcin.vercel.app/dashboard/matching",
+            "",
+            "---",
+            "PERSONA - フリーコンサル案件紹介サービス",
+          ].join("\n"),
+        });
+      } catch (emailErr) {
+        console.error("Match notification email error:", emailErr);
+      }
     }
 
     return NextResponse.json({

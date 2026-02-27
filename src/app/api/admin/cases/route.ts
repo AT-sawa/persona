@@ -66,9 +66,53 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Duplicate check: fetch existing titles and case_no
+    const titles = valid.map((c: { title: string }) => c.title.trim());
+    const caseNos = valid
+      .map((c: { case_no: string | null }) => c.case_no)
+      .filter(Boolean) as string[];
+
+    const { data: existingByTitle } = await supabase
+      .from("cases")
+      .select("title")
+      .in("title", titles);
+
+    const { data: existingByCaseNo } = caseNos.length > 0
+      ? await supabase
+          .from("cases")
+          .select("case_no")
+          .in("case_no", caseNos)
+      : { data: [] };
+
+    const existingTitles = new Set(
+      (existingByTitle ?? []).map((c: { title: string }) => c.title.trim())
+    );
+    const existingCaseNos = new Set(
+      (existingByCaseNo ?? []).map((c: { case_no: string }) => c.case_no)
+    );
+
+    const newCases = valid.filter(
+      (c: { title: string; case_no: string | null }) => {
+        if (c.case_no && existingCaseNos.has(c.case_no)) return false;
+        if (existingTitles.has(c.title.trim())) return false;
+        return true;
+      }
+    );
+
+    const duplicateCount = valid.length - newCases.length;
+
+    if (newCases.length === 0) {
+      return NextResponse.json({
+        imported: 0,
+        skipped: casesData.length - valid.length,
+        duplicates: duplicateCount,
+        message: "すべての案件が既に登録済みです",
+      });
+    }
+
     const { data, error } = await supabase
       .from("cases")
-      .insert(valid)
+      .insert(newCases)
       .select("id");
 
     if (error) {
@@ -82,6 +126,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       imported: data?.length ?? 0,
       skipped: casesData.length - valid.length,
+      duplicates: duplicateCount,
     });
   } catch (err) {
     console.error("Admin cases error:", err);

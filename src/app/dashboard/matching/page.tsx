@@ -8,6 +8,10 @@ import type { MatchingResult, Case } from "@/lib/types";
 
 type MatchWithCase = MatchingResult & { cases: Case };
 
+function Icon({ name, className = "" }: { name: string; className?: string }) {
+  return <span className={`material-symbols-rounded ${className}`}>{name}</span>;
+}
+
 export default function MatchingPage() {
   const router = useRouter();
   const [matches, setMatches] = useState<MatchWithCase[]>([]);
@@ -114,7 +118,7 @@ export default function MatchingPage() {
 
       {matches.length === 0 ? (
         <div className="bg-white border border-border p-8 text-center">
-          <p className="text-[40px] mb-3">🎯</p>
+          <p className="text-[40px] mb-3"><Icon name="auto_awesome" className="text-[40px]" /></p>
           <p className="text-[14px] font-bold text-navy mb-2">
             マッチング結果がありません
           </p>
@@ -154,13 +158,13 @@ export default function MatchingPage() {
                     </p>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#888]">
                       {match.cases?.fee && (
-                        <span>💰 {match.cases.fee}</span>
+                        <span><Icon name="payments" className="text-[14px] align-middle" /> {match.cases.fee}</span>
                       )}
                       {match.cases?.location && (
-                        <span>📍 {match.cases.location}</span>
+                        <span><Icon name="location_on" className="text-[14px] align-middle" /> {match.cases.location}</span>
                       )}
                       {match.cases?.occupancy && (
-                        <span>⏱ {match.cases.occupancy}</span>
+                        <span><Icon name="schedule" className="text-[14px] align-middle" /> {match.cases.occupancy}</span>
                       )}
                     </div>
                     {/* Factor breakdown */}
