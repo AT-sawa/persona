@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { sendNotification } from "@/lib/notify";
+import { useHoneypot } from "@/lib/useHoneypot";
 
 export default function ContactForm() {
   const [formData, setFormData] = useState({
@@ -15,6 +16,7 @@ export default function ContactForm() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const hp = useHoneypot();
 
   function update(key: string, value: string) {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -22,6 +24,7 @@ export default function ContactForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (hp.isFilled) { setSubmitted(true); return; }
     if (!formData.companyName || !formData.fullName || !formData.email) {
       setError("必須項目をすべて入力してください");
       return;
@@ -147,6 +150,17 @@ export default function ContactForm() {
           className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white resize-none"
         />
       </div>
+      {/* Honeypot */}
+      <input
+        type="text"
+        name="website"
+        value={hp.value}
+        onChange={(e) => hp.setValue(e.target.value)}
+        tabIndex={-1}
+        autoComplete="off"
+        className="absolute opacity-0 h-0 w-0 pointer-events-none"
+        aria-hidden="true"
+      />
       {error && <p className="text-[11px] text-[#E15454] mb-3">{error}</p>}
       <button
         type="submit"

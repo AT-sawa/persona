@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { sendNotification } from "@/lib/notify";
+import { useHoneypot } from "@/lib/useHoneypot";
 
 export default function RegisterForm() {
   const [formData, setFormData] = useState({
@@ -16,6 +17,7 @@ export default function RegisterForm() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const hp = useHoneypot();
 
   function update(key: string, value: string) {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -23,6 +25,7 @@ export default function RegisterForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (hp.isFilled) { setSubmitted(true); return; }
     if (
       !formData.fullName ||
       !formData.email ||
@@ -180,6 +183,17 @@ export default function RegisterForm() {
           <option>その他</option>
         </select>
       </div>
+      {/* Honeypot */}
+      <input
+        type="text"
+        name="website"
+        value={hp.value}
+        onChange={(e) => hp.setValue(e.target.value)}
+        tabIndex={-1}
+        autoComplete="off"
+        className="absolute opacity-0 h-0 w-0 pointer-events-none"
+        aria-hidden="true"
+      />
       {error && <p className="text-[11px] text-[#E15454] mb-2">{error}</p>}
       <button
         type="submit"

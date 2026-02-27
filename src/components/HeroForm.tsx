@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { sendNotification } from "@/lib/notify";
+import { useHoneypot } from "@/lib/useHoneypot";
 
 export default function HeroForm() {
   const [email, setEmail] = useState("");
@@ -10,9 +11,11 @@ export default function HeroForm() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const hp = useHoneypot();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (hp.isFilled) { setSubmitted(true); return; }
     if (!email || !firm || firm === "選択してください") {
       setError("メールアドレスとコンサルファームを入力してください");
       return;
@@ -105,6 +108,17 @@ export default function HeroForm() {
           <option>その他</option>
         </select>
       </div>
+      {/* Honeypot — hidden from humans */}
+      <input
+        type="text"
+        name="website"
+        value={hp.value}
+        onChange={(e) => hp.setValue(e.target.value)}
+        tabIndex={-1}
+        autoComplete="off"
+        className="absolute opacity-0 h-0 w-0 pointer-events-none"
+        aria-hidden="true"
+      />
       {error && (
         <p className="text-[11px] text-[#E15454] mb-2">{error}</p>
       )}
