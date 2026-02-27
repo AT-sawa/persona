@@ -38,6 +38,7 @@ export interface Profile {
   prefecture: string | null;
   remote_preference: "remote_only" | "hybrid" | "onsite" | "any" | null;
   profile_complete: boolean;
+  is_admin: boolean;
   created_at: string | null;
   updated_at: string | null;
 }
