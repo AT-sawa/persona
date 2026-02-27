@@ -14,6 +14,7 @@ export default function EntryForm({ caseId }: EntryFormProps) {
   const [user, setUser] = useState<{ id: string } | null>(null);
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,13 +34,18 @@ export default function EntryForm({ caseId }: EntryFormProps) {
       router.push("/auth/login");
       return;
     }
+    setError("");
     const supabase = createClient();
     const supabaseUser = await supabase.auth.getUser();
-    await supabase.from("entries").insert({
+    const { error: insertError } = await supabase.from("entries").insert({
       case_id: caseId,
       user_id: user.id,
       message,
     });
+    if (insertError) {
+      setError("エントリーの送信に失敗しました。もう一度お試しください。");
+      return;
+    }
     sendNotification("case_entry", {
       case_id: caseId,
       email: supabaseUser.data.user?.email || undefined,
@@ -71,6 +77,9 @@ export default function EntryForm({ caseId }: EntryFormProps) {
               placeholder="志望動機や自己PRをご記入ください"
             />
           </div>
+          {error && (
+            <p className="text-xs text-[#E15454] mb-4">{error}</p>
+          )}
           <button
             onClick={handleEntry}
             disabled={loading}

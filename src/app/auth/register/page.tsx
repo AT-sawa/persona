@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { sendNotification } from "@/lib/notify";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
@@ -40,14 +41,23 @@ export default function RegisterPage() {
     }
 
     if (data.user) {
-      await supabase.from("profiles").insert({
+      const { error: profileError } = await supabase.from("profiles").insert({
         id: data.user.id,
+        full_name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+      });
+      if (profileError) {
+        console.error("Profile insert error:", profileError);
+      }
+      sendNotification("consultant_lead", {
         full_name: formData.fullName,
         email: formData.email,
         phone: formData.phone,
       });
     }
 
+    setLoading(false);
     router.push("/dashboard");
   }
 

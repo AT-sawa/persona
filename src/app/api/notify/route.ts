@@ -12,9 +12,9 @@ interface NotifyPayload {
 
 export async function POST(req: NextRequest) {
   try {
-    // Simple API key check to prevent abuse
+    // Simple check using Supabase anon key as shared secret
     const authHeader = req.headers.get("x-notify-key");
-    if (authHeader !== process.env.NOTIFY_SECRET) {
+    if (authHeader !== process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
