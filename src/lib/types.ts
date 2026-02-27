@@ -28,7 +28,18 @@ export interface Profile {
   phone: string | null;
   background: string | null;
   skills: string[] | null;
+  avatar_url: string | null;
+  bio: string | null;
+  years_experience: number | null;
+  hourly_rate_min: number | null;
+  hourly_rate_max: number | null;
+  linkedin_url: string | null;
+  available_from: string | null;
+  prefecture: string | null;
+  remote_preference: "remote_only" | "hybrid" | "onsite" | "any" | null;
+  profile_complete: boolean;
   created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface Entry {
@@ -37,5 +48,63 @@ export interface Entry {
   user_id: string;
   status: string;
   message: string | null;
+  resume_id: string | null;
   created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface UserPreferences {
+  id: string;
+  user_id: string;
+  desired_rate_min: number | null;
+  desired_rate_max: number | null;
+  desired_industries: string[] | null;
+  desired_categories: string[] | null;
+  desired_roles: string[] | null;
+  preferred_locations: string[] | null;
+  remote_preference: "remote_only" | "hybrid" | "onsite" | "any" | null;
+  min_occupancy: number | null;
+  max_occupancy: number | null;
+  available_from: string | null;
+  notes: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface UserExperience {
+  id: string;
+  user_id: string;
+  company_name: string;
+  role: string;
+  industry: string | null;
+  start_date: string;
+  end_date: string | null;
+  is_current: boolean;
+  description: string | null;
+  skills_used: string[] | null;
+  sort_order: number;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface Resume {
+  id: string;
+  user_id: string;
+  filename: string;
+  file_path: string;
+  file_size: number | null;
+  mime_type: string | null;
+  is_primary: boolean;
+  uploaded_at: string | null;
+}
+
+export interface MatchingResult {
+  id: string;
+  case_id: string;
+  user_id: string;
+  score: number;
+  factors: Record<string, unknown>;
+  is_notified: boolean;
+  matched_at: string | null;
+  cases?: Case;
 }
