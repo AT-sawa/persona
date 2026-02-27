@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import type { Profile, Entry, MatchingResult, Resume } from "@/lib/types";
+import type { Profile, Entry, MatchingResult } from "@/lib/types";
 
 interface EntryWithCase extends Entry {
   cases?: { title: string; fee: string | null };
@@ -27,6 +27,8 @@ export default function DashboardPage() {
   const [expCount, setExpCount] = useState(0);
   const [prefExists, setPrefExists] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const datePickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -97,6 +99,33 @@ export default function DashboardPage() {
       .eq("id", profile.id);
     setProfile({ ...profile, is_looking: newVal });
   }
+
+  async function saveAvailableFrom(date: string) {
+    if (!profile) return;
+    const supabase = createClient();
+    await supabase
+      .from("profiles")
+      .update({ available_from: date, updated_at: new Date().toISOString() })
+      .eq("id", profile.id);
+    setProfile({ ...profile, available_from: date });
+    setShowDatePicker(false);
+  }
+
+  // Close date picker on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        datePickerRef.current &&
+        !datePickerRef.current.contains(e.target as Node)
+      ) {
+        setShowDatePicker(false);
+      }
+    }
+    if (showDatePicker) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showDatePicker]);
 
   function getCompleteness(): number {
     if (!profile) return 0;
@@ -221,12 +250,16 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-6 text-[13px]">
-            <div className="flex items-center gap-2">
+          <div className="relative" ref={datePickerRef}>
+            <button
+              type="button"
+              onClick={() => setShowDatePicker(!showDatePicker)}
+              className="flex items-center gap-2 text-[13px] px-4 py-2.5 rounded-xl border border-border/60 hover:border-blue/40 hover:bg-blue/4 transition-all cursor-pointer"
+            >
               <Icon name="calendar_today" className="text-[18px] text-blue" />
-              <div>
-                <p className="text-[11px] text-[#888]">稼働開始可能日</p>
-                <p className="font-bold text-navy">
+              <div className="text-left">
+                <p className="text-[10px] text-[#888] leading-tight">稼働開始可能日</p>
+                <p className="font-bold text-navy leading-tight">
                   {profile?.available_from
                     ? new Date(profile.available_from).toLocaleDateString(
                         "ja-JP",
@@ -235,14 +268,47 @@ export default function DashboardPage() {
                     : "未設定"}
                 </p>
               </div>
-            </div>
-            {!profile?.available_from && (
-              <Link
-                href="/dashboard/profile"
-                className="text-[12px] text-blue font-bold hover:underline"
-              >
-                設定する
-              </Link>
+              <Icon
+                name="expand_more"
+                className={`text-[18px] text-[#888] transition-transform ${showDatePicker ? "rotate-180" : ""}`}
+              />
+            </button>
+
+            {showDatePicker && (
+              <div className="absolute right-0 top-full mt-2 z-50 bg-white rounded-2xl border border-border/60 shadow-[0_8px_30px_rgba(0,0,0,0.12)] p-5 w-[300px]">
+                <p className="text-[12px] font-bold text-navy mb-3">
+                  稼働開始可能日を選択
+                </p>
+                <input
+                  type="date"
+                  value={profile?.available_from ?? ""}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      saveAvailableFrom(e.target.value);
+                    }
+                  }}
+                  className="w-full px-3 py-2.5 border border-border/60 text-[13px] text-text outline-none rounded-xl bg-[#fafafa] focus:border-blue focus:bg-white transition-colors"
+                />
+                <div className="flex gap-2 mt-3">
+                  {["即日", "1週間後", "1ヶ月後", "2ヶ月後"].map((label) => {
+                    const d = new Date();
+                    if (label === "1週間後") d.setDate(d.getDate() + 7);
+                    else if (label === "1ヶ月後") d.setMonth(d.getMonth() + 1);
+                    else if (label === "2ヶ月後") d.setMonth(d.getMonth() + 2);
+                    const val = d.toISOString().split("T")[0];
+                    return (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => saveAvailableFrom(val)}
+                        className="flex-1 text-[11px] font-bold py-2 rounded-lg bg-[#f5f7fa] text-[#666] hover:bg-blue/8 hover:text-blue transition-colors"
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             )}
           </div>
         </div>

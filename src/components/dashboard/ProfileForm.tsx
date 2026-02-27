@@ -232,9 +232,13 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
             <input
               type="number"
               value={form.hourly_rate_min}
-              onChange={(e) => update("hourly_rate_min", e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                update("hourly_rate_min", v ? String(Math.round(parseInt(v) / 10) * 10) : "");
+              }}
               placeholder="例: 100"
               min="0"
+              step="10"
               className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
             />
           </div>
@@ -245,9 +249,13 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
             <input
               type="number"
               value={form.hourly_rate_max}
-              onChange={(e) => update("hourly_rate_max", e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                update("hourly_rate_max", v ? String(Math.round(parseInt(v) / 10) * 10) : "");
+              }}
               placeholder="例: 200"
               min="0"
+              step="10"
               className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
             />
           </div>

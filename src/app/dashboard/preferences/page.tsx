@@ -163,12 +163,13 @@ export default function PreferencesPage() {
                   setPrefs((p) => ({
                     ...p,
                     desired_rate_min: e.target.value
-                      ? parseInt(e.target.value)
+                      ? Math.round(parseInt(e.target.value) / 10) * 10
                       : null,
                   }))
                 }
                 placeholder="例: 100"
                 min="0"
+                step="10"
                 className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
               />
             </div>
@@ -183,12 +184,13 @@ export default function PreferencesPage() {
                   setPrefs((p) => ({
                     ...p,
                     desired_rate_max: e.target.value
-                      ? parseInt(e.target.value)
+                      ? Math.round(parseInt(e.target.value) / 10) * 10
                       : null,
                   }))
                 }
                 placeholder="例: 200"
                 min="0"
+                step="10"
                 className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
               />
             </div>
@@ -331,10 +333,15 @@ export default function PreferencesPage() {
                 className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
               >
                 <option value="">指定なし</option>
+                <option value="0.1">10%</option>
                 <option value="0.2">20%</option>
+                <option value="0.3">30%</option>
                 <option value="0.4">40%</option>
+                <option value="0.5">50%</option>
                 <option value="0.6">60%</option>
+                <option value="0.7">70%</option>
                 <option value="0.8">80%</option>
+                <option value="0.9">90%</option>
                 <option value="1.0">100%</option>
               </select>
             </div>
@@ -355,10 +362,15 @@ export default function PreferencesPage() {
                 className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
               >
                 <option value="">指定なし</option>
+                <option value="0.1">10%</option>
                 <option value="0.2">20%</option>
+                <option value="0.3">30%</option>
                 <option value="0.4">40%</option>
+                <option value="0.5">50%</option>
                 <option value="0.6">60%</option>
+                <option value="0.7">70%</option>
                 <option value="0.8">80%</option>
+                <option value="0.9">90%</option>
                 <option value="1.0">100%</option>
               </select>
             </div>
