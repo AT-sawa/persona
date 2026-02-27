@@ -23,11 +23,11 @@ async function getCase(id: string): Promise<Case | null> {
   try {
     const { createClient } = await import("@/lib/supabase/server");
     const supabase = await createClient();
+    // Fetch all cases (active + closed) for SEO
     const { data } = await supabase
       .from("cases")
       .select("*")
       .eq("id", id)
-      .eq("is_active", true)
       .single();
     return data as Case | null;
   } catch {
@@ -178,9 +178,30 @@ export default async function CaseDetailPage({ params }: Props) {
           <p className="text-[10px] font-bold text-blue tracking-[0.18em] uppercase mb-2">
             CASE DETAIL
           </p>
+          <div className="flex items-center gap-3 mb-2">
+            <span
+              className={`text-[11px] font-bold px-2.5 py-1 ${
+                caseData.is_active
+                  ? "text-[#10b981] bg-[#ecfdf5]"
+                  : "text-[#888] bg-[#f5f5f5]"
+              }`}
+            >
+              {caseData.is_active ? "募集中" : "クローズ"}
+            </span>
+          </div>
           <h1 className="text-xl font-black text-navy leading-[1.4] mb-6">
             {caseData.title}
           </h1>
+
+          {!caseData.is_active && (
+            <div className="bg-[#f5f5f5] border border-[#e0e0e0] p-4 mb-6 text-[13px] text-[#666]">
+              この案件は募集を終了しています。類似案件をお探しの方は
+              <Link href="/cases?status=active" className="text-blue font-bold hover:underline ml-1">
+                募集中の案件一覧
+              </Link>
+              をご覧ください。
+            </div>
+          )}
 
           {/* Summary table */}
           <div className="bg-white border border-border p-8 mb-6">
@@ -221,8 +242,8 @@ export default async function CaseDetailPage({ params }: Props) {
               )
           )}
 
-          {/* Entry form (client component) */}
-          <EntryForm caseId={caseData.id} />
+          {/* Entry form (client component) — only for active cases */}
+          {caseData.is_active && <EntryForm caseId={caseData.id} />}
         </div>
       </main>
       <Footer />

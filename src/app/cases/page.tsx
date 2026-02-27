@@ -5,9 +5,9 @@ import CaseFilters from "@/components/CaseFilters";
 import type { Case } from "@/lib/types";
 
 export const metadata: Metadata = {
-  title: "フリーコンサル案件一覧",
+  title: "フリーコンサル案件一覧｜募集中・過去案件アーカイブ",
   description:
-    "戦略・DX・PMO・SAP等のフリーコンサル案件を常時100件以上掲載。高単価（100〜250万円/月）案件をフリーワード・カテゴリで検索できます。",
+    "戦略・DX・PMO・SAP等のフリーコンサル案件を常時掲載。高単価（100〜250万円/月）案件をフリーワード・カテゴリ・ステータスで検索できます。過去案件も含めた実績アーカイブ。",
   openGraph: {
     title: "フリーコンサル案件一覧 | PERSONA",
     description:
@@ -28,10 +28,11 @@ async function getCases(): Promise<Case[]> {
   try {
     const { createClient } = await import("@/lib/supabase/server");
     const supabase = await createClient();
+    // Fetch all cases (active + closed) for SEO coverage
     const { data } = await supabase
       .from("cases")
       .select("*")
-      .eq("is_active", true)
+      .order("is_active", { ascending: false })
       .order("published_at", { ascending: false });
     return (data as Case[]) ?? [];
   } catch {

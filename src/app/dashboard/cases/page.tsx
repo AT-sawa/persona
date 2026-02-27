@@ -311,6 +311,19 @@ export default function AppCasesPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1.5">
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                          c.is_active
+                            ? "text-[#10b981] bg-[#ecfdf5]"
+                            : "text-[#888] bg-[#f5f5f5]"
+                        }`}
+                      >
+                        {c.is_active
+                          ? c.status === "最注力"
+                            ? "最注力"
+                            : "募集中"
+                          : "クローズ"}
+                      </span>
                       {c.category && (
                         <span className="text-[10px] text-[#888] bg-[#f5f7fa] px-2 py-0.5 rounded">
                           {c.category}

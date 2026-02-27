@@ -41,6 +41,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "yearly",
       priority: 0.3,
     },
+    {
+      url: `${BASE_URL}/cases/category/consul`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE_URL}/cases/category/si`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 0.8,
+    },
   ];
 
   // Dynamic case pages from Supabase
@@ -54,8 +66,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const supabase = await createClient();
       const { data: cases } = await supabase
         .from("cases")
-        .select("id, published_at")
-        .eq("is_active", true);
+        .select("id, published_at, is_active");
 
       if (cases) {
         casePages = cases.map((c) => ({
@@ -63,8 +74,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           lastModified: c.published_at
             ? new Date(c.published_at)
             : new Date(),
-          changeFrequency: "weekly" as const,
-          priority: 0.8,
+          changeFrequency: c.is_active ? ("weekly" as const) : ("monthly" as const),
+          priority: c.is_active ? 0.8 : 0.4,
         }));
       }
     } catch {

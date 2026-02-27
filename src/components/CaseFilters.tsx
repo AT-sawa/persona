@@ -8,17 +8,34 @@ const PER_PAGE = 18;
 
 interface CaseFiltersProps {
   cases: Case[];
+  defaultStatus?: string;
+  defaultCategory?: string;
 }
 
-export default function CaseFilters({ cases }: CaseFiltersProps) {
+export default function CaseFilters({
+  cases,
+  defaultStatus,
+  defaultCategory,
+}: CaseFiltersProps) {
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("all");
+  const [category, setCategory] = useState(defaultCategory || "all");
+  const [status, setStatus] = useState(defaultStatus || "all");
   const [page, setPage] = useState(1);
 
+  const activeCount = useMemo(
+    () => cases.filter((c) => c.is_active).length,
+    [cases]
+  );
+  const closedCount = useMemo(
+    () => cases.filter((c) => !c.is_active).length,
+    [cases]
+  );
+
   const filtered = useMemo(() => {
-    // Reset to page 1 when filters change
     return cases.filter((c) => {
       if (category !== "all" && c.category !== category) return false;
+      if (status === "active" && !c.is_active) return false;
+      if (status === "closed" && c.is_active) return false;
       if (search) {
         const q = search.toLowerCase();
         const searchable = [c.title, c.must_req, c.description, c.industry]
@@ -29,9 +46,8 @@ export default function CaseFilters({ cases }: CaseFiltersProps) {
       }
       return true;
     });
-  }, [cases, search, category]);
+  }, [cases, search, category, status]);
 
-  // Reset page when filters change
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const currentPage = Math.min(page, totalPages || 1);
   const paginated = filtered.slice(
@@ -49,8 +65,34 @@ export default function CaseFilters({ cases }: CaseFiltersProps) {
     setPage(1);
   }
 
+  function handleStatus(value: string) {
+    setStatus(value);
+    setPage(1);
+  }
+
   return (
     <>
+      {/* Status tabs */}
+      <div className="flex gap-2 mb-5">
+        {[
+          { key: "all", label: `すべて（${cases.length}）` },
+          { key: "active", label: `募集中（${activeCount}）` },
+          { key: "closed", label: `クローズ（${closedCount}）` },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => handleStatus(tab.key)}
+            className={`px-4 py-2 text-[12px] font-bold border transition-colors ${
+              status === tab.key
+                ? "bg-navy text-white border-navy"
+                : "bg-white text-[#666] border-border hover:bg-[#f5f7fa]"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* Filters */}
       <div className="flex flex-wrap gap-4 mb-8">
         <input
@@ -66,6 +108,8 @@ export default function CaseFilters({ cases }: CaseFiltersProps) {
           className="px-4 py-2.5 border border-border text-sm bg-white outline-none focus:border-blue"
         >
           <option value="all">すべてのカテゴリ</option>
+          <option value="コンサル">コンサル</option>
+          <option value="SI">SI</option>
           <option value="IT">IT</option>
           <option value="非IT">非IT</option>
         </select>
@@ -92,8 +136,21 @@ export default function CaseFilters({ cases }: CaseFiltersProps) {
             <Link
               key={c.id}
               href={`/cases/${c.id}`}
-              className="bg-white p-[18px_16px] transition-colors hover:bg-[#f0f8ff] block"
+              className={`bg-white p-[18px_16px] transition-colors hover:bg-[#f0f8ff] block relative ${
+                !c.is_active ? "opacity-75" : ""
+              }`}
             >
+              {/* Status badge */}
+              <span
+                className={`inline-block text-[10px] font-bold px-2 py-0.5 mb-2 ${
+                  c.is_active
+                    ? "text-[#10b981] bg-[#ecfdf5]"
+                    : "text-[#888] bg-[#f5f5f5]"
+                }`}
+              >
+                {c.is_active ? "募集中" : "クローズ"}
+              </span>
+
               <p className="text-[13px] font-bold text-navy leading-[1.5] mb-2.5 min-h-[40px]">
                 {c.title}
               </p>
@@ -138,19 +195,32 @@ export default function CaseFilters({ cases }: CaseFiltersProps) {
           >
             ← 前へ
           </button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPage(p)}
-              className={`w-9 h-9 text-sm border transition-colors ${
-                p === currentPage
-                  ? "bg-blue text-white border-blue font-bold"
-                  : "border-border bg-white text-navy hover:bg-[#f0f8ff]"
-              }`}
-            >
-              {p}
-            </button>
-          ))}
+          {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => {
+            // Show pages around current page
+            let p: number;
+            if (totalPages <= 10) {
+              p = i + 1;
+            } else if (currentPage <= 5) {
+              p = i + 1;
+            } else if (currentPage >= totalPages - 4) {
+              p = totalPages - 9 + i;
+            } else {
+              p = currentPage - 4 + i;
+            }
+            return (
+              <button
+                key={p}
+                onClick={() => setPage(p)}
+                className={`w-9 h-9 text-sm border transition-colors ${
+                  p === currentPage
+                    ? "bg-blue text-white border-blue font-bold"
+                    : "border-border bg-white text-navy hover:bg-[#f0f8ff]"
+                }`}
+              >
+                {p}
+              </button>
+            );
+          })}
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage >= totalPages}
