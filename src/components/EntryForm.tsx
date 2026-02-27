@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { sendNotification } from "@/lib/notify";
 
 interface EntryFormProps {
   caseId: string;
@@ -33,9 +34,15 @@ export default function EntryForm({ caseId }: EntryFormProps) {
       return;
     }
     const supabase = createClient();
+    const supabaseUser = await supabase.auth.getUser();
     await supabase.from("entries").insert({
       case_id: caseId,
       user_id: user.id,
+      message,
+    });
+    sendNotification("case_entry", {
+      case_id: caseId,
+      email: supabaseUser.data.user?.email || undefined,
       message,
     });
     setSubmitted(true);

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { sendNotification } from "@/lib/notify";
 
 export default function ContactForm() {
   const [formData, setFormData] = useState({
@@ -40,6 +41,13 @@ export default function ContactForm() {
           message: formData.message || null,
         });
       if (insertError) throw insertError;
+      sendNotification("enterprise_inquiry", {
+        company_name: formData.companyName,
+        full_name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        message: formData.message,
+      });
       setSubmitted(true);
     } catch {
       setError("送信に失敗しました。もう一度お試しください。");

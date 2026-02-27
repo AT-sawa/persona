@@ -4,6 +4,8 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import type { Case } from "@/lib/types";
 
+const PER_PAGE = 18;
+
 interface CaseFiltersProps {
   cases: Case[];
 }
@@ -11,8 +13,10 @@ interface CaseFiltersProps {
 export default function CaseFilters({ cases }: CaseFiltersProps) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
+  const [page, setPage] = useState(1);
 
   const filtered = useMemo(() => {
+    // Reset to page 1 when filters change
     return cases.filter((c) => {
       if (category !== "all" && c.category !== category) return false;
       if (search) {
@@ -27,6 +31,24 @@ export default function CaseFilters({ cases }: CaseFiltersProps) {
     });
   }, [cases, search, category]);
 
+  // Reset page when filters change
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const currentPage = Math.min(page, totalPages || 1);
+  const paginated = filtered.slice(
+    (currentPage - 1) * PER_PAGE,
+    currentPage * PER_PAGE
+  );
+
+  function handleSearch(value: string) {
+    setSearch(value);
+    setPage(1);
+  }
+
+  function handleCategory(value: string) {
+    setCategory(value);
+    setPage(1);
+  }
+
   return (
     <>
       {/* Filters */}
@@ -35,12 +57,12 @@ export default function CaseFilters({ cases }: CaseFiltersProps) {
           type="text"
           placeholder="フリーワード検索（タイトル・スキル）"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => handleSearch(e.target.value)}
           className="flex-1 min-w-[240px] px-4 py-2.5 border border-border text-sm bg-white outline-none focus:border-blue"
         />
         <select
           value={category}
-          onChange={(e) => setCategory(e.target.value)}
+          onChange={(e) => handleCategory(e.target.value)}
           className="px-4 py-2.5 border border-border text-sm bg-white outline-none focus:border-blue"
         >
           <option value="all">すべてのカテゴリ</option>
@@ -52,16 +74,21 @@ export default function CaseFilters({ cases }: CaseFiltersProps) {
       {/* Results count */}
       <p className="text-xs text-[#888] mb-4">
         {filtered.length}件の案件が見つかりました
+        {totalPages > 1 && (
+          <span className="ml-2">
+            （{currentPage}/{totalPages}ページ）
+          </span>
+        )}
       </p>
 
       {/* Case grid */}
-      {filtered.length === 0 ? (
+      {paginated.length === 0 ? (
         <p className="text-sm text-[#888] text-center py-10">
           該当する案件がありません。
         </p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
-          {filtered.map((c) => (
+          {paginated.map((c) => (
             <Link
               key={c.id}
               href={`/cases/${c.id}`}
@@ -96,6 +123,42 @@ export default function CaseFilters({ cases }: CaseFiltersProps) {
             </Link>
           ))}
         </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <nav
+          aria-label="ページネーション"
+          className="flex items-center justify-center gap-1 mt-8"
+        >
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage <= 1}
+            className="px-3 py-2 text-sm border border-border bg-white text-navy hover:bg-[#f0f8ff] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            ← 前へ
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPage(p)}
+              className={`w-9 h-9 text-sm border transition-colors ${
+                p === currentPage
+                  ? "bg-blue text-white border-blue font-bold"
+                  : "border-border bg-white text-navy hover:bg-[#f0f8ff]"
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage >= totalPages}
+            className="px-3 py-2 text-sm border border-border bg-white text-navy hover:bg-[#f0f8ff] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            次へ →
+          </button>
+        </nav>
       )}
     </>
   );

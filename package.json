@@ -10,12 +10,14 @@
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.97.0",
+    "csv-parse": "^6.1.0",
     "gray-matter": "^4.0.3",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "remark": "^15.0.1",
-    "remark-html": "^16.0.1"
+    "remark-html": "^16.0.1",
+    "resend": "^6.9.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

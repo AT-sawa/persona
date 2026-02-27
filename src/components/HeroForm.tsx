@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { sendNotification } from "@/lib/notify";
 
 export default function HeroForm() {
   const [email, setEmail] = useState("");
@@ -28,6 +29,7 @@ export default function HeroForm() {
           firm,
         });
       if (insertError) throw insertError;
+      sendNotification("consultant_lead", { email, firm });
       setSubmitted(true);
     } catch {
       setError("送信に失敗しました。もう一度お試しください。");

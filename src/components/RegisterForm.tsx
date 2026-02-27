@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { sendNotification } from "@/lib/notify";
 
 export default function RegisterForm() {
   const [formData, setFormData] = useState({
@@ -47,6 +48,13 @@ export default function RegisterForm() {
           experience: formData.experience || null,
         });
       if (insertError) throw insertError;
+      sendNotification("consultant_lead", {
+        full_name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        firm: formData.firm,
+        experience: formData.experience,
+      });
       setSubmitted(true);
     } catch {
       setError("送信に失敗しました。もう一度お試しください。");

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Sans_JP, Noto_Serif_JP } from "next/font/google";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 import "./globals.css";
 
 const notoSansJP = Noto_Sans_JP({
@@ -46,6 +47,7 @@ export default function RootLayout({
         className={`${notoSansJP.variable} ${notoSerifJP.variable} antialiased`}
         style={{ fontFamily: "var(--font-noto-sans-jp), sans-serif" }}
       >
+        <GoogleAnalytics />
         {children}
         {/* Organization JSON-LD — global entity for AI/search engines */}
         <script
