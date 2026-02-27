@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { sendNotification } from "@/lib/notify";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
@@ -26,39 +25,54 @@ export default function RegisterPage() {
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    setLoading(true);
-    const supabase = createClient();
 
-    const { data, error: authError } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-    });
-
-    if (authError) {
-      setError(authError.message);
-      setLoading(false);
+    if (formData.password.length < 8) {
+      setError("パスワードは8文字以上で入力してください");
       return;
     }
 
-    if (data.user) {
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: data.user.id,
-        full_name: formData.fullName,
-        email: formData.email,
-        phone: formData.phone,
-      });
-      if (profileError) {
-        console.error("Profile insert error:", profileError);
-      }
-      sendNotification("consultant_lead", {
-        full_name: formData.fullName,
-        email: formData.email,
-        phone: formData.phone,
-      });
-    }
+    setLoading(true);
 
-    setLoading(false);
-    router.push("/dashboard");
+    try {
+      // Register via server API (bypasses email confirmation)
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          fullName: formData.fullName,
+          phone: formData.phone,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "登録に失敗しました");
+        setLoading(false);
+        return;
+      }
+
+      // Auto-login after registration
+      const supabase = createClient();
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (loginError) {
+        // Registration succeeded but auto-login failed - redirect to login page
+        router.push("/auth/login?registered=true");
+        return;
+      }
+
+      router.push("/dashboard");
+    } catch {
+      setError("登録に失敗しました。もう一度お試しください。");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
