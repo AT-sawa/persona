@@ -10,8 +10,8 @@ export default function DashboardLayout({
   return (
     <>
       <Header />
-      <main className="pt-[72px] pb-[100px] lg:pb-[72px] px-4 md:px-6 min-h-screen bg-gray-bg">
-        <div className="max-w-[1060px] mx-auto flex gap-8">
+      <main className="pt-[72px] pb-[100px] lg:pb-[72px] px-4 md:px-8 min-h-screen bg-gray-bg">
+        <div className="max-w-[1320px] mx-auto flex gap-8">
           <DashboardSidebar />
           <div className="flex-1 min-w-0">{children}</div>
         </div>

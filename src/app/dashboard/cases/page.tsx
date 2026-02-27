@@ -6,7 +6,44 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { Case } from "@/lib/types";
 
-const CATEGORIES = ["すべて", "IT", "非IT"];
+function Icon({ name, className = "" }: { name: string; className?: string }) {
+  return (
+    <span className={`material-symbols-rounded ${className}`}>{name}</span>
+  );
+}
+
+const CATEGORY_TREE: Record<string, string[]> = {
+  戦略: [
+    "戦略策定",
+    "新規事業",
+    "M&A / PMI",
+    "DD（デューデリジェンス）",
+    "市場調査・競合分析",
+    "経営企画",
+  ],
+  BPR: [
+    "業務改革・業務改善",
+    "組織改革",
+    "SCM / サプライチェーン",
+    "人事制度設計",
+    "経営管理・管理会計",
+    "BPO推進",
+  ],
+  IT: [
+    "PMO",
+    "DX推進",
+    "SAP導入・運用",
+    "Salesforce導入",
+    "ERP / 基幹システム",
+    "クラウド / インフラ",
+    "データ分析 / BI",
+    "AI / 機械学習",
+    "セキュリティ",
+    "システム開発",
+  ],
+};
+
+const ALL_CATEGORIES = Object.keys(CATEGORY_TREE);
 
 export default function AppCasesPage() {
   const router = useRouter();
@@ -16,7 +53,8 @@ export default function AppCasesPage() {
 
   // Filters
   const [keyword, setKeyword] = useState("");
-  const [category, setCategory] = useState("すべて");
+  const [mainCategory, setMainCategory] = useState<string | null>(null);
+  const [subCategory, setSubCategory] = useState<string | null>(null);
   const [feeMin, setFeeMin] = useState("");
   const [location, setLocation] = useState("");
   const [matchScores, setMatchScores] = useState<Record<string, number>>({});
@@ -47,7 +85,6 @@ export default function AppCasesPage() {
     setCases(casesData);
     setFiltered(casesData);
 
-    // Build score map
     const scores: Record<string, number> = {};
     (matchRes.data ?? []).forEach((m: { case_id: string; score: number }) => {
       scores[m.case_id] = m.score;
@@ -74,8 +111,21 @@ export default function AppCasesPage() {
       );
     }
 
-    if (category !== "すべて") {
-      result = result.filter((c) => c.category === category);
+    if (mainCategory) {
+      // Match cases where category field contains the main or sub category keywords
+      const subs = CATEGORY_TREE[mainCategory] ?? [];
+      const searchTerms = [mainCategory, ...subs];
+      result = result.filter((c) => {
+        const text = `${c.category ?? ""} ${c.title} ${c.description ?? ""} ${c.must_req ?? ""}`.toLowerCase();
+        return searchTerms.some((term) => text.includes(term.toLowerCase()));
+      });
+    }
+
+    if (subCategory) {
+      result = result.filter((c) => {
+        const text = `${c.category ?? ""} ${c.title} ${c.description ?? ""} ${c.must_req ?? ""}`.toLowerCase();
+        return text.includes(subCategory.toLowerCase());
+      });
     }
 
     if (feeMin) {
@@ -89,88 +139,150 @@ export default function AppCasesPage() {
     }
 
     if (location) {
-      result = result.filter((c) =>
-        c.location?.includes(location)
-      );
+      result = result.filter((c) => c.location?.includes(location));
     }
 
     setFiltered(result);
-  }, [cases, keyword, category, feeMin, location]);
+  }, [cases, keyword, mainCategory, subCategory, feeMin, location]);
+
+  function clearFilters() {
+    setKeyword("");
+    setMainCategory(null);
+    setSubCategory(null);
+    setFeeMin("");
+    setLocation("");
+  }
+
+  const hasFilters =
+    keyword || mainCategory || subCategory || feeMin || location;
 
   if (loading) {
     return (
-      <div className="py-8">
-        <div className="text-sm text-[#888]">読み込み中...</div>
+      <div className="py-12 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-[#999]">
+          <Icon name="progress_activity" className="text-[24px] animate-spin" />
+          <span className="text-sm">読み込み中...</span>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="py-6">
-      <div className="mb-6">
-        <p className="text-[10px] font-bold text-blue tracking-[0.18em] uppercase mb-1">
-          CASES
-        </p>
-        <h1 className="text-xl font-black text-navy">案件検索</h1>
-        <p className="text-[12px] text-[#888] mt-1">
-          {filtered.length}件の案件
-        </p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-black text-navy">案件検索</h1>
+          <p className="text-[13px] text-[#888] mt-1">
+            {filtered.length}件の案件
+            {hasFilters && (
+              <button
+                onClick={clearFilters}
+                className="ml-3 text-blue hover:underline"
+              >
+                フィルタをクリア
+              </button>
+            )}
+          </p>
+        </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white border border-border p-4 mb-5">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div>
-            <label className="block text-[11px] font-bold text-[#888] mb-1">
-              キーワード
-            </label>
+      {/* Category Tabs */}
+      <div className="bg-white rounded-2xl border border-border/60 p-5 mb-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button
+            onClick={() => {
+              setMainCategory(null);
+              setSubCategory(null);
+            }}
+            className={`px-4 py-2 text-[13px] font-bold rounded-xl transition-all ${
+              !mainCategory
+                ? "bg-navy text-white"
+                : "bg-[#f5f7fa] text-[#666] hover:bg-[#eee]"
+            }`}
+          >
+            すべて
+          </button>
+          {ALL_CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => {
+                setMainCategory(mainCategory === cat ? null : cat);
+                setSubCategory(null);
+              }}
+              className={`px-4 py-2 text-[13px] font-bold rounded-xl transition-all ${
+                mainCategory === cat
+                  ? "bg-blue text-white"
+                  : "bg-[#f5f7fa] text-[#666] hover:bg-[#eee]"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        {/* Sub-categories */}
+        {mainCategory && CATEGORY_TREE[mainCategory] && (
+          <div className="flex flex-wrap gap-2 pt-3 border-t border-border/40">
+            {CATEGORY_TREE[mainCategory].map((sub) => (
+              <button
+                key={sub}
+                onClick={() =>
+                  setSubCategory(subCategory === sub ? null : sub)
+                }
+                className={`px-3 py-1.5 text-[12px] rounded-lg transition-all ${
+                  subCategory === sub
+                    ? "bg-blue/10 text-blue font-bold border border-blue/30"
+                    : "bg-[#f5f7fa] text-[#888] hover:bg-[#eee] border border-transparent"
+                }`}
+              >
+                {sub}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Search Filters */}
+      <div className="bg-white rounded-2xl border border-border/60 p-4 mb-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="relative">
+            <Icon
+              name="search"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-[#bbb]"
+            />
             <input
               type="text"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              placeholder="スキル、業界、タイトル..."
-              className="w-full px-3 py-2 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
+              placeholder="キーワード検索..."
+              className="w-full pl-10 pr-3 py-2.5 border border-border/60 text-[13px] text-text outline-none rounded-xl bg-[#fafafa] focus:border-blue focus:bg-white transition-colors"
             />
           </div>
-          <div>
-            <label className="block text-[11px] font-bold text-[#888] mb-1">
-              カテゴリ
-            </label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-[11px] font-bold text-[#888] mb-1">
-              最低報酬（万円）
-            </label>
+          <div className="relative">
+            <Icon
+              name="payments"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-[#bbb]"
+            />
             <input
               type="number"
               value={feeMin}
               onChange={(e) => setFeeMin(e.target.value)}
-              placeholder="例: 100"
+              placeholder="最低報酬（万円）"
               min="0"
-              className="w-full px-3 py-2 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
+              className="w-full pl-10 pr-3 py-2.5 border border-border/60 text-[13px] text-text outline-none rounded-xl bg-[#fafafa] focus:border-blue focus:bg-white transition-colors"
             />
           </div>
-          <div>
-            <label className="block text-[11px] font-bold text-[#888] mb-1">
-              勤務地
-            </label>
+          <div className="relative">
+            <Icon
+              name="location_on"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-[#bbb]"
+            />
             <input
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder="例: 東京"
-              className="w-full px-3 py-2 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
+              placeholder="勤務地"
+              className="w-full pl-10 pr-3 py-2.5 border border-border/60 text-[13px] text-text outline-none rounded-xl bg-[#fafafa] focus:border-blue focus:bg-white transition-colors"
             />
           </div>
         </div>
@@ -178,7 +290,10 @@ export default function AppCasesPage() {
 
       {/* Results */}
       {filtered.length === 0 ? (
-        <div className="bg-white border border-border p-8 text-center">
+        <div className="bg-white rounded-2xl border border-border/60 p-10 text-center">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-[#f5f7fa] flex items-center justify-center mb-3">
+            <Icon name="search_off" className="text-[28px] text-[#ccc]" />
+          </div>
           <p className="text-[13px] text-[#888]">
             条件に一致する案件が見つかりませんでした
           </p>
@@ -191,19 +306,19 @@ export default function AppCasesPage() {
               <Link
                 key={c.id}
                 href={`/dashboard/cases/${c.id}`}
-                className="bg-white border border-border p-5 hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-shadow block"
+                className="group bg-white rounded-2xl border border-border/60 p-5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:border-blue/20 transition-all block"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1.5">
                       {c.category && (
-                        <span className="text-[10px] text-[#888] border border-border px-1.5 py-0.5">
+                        <span className="text-[10px] text-[#888] bg-[#f5f7fa] px-2 py-0.5 rounded">
                           {c.category}
                         </span>
                       )}
                       {score !== undefined && (
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 ${
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded ${
                             score >= 70
                               ? "text-[#10b981] bg-[#ecfdf5]"
                               : score >= 40
@@ -215,18 +330,39 @@ export default function AppCasesPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-[14px] font-bold text-navy mb-1">
+                    <p className="text-[14px] font-bold text-navy mb-2 group-hover:text-blue transition-colors">
                       {c.title}
                     </p>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#888]">
-                      {c.fee && <span>💰 {c.fee}</span>}
-                      {c.location && <span>📍 {c.location}</span>}
-                      {c.occupancy && <span>⏱ {c.occupancy}</span>}
-                      {c.industry && <span>🏢 {c.industry}</span>}
+                    <div className="flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-[#888]">
+                      {c.fee && (
+                        <span className="flex items-center gap-1">
+                          <Icon name="payments" className="text-[14px]" />
+                          {c.fee}
+                        </span>
+                      )}
+                      {c.location && (
+                        <span className="flex items-center gap-1">
+                          <Icon name="location_on" className="text-[14px]" />
+                          {c.location}
+                        </span>
+                      )}
+                      {c.occupancy && (
+                        <span className="flex items-center gap-1">
+                          <Icon name="schedule" className="text-[14px]" />
+                          {c.occupancy}
+                        </span>
+                      )}
+                      {c.industry && (
+                        <span className="flex items-center gap-1">
+                          <Icon name="business" className="text-[14px]" />
+                          {c.industry}
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <span className="text-[12px] text-blue font-bold shrink-0">
-                    詳細 →
+                  <span className="flex items-center gap-1 text-[12px] text-blue font-bold shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    詳細
+                    <Icon name="arrow_forward" className="text-[16px]" />
                   </span>
                 </div>
               </Link>

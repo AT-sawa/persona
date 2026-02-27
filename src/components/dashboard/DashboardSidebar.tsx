@@ -6,21 +6,21 @@ import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "ダッシュボード", icon: "📊" },
-  { href: "/dashboard/profile", label: "プロフィール", icon: "👤" },
-  { href: "/dashboard/profile/experience", label: "職務経歴", icon: "📋" },
-  { href: "/dashboard/preferences", label: "条件登録", icon: "⚙️" },
-  { href: "/dashboard/resumes", label: "レジュメ", icon: "📄" },
-  { href: "/dashboard/cases", label: "案件検索", icon: "🔍" },
-  { href: "/dashboard/matching", label: "マッチング", icon: "🎯" },
-  { href: "/dashboard/entries", label: "エントリー", icon: "✉️" },
+  { href: "/dashboard", label: "ダッシュボード", icon: "dashboard" },
+  { href: "/dashboard/profile", label: "プロフィール", icon: "person" },
+  { href: "/dashboard/profile/experience", label: "職務経歴", icon: "work_history" },
+  { href: "/dashboard/preferences", label: "希望条件", icon: "tune" },
+  { href: "/dashboard/resumes", label: "レジュメ", icon: "description" },
+  { href: "/dashboard/cases", label: "案件検索", icon: "search" },
+  { href: "/dashboard/matching", label: "マッチング", icon: "auto_awesome" },
+  { href: "/dashboard/entries", label: "エントリー", icon: "send" },
 ];
 
 const ADMIN_ITEMS = [
-  { href: "/dashboard/admin", label: "管理者TOP", icon: "🛡️" },
-  { href: "/dashboard/admin/users", label: "ユーザー管理", icon: "👥" },
-  { href: "/dashboard/admin/cases", label: "案件管理", icon: "📁" },
-  { href: "/dashboard/admin/entries", label: "エントリー管理", icon: "📨" },
+  { href: "/dashboard/admin", label: "管理者TOP", icon: "admin_panel_settings" },
+  { href: "/dashboard/admin/users", label: "ユーザー管理", icon: "group" },
+  { href: "/dashboard/admin/cases", label: "案件管理", icon: "folder_open" },
+  { href: "/dashboard/admin/entries", label: "エントリー管理", icon: "assignment" },
 ];
 
 export default function DashboardSidebar() {
@@ -52,26 +52,32 @@ export default function DashboardSidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden lg:block w-[220px] shrink-0">
-        <nav className="sticky top-[76px] flex flex-col gap-0.5">
+      <aside className="hidden lg:block w-[240px] shrink-0">
+        <nav className="sticky top-[84px] flex flex-col gap-0.5 bg-white rounded-2xl border border-border/60 p-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium transition-colors ${
+              className={`flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium rounded-xl transition-all ${
                 isActive(item.href)
-                  ? "bg-blue/10 text-blue font-bold border-l-2 border-blue"
-                  : "text-[#666] hover:bg-[#f5f5f5] hover:text-navy border-l-2 border-transparent"
+                  ? "bg-blue/8 text-blue font-bold"
+                  : "text-[#555] hover:bg-[#f5f7fa] hover:text-navy"
               }`}
             >
-              <span className="text-base">{item.icon}</span>
+              <span
+                className={`material-symbols-rounded text-[20px] ${
+                  isActive(item.href) ? "filled" : ""
+                }`}
+              >
+                {item.icon}
+              </span>
               {item.label}
             </Link>
           ))}
 
           {isAdmin && (
             <>
-              <div className="border-t border-border my-2" />
+              <div className="border-t border-border/60 my-2" />
               <p className="px-4 py-1 text-[10px] font-bold text-[#aaa] tracking-wider uppercase">
                 Admin
               </p>
@@ -79,13 +85,19 @@ export default function DashboardSidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium transition-colors ${
+                  className={`flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium rounded-xl transition-all ${
                     isActive(item.href)
-                      ? "bg-[#fef2f2] text-[#E15454] font-bold border-l-2 border-[#E15454]"
-                      : "text-[#666] hover:bg-[#f5f5f5] hover:text-navy border-l-2 border-transparent"
+                      ? "bg-[#fef2f2] text-[#E15454] font-bold"
+                      : "text-[#555] hover:bg-[#f5f7fa] hover:text-navy"
                   }`}
                 >
-                  <span className="text-base">{item.icon}</span>
+                  <span
+                    className={`material-symbols-rounded text-[20px] ${
+                      isActive(item.href) ? "filled" : ""
+                    }`}
+                  >
+                    {item.icon}
+                  </span>
                   {item.label}
                 </Link>
               ))}
@@ -95,16 +107,22 @@ export default function DashboardSidebar() {
       </aside>
 
       {/* Mobile bottom tab bar */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-border flex justify-around py-1 px-1 shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white/95 backdrop-blur-md border-t border-border/40 flex justify-around py-1.5 px-1 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
         {NAV_ITEMS.slice(0, 5).map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className={`flex flex-col items-center gap-0.5 py-1.5 px-2 min-w-[56px] text-center transition-colors ${
+            className={`flex flex-col items-center gap-0.5 py-1 px-2 min-w-[56px] text-center transition-colors ${
               isActive(item.href) ? "text-blue" : "text-[#999]"
             }`}
           >
-            <span className="text-lg">{item.icon}</span>
+            <span
+              className={`material-symbols-rounded text-[22px] ${
+                isActive(item.href) ? "filled" : ""
+              }`}
+            >
+              {item.icon}
+            </span>
             <span className="text-[9px] font-bold leading-tight">
               {item.label}
             </span>
@@ -113,21 +131,25 @@ export default function DashboardSidebar() {
         {isAdmin ? (
           <Link
             href="/dashboard/admin"
-            className={`flex flex-col items-center gap-0.5 py-1.5 px-2 min-w-[56px] text-center transition-colors ${
+            className={`flex flex-col items-center gap-0.5 py-1 px-2 min-w-[56px] text-center transition-colors ${
               pathname.startsWith("/dashboard/admin") ? "text-[#E15454]" : "text-[#999]"
             }`}
           >
-            <span className="text-lg">🛡️</span>
+            <span className={`material-symbols-rounded text-[22px] ${pathname.startsWith("/dashboard/admin") ? "filled" : ""}`}>
+              admin_panel_settings
+            </span>
             <span className="text-[9px] font-bold leading-tight">管理者</span>
           </Link>
         ) : (
           <Link
             href="/dashboard/matching"
-            className={`flex flex-col items-center gap-0.5 py-1.5 px-2 min-w-[56px] text-center transition-colors ${
+            className={`flex flex-col items-center gap-0.5 py-1 px-2 min-w-[56px] text-center transition-colors ${
               pathname.startsWith("/dashboard/matching") ? "text-blue" : "text-[#999]"
             }`}
           >
-            <span className="text-lg">🎯</span>
+            <span className={`material-symbols-rounded text-[22px] ${pathname.startsWith("/dashboard/matching") ? "filled" : ""}`}>
+              auto_awesome
+            </span>
             <span className="text-[9px] font-bold leading-tight">マッチング</span>
           </Link>
         )}
