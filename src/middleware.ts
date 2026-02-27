@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Routes that require authentication
-const PROTECTED_ROUTES = ["/dashboard"];
+const PROTECTED_ROUTES = ["/dashboard", "/onboarding"];
 
 // Known bad bots / scrapers (user-agent substrings)
 const BLOCKED_BOTS = [
@@ -116,6 +116,7 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/dashboard/:path*",
+    "/onboarding",
     "/auth/login",
     "/api/:path*",
     // Match all pages for bot blocking (exclude static assets)

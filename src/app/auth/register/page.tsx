@@ -67,7 +67,7 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push("/dashboard");
+      router.push("/onboarding");
     } catch {
       setError("登録に失敗しました。もう一度お試しください。");
     } finally {
@@ -120,7 +120,7 @@ export default function RegisterPage() {
                     value={formData[field.key as keyof typeof formData]}
                     onChange={(e) => update(field.key, e.target.value)}
                     placeholder={field.placeholder}
-                    required
+                    required={field.key !== "phone"}
                     className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
                   />
                 </div>

@@ -72,6 +72,16 @@ export default function DashboardPage() {
             .limit(1),
         ]);
 
+      // Redirect to onboarding if profile is essentially empty
+      if (profileRes.data) {
+        const p = profileRes.data;
+        const needsOnboarding = !p.profile_complete && !p.bio && !p.prefecture && !p.years_experience && (!p.skills || p.skills.length === 0);
+        if (needsOnboarding && !p.is_admin) {
+          router.push("/onboarding");
+          return;
+        }
+      }
+
       setProfile(profileRes.data);
       setEntries((entriesRes.data as EntryWithCase[]) ?? []);
       setMatches(matchesRes.data ?? []);
