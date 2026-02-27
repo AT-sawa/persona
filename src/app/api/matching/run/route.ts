@@ -139,7 +139,7 @@ export async function POST() {
             caseLines,
             "",
             "詳細はダッシュボードからご確認ください。",
-            "https://persona-app-orcin.vercel.app/dashboard/matching",
+            "https://app.persona-consultant.com/dashboard/matching",
             "",
             "---",
             "PERSONA - フリーコンサル案件紹介サービス",

@@ -15,6 +15,7 @@ export default function RegisterPage() {
     phone: "",
     password: "",
   });
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -125,12 +126,26 @@ export default function RegisterPage() {
                   />
                 </div>
               ))}
+              <label className="flex items-start gap-2 mb-4 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  className="mt-0.5 accent-blue"
+                />
+                <span className="text-[11px] text-[#666] leading-[1.6]">
+                  <Link href="/terms" target="_blank" className="text-blue hover:underline">利用規約</Link>
+                  および
+                  <Link href="/privacy" target="_blank" className="text-blue hover:underline">プライバシーポリシー</Link>
+                  に同意します
+                </span>
+              </label>
               {error && (
                 <p className="text-xs text-[#E15454] mb-4">{error}</p>
               )}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !agreed}
                 className="w-full py-3.5 bg-blue text-white border-none text-[15px] font-bold cursor-pointer transition-colors hover:bg-blue-dark disabled:opacity-50"
               >
                 {loading ? "登録中..." : "登録する"}

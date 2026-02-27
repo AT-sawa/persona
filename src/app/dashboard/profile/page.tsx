@@ -50,6 +50,24 @@ export default function ProfilePage() {
     );
   }
 
+  async function handleDeleteAccount() {
+    if (!confirm("本当に退会しますか？すべてのデータが削除され、復元できません。")) return;
+    if (!confirm("最終確認です。退会を実行してもよろしいですか？")) return;
+
+    try {
+      const res = await fetch("/api/account/delete", { method: "POST" });
+      if (res.ok) {
+        const supabase = createClient();
+        await supabase.auth.signOut();
+        router.push("/?deleted=true");
+      } else {
+        alert("退会処理に失敗しました。");
+      }
+    } catch {
+      alert("エラーが発生しました。");
+    }
+  }
+
   return (
     <div className="py-6">
       <div className="mb-6">
@@ -62,6 +80,20 @@ export default function ProfilePage() {
         </p>
       </div>
       <ProfileForm profile={profile} />
+
+      {/* 退会セクション */}
+      <div className="mt-12 pt-8 border-t border-border">
+        <h2 className="text-sm font-bold text-[#888] mb-2">アカウント削除</h2>
+        <p className="text-[12px] text-[#999] mb-3">
+          退会するとすべてのデータ（プロフィール、レジュメ、マッチング結果等）が完全に削除されます。この操作は取り消せません。
+        </p>
+        <button
+          onClick={handleDeleteAccount}
+          className="px-5 py-2 text-[12px] font-bold text-[#E15454] border border-[#E15454]/30 rounded-lg hover:bg-[#E15454]/5 transition-colors"
+        >
+          退会する
+        </button>
+      </div>
     </div>
   );
 }
