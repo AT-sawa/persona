@@ -68,10 +68,10 @@ export default function CaseFilters({
   return (
     <>
       {/* Filter bar */}
-      <div className="flex flex-col gap-5 mb-8">
-        <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           {/* Status pills */}
-          <div className="flex items-center gap-2 bg-[#f2f2f7] rounded-full p-1">
+          <div className="flex items-center gap-1 sm:gap-2 bg-[#f2f2f7] rounded-full p-1 w-full sm:w-auto">
             {[
               { key: "all", label: "すべて", count: cases.length },
               { key: "active", label: "募集中", count: activeCount },
@@ -80,14 +80,14 @@ export default function CaseFilters({
               <button
                 key={tab.key}
                 onClick={() => handleStatus(tab.key)}
-                className={`px-4 py-[7px] text-[13px] rounded-full transition-all ${
+                className={`flex-1 sm:flex-initial px-3 sm:px-4 py-[7px] text-[13px] rounded-full transition-all text-center ${
                   status === tab.key
                     ? "bg-white text-navy font-semibold shadow-[0_1px_4px_rgba(0,0,0,0.1)]"
                     : "text-[#888] hover:text-[#555]"
                 }`}
               >
                 {tab.label}
-                <span className={`ml-1.5 text-[11px] ${status === tab.key ? "text-[#555]" : "text-[#bbb]"}`}>
+                <span className={`ml-1 sm:ml-1.5 text-[11px] ${status === tab.key ? "text-[#555]" : "text-[#bbb]"}`}>
                   {tab.count}
                 </span>
               </button>
@@ -95,7 +95,7 @@ export default function CaseFilters({
           </div>
 
           {/* Search */}
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-[14px] h-[14px] text-[#bbb]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <circle cx="11" cy="11" r="8" strokeWidth="2" />
               <path d="m21 21-4.35-4.35" strokeWidth="2" strokeLinecap="round" />
@@ -105,7 +105,7 @@ export default function CaseFilters({
               placeholder="キーワードで検索..."
               value={search}
               onChange={(e) => handleSearch(e.target.value)}
-              className="w-[220px] pl-9 pr-4 py-2 bg-[#f2f2f7] text-[13px] text-text outline-none rounded-full focus:bg-white focus:shadow-[0_0_0_2px_rgba(9,23,71,0.12)] transition-all placeholder:text-[#bbb]"
+              className="w-full sm:w-[220px] pl-9 pr-4 py-2 bg-[#f2f2f7] text-[13px] text-text outline-none rounded-full focus:bg-white focus:shadow-[0_0_0_2px_rgba(9,23,71,0.12)] transition-all placeholder:text-[#bbb]"
             />
           </div>
         </div>

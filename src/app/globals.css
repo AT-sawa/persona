@@ -104,29 +104,6 @@ body {
   transform: scale(1);
 }
 
-/* ── Page transitions (View Transitions API) ── */
-@view-transition {
-  navigation: auto;
-}
-
-::view-transition-old(root) {
-  animation: 200ms ease-out both vt-fade-out;
-}
-
-::view-transition-new(root) {
-  animation: 200ms ease-in both vt-fade-in;
-}
-
-@keyframes vt-fade-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
-
-@keyframes vt-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 /* ── Accessibility: respect reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
   .scroll-reveal,
@@ -136,11 +113,6 @@ body {
     opacity: 1;
     transform: none;
     transition: none;
-  }
-
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation: none;
   }
 }
 
