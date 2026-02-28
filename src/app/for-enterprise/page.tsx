@@ -38,28 +38,77 @@ const enterpriseFaqs = [
   },
 ];
 
+const talentExamples = [
+  {
+    initials: "KT",
+    name: "K.T.",
+    background: "McKinsey & Company → 独立",
+    experience: "15年",
+    expertise: ["経営戦略", "新規事業", "M&A"],
+    description:
+      "大手総合商社・メガバンク向けの全社戦略策定、新規事業開発を多数リード。M&A後のPMI推進にも精通。",
+    color: "from-[#091747] to-[#1FABE9]",
+  },
+  {
+    initials: "MS",
+    name: "M.S.",
+    background: "Accenture → Deloitte → 独立",
+    experience: "12年",
+    expertise: ["DX推進", "SAP", "PMO"],
+    description:
+      "製造業・流通業を中心にSAP S/4HANA導入プロジェクトを10件以上推進。200名規模のPMO統括経験あり。",
+    color: "from-[#1FABE9] to-[#34d399]",
+  },
+  {
+    initials: "YH",
+    name: "Y.H.",
+    background: "BCG → PwC → 独立",
+    experience: "10年",
+    expertise: ["業務改革", "BPR", "組織設計"],
+    description:
+      "金融機関・保険会社向けの大規模BPRプロジェクトを複数完遂。業務プロセス可視化から実行支援までワンストップで対応。",
+    color: "from-[#6366f1] to-[#1FABE9]",
+  },
+  {
+    initials: "RN",
+    name: "R.N.",
+    background: "A.T. Kearney → 独立",
+    experience: "8年",
+    expertise: ["戦略策定", "コスト削減", "調達改革"],
+    description:
+      "製造業の調達・SCM領域を中心に、年間数十億円規模のコスト削減を実現。グローバル調達戦略の策定にも対応。",
+    color: "from-[#091747] to-[#6366f1]",
+  },
+];
+
 export default function ForEnterprisePage() {
   return (
     <>
       <Header />
       <main>
-        {/* ── A. Enterprise Hero ── */}
-        <section className="relative overflow-hidden bg-gradient-to-br from-[#f0f7fe] via-white to-[#eaf4fd] py-16 px-6">
-          <div className="absolute inset-0 opacity-[0.02]" style={{
-            backgroundImage: "linear-gradient(var(--navy) 1px, transparent 1px), linear-gradient(90deg, var(--navy) 1px, transparent 1px)",
-            backgroundSize: "64px 64px",
-          }} />
+        {/* ── A. Hero ── */}
+        <section className="relative overflow-hidden bg-[#091747] py-24 px-6">
+          {/* Gradient orbs */}
+          <div className="absolute top-[-120px] right-[-80px] w-[500px] h-[500px] rounded-full bg-[#1FABE9]/15 blur-[120px]" />
+          <div className="absolute bottom-[-100px] left-[-60px] w-[400px] h-[400px] rounded-full bg-[#6366f1]/10 blur-[100px]" />
           <div className="relative max-w-[1000px] mx-auto">
-            <p className="text-[10px] font-bold text-blue tracking-[0.18em] uppercase mb-2">
-              FOR ENTERPRISE
-            </p>
-            <h1 className="text-[clamp(24px,3.5vw,36px)] font-black text-navy leading-[1.35] mb-4">
-              即戦力のフリーコンサルタントを
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-1.5 mb-6">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#34d399]" />
+              <span className="text-[11px] font-semibold text-white/80 tracking-wide">
+                FOR ENTERPRISE
+              </span>
+            </div>
+            <h1 className="text-[clamp(28px,4vw,44px)] font-black text-white leading-[1.3] mb-5">
+              即戦力の
+              <span className="bg-gradient-to-r from-[#1FABE9] to-[#34d399] bg-clip-text" style={{ WebkitTextFillColor: "transparent" }}>
+                フリーコンサルタント
+              </span>
+              を
               <br />
-              <em className="not-italic text-blue">最短1週間</em>でアサイン
+              最短1週間でアサイン
             </h1>
-            <p className="text-sm leading-[1.9] text-[#555] mb-8 max-w-[640px]">
-              大手コンサルティングファーム出身のフリーランスコンサルタントを、御社のプロジェクトに迅速にマッチング。戦略策定からDX推進、PMO、SAP導入支援まで幅広く対応いたします。
+            <p className="text-[15px] leading-[1.9] text-white/60 mb-10 max-w-[600px]">
+              大手コンサルティングファーム出身のプロフェッショナルを、御社のプロジェクトに迅速にマッチング。戦略策定からDX推進、PMO、SAP導入支援まで幅広く対応いたします。
             </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
@@ -68,49 +117,120 @@ export default function ForEnterprisePage() {
                 { value: "100+", label: "常時案件数" },
                 { value: "95%", label: "継続利用率" },
               ].map((stat) => (
-                <div key={stat.label} className="bg-white/80 backdrop-blur-sm border-l-[3px] border-blue px-4 py-3">
-                  <span className="text-[22px] font-black text-blue block leading-none">{stat.value}</span>
-                  <span className="text-[11px] text-[#888] mt-1 block">{stat.label}</span>
+                <div key={stat.label} className="bg-white/[0.06] backdrop-blur-sm rounded-2xl px-5 py-4 border border-white/[0.08]">
+                  <span className="text-[26px] font-black bg-gradient-to-r from-[#1FABE9] to-[#34d399] bg-clip-text block leading-none" style={{ WebkitTextFillColor: "transparent" }}>
+                    {stat.value}
+                  </span>
+                  <span className="text-[11px] text-white/40 mt-1.5 block">{stat.label}</span>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ── B. Service Categories ── */}
-        <section className="py-14 px-6">
+        {/* ── B. Service Areas ── */}
+        <section className="py-20 px-6">
           <div className="max-w-[1000px] mx-auto">
-            <p className="text-[10px] font-bold text-blue tracking-[0.18em] uppercase mb-2">
-              SERVICE AREAS
-            </p>
-            <h2 className="text-lg font-black text-navy mb-6">対応領域</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="text-center mb-12">
+              <span className="text-[11px] font-bold text-[#1FABE9] tracking-[0.2em] uppercase">
+                SERVICE AREAS
+              </span>
+              <h2 className="text-[clamp(20px,2.5vw,28px)] font-black text-[#091747] mt-2">
+                対応領域
+              </h2>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {[
-                { icon: "📊", name: "戦略策定", desc: "経営・事業戦略" },
-                { icon: "🔄", name: "DX推進", desc: "デジタル変革" },
-                { icon: "📋", name: "PMO", desc: "プロジェクト管理" },
-                { icon: "💻", name: "SAP導入", desc: "ERP刷新" },
-                { icon: "🏗️", name: "業務改革", desc: "BPR・オペ改善" },
-                { icon: "📈", name: "新規事業", desc: "事業開発・検証" },
+                { name: "戦略策定", desc: "経営戦略・事業戦略・中期経営計画の策定支援", tag: "Strategy" },
+                { name: "DX推進", desc: "デジタル変革のロードマップ策定から実行支援まで", tag: "DX" },
+                { name: "PMO", desc: "大規模プロジェクトの横断管理・推進・品質管理", tag: "PMO" },
+                { name: "SAP導入", desc: "SAP S/4HANA導入における要件定義〜カットオーバー", tag: "SAP" },
+                { name: "業務改革", desc: "BPR・業務プロセス可視化・オペレーション改善", tag: "BPR" },
+                { name: "新規事業", desc: "事業開発・市場調査・PoC検証・事業計画策定", tag: "New Biz" },
               ].map((cat) => (
-                <div key={cat.name} className="text-center p-4 bg-[#f8fbfe] border border-border hover:border-blue/30 transition-colors">
-                  <span className="text-2xl block mb-2">{cat.icon}</span>
-                  <span className="text-[12px] font-bold text-navy block">{cat.name}</span>
-                  <span className="text-[10px] text-[#aaa]">{cat.desc}</span>
+                <div
+                  key={cat.name}
+                  className="group p-6 rounded-2xl bg-[#f8f9fb] hover:bg-white hover:shadow-[0_4px_24px_rgba(0,0,0,0.06)] border border-transparent hover:border-[#e8e8ed] transition-all duration-300"
+                >
+                  <span className="text-[10px] font-bold text-[#1FABE9]/60 tracking-[0.15em] uppercase">
+                    {cat.tag}
+                  </span>
+                  <h3 className="text-[16px] font-bold text-[#091747] mt-1.5 mb-2">
+                    {cat.name}
+                  </h3>
+                  <p className="text-[12.5px] text-[#888] leading-[1.7]">{cat.desc}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ── C. 3 Strengths ── */}
-        <section className="py-14 px-6 bg-gray-bg">
+        {/* ── C. Talent Showcase ── */}
+        <section className="py-20 px-6 bg-[#f8f9fb]">
           <div className="max-w-[1000px] mx-auto">
-            <p className="text-[10px] font-bold text-blue tracking-[0.18em] uppercase mb-2">
-              WHY PERSONA
+            <div className="text-center mb-12">
+              <span className="text-[11px] font-bold text-[#1FABE9] tracking-[0.2em] uppercase">
+                TALENT
+              </span>
+              <h2 className="text-[clamp(20px,2.5vw,28px)] font-black text-[#091747] mt-2">
+                紹介する人材例
+              </h2>
+              <p className="text-[13px] text-[#888] mt-3">
+                大手ファーム出身のプロフェッショナルが多数在籍しています
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {talentExamples.map((t) => (
+                <div
+                  key={t.initials}
+                  className="bg-white rounded-2xl border border-[#e8e8ed] p-6 hover:shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-all duration-300"
+                >
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${t.color} flex items-center justify-center shrink-0`}>
+                      <span className="text-[13px] font-bold text-white">{t.initials}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-3 mb-0.5">
+                        <span className="text-[15px] font-bold text-[#091747]">{t.name}</span>
+                        <span className="text-[11px] text-[#aaa]">経験 {t.experience}</span>
+                      </div>
+                      <p className="text-[12px] text-[#888]">{t.background}</p>
+                    </div>
+                  </div>
+                  <p className="text-[13px] text-[#555] leading-[1.8] mb-4">
+                    {t.description}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {t.expertise.map((skill) => (
+                      <span
+                        key={skill}
+                        className="text-[11px] font-medium text-[#1FABE9] bg-[#1FABE9]/8 px-3 py-1 rounded-full"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-center text-[12px] text-[#aaa] mt-6">
+              ※ プライバシー保護のため、イニシャル表記としています
             </p>
-            <h2 className="text-lg font-black text-navy mb-6">PERSONAが選ばれる3つの理由</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          </div>
+        </section>
+
+        {/* ── D. 3 Strengths ── */}
+        <section className="py-20 px-6">
+          <div className="max-w-[1000px] mx-auto">
+            <div className="text-center mb-12">
+              <span className="text-[11px] font-bold text-[#1FABE9] tracking-[0.2em] uppercase">
+                WHY PERSONA
+              </span>
+              <h2 className="text-[clamp(20px,2.5vw,28px)] font-black text-[#091747] mt-2">
+                PERSONAが選ばれる3つの理由
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {[
                 {
                   num: "01",
@@ -128,32 +248,42 @@ export default function ForEnterprisePage() {
                   desc: "ファーム出身のコーディネーターが御社の課題を深く理解し、最適な人材をご提案。ミスマッチを最小限に抑えます。",
                 },
               ].map((item) => (
-                <div key={item.num} className="p-6 border border-border border-t-[3px] border-t-blue bg-white">
-                  <span className="text-[28px] font-black text-blue/15 block mb-2">{item.num}</span>
-                  <h3 className="text-sm font-bold text-navy mb-2">{item.title}</h3>
-                  <p className="text-[13px] text-[#555] leading-[1.8]">{item.desc}</p>
+                <div key={item.num} className="relative p-7 rounded-2xl bg-[#f8f9fb] border border-transparent hover:bg-white hover:border-[#e8e8ed] hover:shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-all duration-300">
+                  <span className="text-[40px] font-black bg-gradient-to-br from-[#1FABE9]/20 to-[#091747]/10 bg-clip-text leading-none" style={{ WebkitTextFillColor: "transparent" }}>
+                    {item.num}
+                  </span>
+                  <h3 className="text-[15px] font-bold text-[#091747] mt-2 mb-3">{item.title}</h3>
+                  <p className="text-[13px] text-[#666] leading-[1.85]">{item.desc}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ── D. Comparison Table ── */}
-        <section className="py-14 px-6">
+        {/* ── E. Comparison ── */}
+        <section className="py-20 px-6 bg-[#f8f9fb]">
           <div className="max-w-[1000px] mx-auto">
-            <p className="text-[10px] font-bold text-blue tracking-[0.18em] uppercase mb-2">
-              COMPARISON
-            </p>
-            <h2 className="text-lg font-black text-navy mb-6">
-              コンサルファーム vs フリーコンサル（PERSONA）
-            </h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border border-border bg-white">
+            <div className="text-center mb-12">
+              <span className="text-[11px] font-bold text-[#1FABE9] tracking-[0.2em] uppercase">
+                COMPARISON
+              </span>
+              <h2 className="text-[clamp(20px,2.5vw,28px)] font-black text-[#091747] mt-2">
+                コンサルファーム vs PERSONA
+              </h2>
+            </div>
+            <div className="overflow-x-auto rounded-2xl border border-[#e8e8ed] bg-white">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-[#f8fbfe]">
-                    <th className="p-4 text-left font-bold text-navy border-b border-border w-[28%]">比較項目</th>
-                    <th className="p-4 text-left font-bold text-[#888] border-b border-border w-[36%]">大手コンサルファーム</th>
-                    <th className="p-4 text-left font-bold text-blue border-b border-border bg-blue/5 w-[36%]">PERSONA</th>
+                  <tr>
+                    <th className="p-5 text-left text-[12px] font-bold text-[#888] uppercase tracking-wider border-b border-[#f0f0f5] w-[28%]">
+                      比較項目
+                    </th>
+                    <th className="p-5 text-left text-[12px] font-bold text-[#aaa] uppercase tracking-wider border-b border-[#f0f0f5] w-[36%]">
+                      大手ファーム
+                    </th>
+                    <th className="p-5 text-left text-[12px] font-bold text-[#1FABE9] uppercase tracking-wider border-b border-[#f0f0f5] bg-[#1FABE9]/[0.03] w-[36%]">
+                      PERSONA
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -164,10 +294,12 @@ export default function ForEnterprisePage() {
                     { item: "担当者の質", firm: "シニア〜ジュニア混在", persona: "ファーム出身者のみ" },
                     { item: "契約形態", firm: "プロジェクト単位", persona: "人月単位（柔軟）" },
                   ].map((row) => (
-                    <tr key={row.item} className="border-b border-border last:border-b-0">
-                      <td className="p-4 font-bold text-navy">{row.item}</td>
-                      <td className="p-4 text-[#555]">{row.firm}</td>
-                      <td className="p-4 text-navy font-semibold bg-blue/5">{row.persona}</td>
+                    <tr key={row.item} className="border-b border-[#f0f0f5] last:border-b-0">
+                      <td className="p-5 font-semibold text-[#091747] text-[13px]">{row.item}</td>
+                      <td className="p-5 text-[#888] text-[13px]">{row.firm}</td>
+                      <td className="p-5 text-[#091747] font-semibold text-[13px] bg-[#1FABE9]/[0.03]">
+                        {row.persona}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -176,14 +308,18 @@ export default function ForEnterprisePage() {
           </div>
         </section>
 
-        {/* ── E. Case Studies ── */}
-        <section className="py-14 px-6 bg-gray-bg">
+        {/* ── F. Case Studies ── */}
+        <section className="py-20 px-6">
           <div className="max-w-[1000px] mx-auto">
-            <p className="text-[10px] font-bold text-blue tracking-[0.18em] uppercase mb-2">
-              CASE STUDIES
-            </p>
-            <h2 className="text-lg font-black text-navy mb-6">導入事例</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="text-center mb-12">
+              <span className="text-[11px] font-bold text-[#1FABE9] tracking-[0.2em] uppercase">
+                CASE STUDIES
+              </span>
+              <h2 className="text-[clamp(20px,2.5vw,28px)] font-black text-[#091747] mt-2">
+                導入事例
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {[
                 {
                   industry: "大手製造業",
@@ -207,22 +343,26 @@ export default function ForEnterprisePage() {
                   period: "4ヶ月",
                 },
               ].map((cs) => (
-                <div key={cs.industry} className="border border-border p-6 bg-white">
-                  <span className="text-[10px] font-bold text-blue bg-blue/[0.08] px-2.5 py-1 mb-3 inline-block">
+                <div key={cs.industry} className="rounded-2xl border border-[#e8e8ed] bg-white p-7 hover:shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-all duration-300">
+                  <span className="inline-flex items-center text-[11px] font-bold text-[#1FABE9] bg-[#1FABE9]/8 rounded-full px-3.5 py-1 mb-4">
                     {cs.industry}
                   </span>
-                  <h3 className="text-[13px] font-bold text-navy mb-2">課題</h3>
-                  <p className="text-[13px] text-[#555] leading-[1.8] mb-3">{cs.challenge}</p>
-                  <h3 className="text-[13px] font-bold text-navy mb-2">ソリューション</h3>
-                  <p className="text-[13px] text-[#555] leading-[1.8] mb-3">{cs.solution}</p>
-                  <div className="flex justify-between pt-3 border-t border-border">
+                  <div className="mb-4">
+                    <h3 className="text-[12px] font-bold text-[#aaa] uppercase tracking-wider mb-1.5">課題</h3>
+                    <p className="text-[13px] text-[#555] leading-[1.8]">{cs.challenge}</p>
+                  </div>
+                  <div className="mb-5">
+                    <h3 className="text-[12px] font-bold text-[#aaa] uppercase tracking-wider mb-1.5">ソリューション</h3>
+                    <p className="text-[13px] text-[#555] leading-[1.8]">{cs.solution}</p>
+                  </div>
+                  <div className="flex justify-between pt-4 border-t border-[#f0f0f5]">
                     <div>
-                      <span className="text-[10px] text-[#aaa] block">成果</span>
-                      <span className="text-[12px] font-bold text-navy">{cs.result}</span>
+                      <span className="text-[10px] text-[#aaa] block mb-0.5">成果</span>
+                      <span className="text-[12.5px] font-bold text-[#091747]">{cs.result}</span>
                     </div>
                     <div className="text-right">
-                      <span className="text-[10px] text-[#aaa] block">期間</span>
-                      <span className="text-[12px] font-bold text-blue">{cs.period}</span>
+                      <span className="text-[10px] text-[#aaa] block mb-0.5">期間</span>
+                      <span className="text-[12.5px] font-bold text-[#1FABE9]">{cs.period}</span>
                     </div>
                   </div>
                 </div>
@@ -231,13 +371,17 @@ export default function ForEnterprisePage() {
           </div>
         </section>
 
-        {/* ── F. Process Flow ── */}
-        <section className="py-14 px-6">
+        {/* ── G. Process Flow ── */}
+        <section className="py-20 px-6 bg-[#f8f9fb]">
           <div className="max-w-[1000px] mx-auto">
-            <p className="text-[10px] font-bold text-blue tracking-[0.18em] uppercase mb-2">
-              PROCESS
-            </p>
-            <h2 className="text-lg font-black text-navy mb-6">ご利用の流れ</h2>
+            <div className="text-center mb-12">
+              <span className="text-[11px] font-bold text-[#1FABE9] tracking-[0.2em] uppercase">
+                PROCESS
+              </span>
+              <h2 className="text-[clamp(20px,2.5vw,28px)] font-black text-[#091747] mt-2">
+                ご利用の流れ
+              </h2>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {[
                 { step: "01", title: "お問い合わせ", desc: "下記フォームまたはお電話にてご連絡ください" },
@@ -245,12 +389,20 @@ export default function ForEnterprisePage() {
                 { step: "03", title: "人材ご提案", desc: "最適なコンサルタントを厳選してご紹介します" },
                 { step: "04", title: "参画開始", desc: "契約後、最短1週間で稼働を開始します" },
               ].map((item, i) => (
-                <div key={item.step} className="relative p-5 bg-[#f8fbfe] border border-border">
-                  <span className="text-[28px] font-black text-blue/20 block mb-1">{item.step}</span>
-                  <h3 className="text-[13px] font-bold text-navy mb-1.5">{item.title}</h3>
-                  <p className="text-[12px] text-[#888] leading-[1.7]">{item.desc}</p>
+                <div key={item.step} className="relative">
+                  <div className="bg-white rounded-2xl border border-[#e8e8ed] p-6 h-full">
+                    <span className="text-[32px] font-black bg-gradient-to-br from-[#1FABE9]/20 to-[#091747]/10 bg-clip-text leading-none" style={{ WebkitTextFillColor: "transparent" }}>
+                      {item.step}
+                    </span>
+                    <h3 className="text-[14px] font-bold text-[#091747] mt-2 mb-2">{item.title}</h3>
+                    <p className="text-[12px] text-[#888] leading-[1.75]">{item.desc}</p>
+                  </div>
                   {i < 3 && (
-                    <span className="hidden md:block absolute top-1/2 -right-3 -translate-y-1/2 text-blue/30 text-lg font-bold">→</span>
+                    <div className="hidden md:flex absolute top-1/2 -right-3 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-[#f8f9fb] items-center justify-center">
+                      <svg className="w-3 h-3 text-[#ccc]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="m9 18 6-6-6-6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
                   )}
                 </div>
               ))}
@@ -258,36 +410,46 @@ export default function ForEnterprisePage() {
           </div>
         </section>
 
-        {/* ── G. FAQ ── */}
-        <section className="py-14 px-6 bg-gray-bg">
+        {/* ── H. FAQ ── */}
+        <section className="py-20 px-6">
           <div className="max-w-[1000px] mx-auto">
-            <p className="text-[10px] font-bold text-blue tracking-[0.18em] uppercase mb-2">
-              FAQ
-            </p>
-            <h2 className="text-lg font-black text-navy mb-6">よくあるご質問</h2>
+            <div className="text-center mb-12">
+              <span className="text-[11px] font-bold text-[#1FABE9] tracking-[0.2em] uppercase">
+                FAQ
+              </span>
+              <h2 className="text-[clamp(20px,2.5vw,28px)] font-black text-[#091747] mt-2">
+                よくあるご質問
+              </h2>
+            </div>
             <div className="flex flex-col gap-3">
               {enterpriseFaqs.map((faq) => (
-                <details key={faq.q} className="border border-border bg-white group">
-                  <summary className="p-5 cursor-pointer text-sm font-bold text-navy flex justify-between items-center gap-4">
+                <details key={faq.q} className="rounded-2xl border border-[#e8e8ed] bg-white group">
+                  <summary className="p-6 cursor-pointer text-[14px] font-bold text-[#091747] flex justify-between items-center gap-4">
                     <span>{faq.q}</span>
-                    <span className="text-blue text-lg shrink-0 group-open:rotate-45 transition-transform duration-200">+</span>
+                    <span className="w-6 h-6 rounded-full bg-[#f2f2f7] flex items-center justify-center shrink-0 group-open:bg-[#091747] transition-colors">
+                      <svg className="w-3 h-3 text-[#888] group-open:text-white group-open:rotate-180 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="m6 9 6 6 6-6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
                   </summary>
-                  <p className="px-5 pb-5 text-[13px] text-[#555] leading-[1.8]">{faq.a}</p>
+                  <p className="px-6 pb-6 text-[13px] text-[#666] leading-[1.85]">{faq.a}</p>
                 </details>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ── H. CTA + Contact Form ── */}
-        <section className="py-14 px-6">
+        {/* ── I. Contact Form ── */}
+        <section className="py-20 px-6 bg-[#f8f9fb]">
           <div className="max-w-[1000px] mx-auto">
-            <div className="text-center mb-8">
-              <p className="text-[10px] font-bold text-blue tracking-[0.18em] uppercase mb-2">
+            <div className="text-center mb-10">
+              <span className="text-[11px] font-bold text-[#1FABE9] tracking-[0.2em] uppercase">
                 CONTACT
-              </p>
-              <h2 className="text-lg font-black text-navy mb-2">お問い合わせ</h2>
-              <p className="text-sm text-[#555]">
+              </span>
+              <h2 className="text-[clamp(20px,2.5vw,28px)] font-black text-[#091747] mt-2 mb-2">
+                お問い合わせ
+              </h2>
+              <p className="text-[13px] text-[#888]">
                 プロジェクトへのコンサルタントアサインについてお気軽にご相談ください
               </p>
             </div>
@@ -297,20 +459,24 @@ export default function ForEnterprisePage() {
           </div>
         </section>
 
-        {/* ── I. CTA Banner ── */}
-        <section className="bg-navy py-12 px-6 text-center">
-          <div className="max-w-[800px] mx-auto">
-            <p className="text-white/70 text-sm mb-3">
+        {/* ── J. CTA Banner ── */}
+        <section className="relative overflow-hidden bg-[#091747] py-16 px-6 text-center">
+          <div className="absolute top-[-80px] left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full bg-[#1FABE9]/10 blur-[100px]" />
+          <div className="relative max-w-[800px] mx-auto">
+            <p className="text-white/50 text-[13px] mb-3">
               フリーランスコンサルタントとして活躍したい方へ
             </p>
-            <h2 className="text-white text-xl font-black mb-5">
+            <h2 className="text-white text-[clamp(18px,2.5vw,24px)] font-black mb-6">
               コンサルタント登録も受付中
             </h2>
             <Link
               href="/auth/register"
-              className="inline-flex items-center gap-2 bg-blue text-white px-8 py-3.5 text-[15px] font-bold transition-colors hover:bg-blue-dark shadow-[0_4px_14px_rgba(31,171,233,0.3)]"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-[#1FABE9] to-[#34d399] text-white px-8 py-3.5 text-[15px] font-bold rounded-full transition-all hover:shadow-[0_4px_20px_rgba(31,171,233,0.4)] hover:scale-[1.02] active:scale-[0.98]"
             >
-              無料で登録する →
+              無料で登録する
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="m9 18 6-6-6-6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </Link>
           </div>
         </section>

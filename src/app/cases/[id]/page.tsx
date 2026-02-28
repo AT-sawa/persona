@@ -162,66 +162,104 @@ export default async function CaseDetailPage({ params }: Props) {
           {/* Breadcrumbs */}
           <nav
             aria-label="パンくずリスト"
-            className="text-xs text-[#888] mb-4 flex items-center gap-1.5"
+            className="text-[13px] text-[#999] mb-6 flex items-center gap-2"
           >
-            <Link href="/" className="hover:text-blue transition-colors">
+            <Link href="/" className="hover:text-navy transition-colors">
               ホーム
             </Link>
-            <span>/</span>
-            <Link href="/cases" className="hover:text-blue transition-colors">
+            <svg className="w-3 h-3 text-[#ccc]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="m9 18 6-6-6-6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <Link href="/cases" className="hover:text-navy transition-colors">
               案件一覧
             </Link>
-            <span>/</span>
-            <span className="text-navy">{caseData.title}</span>
+            <svg className="w-3 h-3 text-[#ccc]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="m9 18 6-6-6-6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span className="text-navy font-medium truncate max-w-[300px]">{caseData.title}</span>
           </nav>
 
-          <p className="text-[10px] font-bold text-blue tracking-[0.18em] uppercase mb-2">
-            CASE DETAIL
-          </p>
-          <div className="flex items-center gap-3 mb-2">
-            <span
-              className={`text-[11px] font-bold px-2.5 py-1 ${
-                caseData.is_active
-                  ? "text-[#10b981] bg-[#ecfdf5]"
-                  : "text-[#888] bg-[#f5f5f5]"
-              }`}
-            >
-              {caseData.is_active ? "募集中" : "クローズ"}
-            </span>
+          {/* Hero card */}
+          <div className="bg-white rounded-2xl border border-[#e8e8ed] p-8 mb-5">
+            <div className="flex items-center gap-3 mb-4">
+              <span
+                className={`text-[10px] font-bold tracking-[0.12em] uppercase px-3 py-[4px] rounded-full border ${
+                  caseData.is_active
+                    ? caseData.status === "最注力"
+                      ? "text-[#c0392b] border-[#c0392b]/30 bg-[#c0392b]/6"
+                      : "text-[#1a8a5c] border-[#1a8a5c]/30 bg-[#1a8a5c]/6"
+                    : "text-[#aaa] border-[#ddd] bg-[#f8f8f8]"
+                }`}
+              >
+                {caseData.is_active
+                  ? caseData.status === "最注力"
+                    ? "PRIORITY"
+                    : "OPEN"
+                  : "CLOSED"}
+              </span>
+              {caseData.category && (
+                <span className="text-[11px] text-[#999]">{caseData.category}</span>
+              )}
+            </div>
+            <h1 className="text-[22px] font-bold text-navy leading-[1.45] mb-5">
+              {caseData.title}
+            </h1>
+
+            {/* Key info pills */}
+            <div className="flex flex-wrap gap-2">
+              {caseData.fee && (
+                <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-navy bg-[#f2f2f7] px-4 py-2 rounded-full">
+                  {caseData.fee}
+                </span>
+              )}
+              {caseData.occupancy && (
+                <span className="inline-flex items-center gap-1.5 text-[13px] text-[#555] bg-[#f2f2f7] px-4 py-2 rounded-full">
+                  稼働 {typeof caseData.occupancy === "number"
+                    ? `${Math.round(Number(caseData.occupancy) * 100)}%`
+                    : caseData.occupancy}
+                </span>
+              )}
+              {caseData.location && (
+                <span className="inline-flex items-center gap-1.5 text-[13px] text-[#555] bg-[#f2f2f7] px-4 py-2 rounded-full">
+                  {caseData.location}
+                </span>
+              )}
+              {caseData.industry && (
+                <span className="inline-flex items-center gap-1.5 text-[13px] text-[#555] bg-[#f2f2f7] px-4 py-2 rounded-full">
+                  {caseData.industry}
+                </span>
+              )}
+            </div>
           </div>
-          <h1 className="text-xl font-black text-navy leading-[1.4] mb-6">
-            {caseData.title}
-          </h1>
 
           {!caseData.is_active && (
-            <div className="bg-[#f5f5f5] border border-[#e0e0e0] p-4 mb-6 text-[13px] text-[#666]">
+            <div className="bg-[#f2f2f7] rounded-2xl p-5 mb-5 text-[13px] text-[#666] leading-[1.7]">
               この案件は募集を終了しています。類似案件をお探しの方は
-              <Link href="/cases?status=active" className="text-blue font-bold hover:underline ml-1">
-                募集中の案件一覧
+              <Link href="/cases" className="text-blue font-semibold hover:underline ml-1">
+                案件一覧
               </Link>
               をご覧ください。
             </div>
           )}
 
           {/* Summary table */}
-          <div className="bg-white border border-border p-8 mb-6">
-            <table className="w-full text-sm">
-              <tbody>
-                {rows.map(
-                  (row) =>
-                    row.value && (
-                      <tr key={row.label} className="border-b border-border">
-                        <td className="py-3 pr-4 font-bold text-navy w-[140px] align-top">
-                          {row.label}
-                        </td>
-                        <td className="py-3 text-[#555] whitespace-pre-wrap">
-                          {row.value}
-                        </td>
-                      </tr>
-                    )
-                )}
-              </tbody>
-            </table>
+          <div className="bg-white rounded-2xl border border-[#e8e8ed] p-6 mb-5">
+            <h2 className="text-[13px] font-semibold text-navy mb-4">案件概要</h2>
+            <div className="space-y-0">
+              {rows.map(
+                (row) =>
+                  row.value && (
+                    <div key={row.label} className="flex py-3 border-b border-[#f0f0f5] last:border-b-0">
+                      <span className="text-[13px] text-[#999] w-[120px] shrink-0">
+                        {row.label}
+                      </span>
+                      <span className="text-[13px] text-navy whitespace-pre-wrap">
+                        {row.value}
+                      </span>
+                    </div>
+                  )
+              )}
+            </div>
           </div>
 
           {/* Detail sections */}
@@ -230,9 +268,9 @@ export default async function CaseDetailPage({ params }: Props) {
               s.content && (
                 <div
                   key={s.title}
-                  className="bg-white border border-border p-8 mb-6"
+                  className="bg-white rounded-2xl border border-[#e8e8ed] p-6 mb-5"
                 >
-                  <h2 className="text-sm font-bold text-navy mb-3">
+                  <h2 className="text-[13px] font-semibold text-navy mb-3">
                     {s.title}
                   </h2>
                   <p className="text-[13px] text-[#555] leading-[1.85] whitespace-pre-wrap">
