@@ -3,6 +3,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CaseFilters from "@/components/CaseFilters";
 import type { Case } from "@/lib/types";
+import Link from "next/link";
+import { CASE_CATEGORIES } from "@/lib/case-categories";
 
 export const metadata: Metadata = {
   title: "フリーコンサル案件一覧｜募集中・過去案件アーカイブ",
@@ -73,7 +75,25 @@ export default async function CasesPage() {
           <p className="text-sm text-[#555] mt-2 mb-1 leading-[1.8]">
             戦略・DX推進・PMO・SAP導入支援など、コンサルティングファーム出身者向けのフリーコンサル案件を掲載しています。
           </p>
-          <div className="w-9 h-[3px] bg-blue mt-3 mb-8" />
+          <div className="w-9 h-[3px] bg-blue mt-3 mb-6" />
+
+          {/* Category navigation */}
+          <div className="mb-8">
+            <p className="text-[10px] font-bold text-[#888] tracking-[0.14em] uppercase mb-3">
+              カテゴリから探す
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {CASE_CATEGORIES.map((cat) => (
+                <Link
+                  key={cat.slug}
+                  href={`/cases/category/${cat.slug}`}
+                  className="px-3.5 py-[6px] text-[12px] font-medium text-navy bg-white border border-border hover:border-blue hover:text-blue rounded-full transition-colors"
+                >
+                  {cat.name}
+                </Link>
+              ))}
+            </div>
+          </div>
 
           {/* Client-side filter/search */}
           <CaseFilters cases={cases} />

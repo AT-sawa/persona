@@ -1,10 +1,43 @@
 import Image from "next/image";
 import Link from "next/link";
 
+const FOOTER_CATEGORIES = [
+  { slug: "strategy", name: "戦略コンサル" },
+  { slug: "dx", name: "DX・デジタル" },
+  { slug: "pmo", name: "PMO" },
+  { slug: "sap", name: "SAP・ERP" },
+  { slug: "bpr", name: "業務改革" },
+  { slug: "ma", name: "M&A・PMI" },
+  { slug: "it-system", name: "IT戦略" },
+  { slug: "new-business", name: "新規事業" },
+  { slug: "finance-accounting", name: "経理・財務" },
+  { slug: "scm", name: "SCM" },
+  { slug: "hr-org", name: "人事・組織" },
+  { slug: "marketing-cx", name: "マーケティング" },
+];
+
 export default function Footer() {
   return (
     <footer className="bg-navy text-white pt-[52px] pb-5 px-6">
       <div className="max-w-[1160px] mx-auto">
+        {/* Category links for SEO internal linking */}
+        <div className="pb-7 mb-7 border-b border-white/[0.07]">
+          <p className="text-[10px] font-bold tracking-[0.14em] text-accent opacity-60 uppercase mb-3">
+            案件カテゴリ
+          </p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+            {FOOTER_CATEGORIES.map((cat) => (
+              <Link
+                key={cat.slug}
+                href={`/cases/category/${cat.slug}`}
+                className="text-[11px] text-white/25 transition-colors hover:text-white"
+              >
+                {cat.name}案件
+              </Link>
+            ))}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr] gap-9 pb-8 border-b border-white/[0.07] mb-[18px]">
           <div>
             <Image

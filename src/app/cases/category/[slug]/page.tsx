@@ -5,46 +5,42 @@ import Footer from "@/components/Footer";
 import CaseFilters from "@/components/CaseFilters";
 import type { Case } from "@/lib/types";
 import Link from "next/link";
+import {
+  CASE_CATEGORIES,
+  CASE_CATEGORY_SLUGS,
+  getCategoryBySlug,
+} from "@/lib/case-categories";
 
 export const revalidate = 600;
-
-const CATEGORIES: Record<string, { name: string; description: string }> = {
-  consul: {
-    name: "コンサル",
-    description:
-      "戦略策定・業務改革・DX推進・PMOなどコンサルティングファーム出身者向けの案件一覧。経営課題の解決を支援するプロジェクトを多数掲載。",
-  },
-  si: {
-    name: "SI",
-    description:
-      "システムインテグレーション案件一覧。ERP導入・基幹システム構築・クラウド移行など、IT領域のプロジェクトを掲載。",
-  },
-};
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
 export async function generateStaticParams() {
-  return Object.keys(CATEGORIES).map((slug) => ({ slug }));
+  return CASE_CATEGORY_SLUGS.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const cat = CATEGORIES[slug];
+  const cat = getCategoryBySlug(slug);
   if (!cat) return {};
 
   return {
-    title: `${cat.name}案件一覧｜フリーコンサル案件`,
-    description: cat.description,
+    title: `${cat.name}のフリーコンサル案件一覧｜PERSONA`,
+    description: cat.metaDescription,
     openGraph: {
-      title: `${cat.name}案件一覧 | PERSONA`,
-      description: cat.description,
+      title: `${cat.name}案件一覧 | PERSONA（ペルソナ）`,
+      description: cat.metaDescription,
     },
   };
 }
 
-async function getCasesByCategory(categoryName: string): Promise<Case[]> {
+/**
+ * Fetch all cases and filter by keyword matching.
+ * Matches against title + description + must_req + industry fields.
+ */
+async function getCasesByKeywords(keywords: string[]): Promise<Case[]> {
   if (
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
     !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -57,10 +53,19 @@ async function getCasesByCategory(categoryName: string): Promise<Case[]> {
     const { data } = await supabase
       .from("cases")
       .select("*")
-      .eq("category", categoryName)
       .order("is_active", { ascending: false })
       .order("published_at", { ascending: false });
-    return (data as Case[]) ?? [];
+
+    if (!data) return [];
+
+    // Filter cases by keyword matching
+    return (data as Case[]).filter((c) => {
+      const searchable = [c.title, c.description, c.must_req, c.industry]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return keywords.some((kw) => searchable.includes(kw.toLowerCase()));
+    });
   } catch {
     return [];
   }
@@ -68,16 +73,18 @@ async function getCasesByCategory(categoryName: string): Promise<Case[]> {
 
 export default async function CategoryArchivePage({ params }: Props) {
   const { slug } = await params;
-  const cat = CATEGORIES[slug];
+  const cat = getCategoryBySlug(slug);
   if (!cat) notFound();
 
-  const cases = await getCasesByCategory(cat.name);
+  const cases = await getCasesByKeywords(cat.keywords);
+  const activeCount = cases.filter((c) => c.is_active).length;
 
+  // ItemList JSON-LD
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: `${cat.name}案件一覧`,
-    description: cat.description,
+    name: cat.heading,
+    description: cat.metaDescription,
     numberOfItems: cases.length,
     itemListElement: cases.slice(0, 30).map((c, i) => ({
       "@type": "ListItem",
@@ -87,6 +94,7 @@ export default async function CategoryArchivePage({ params }: Props) {
     })),
   };
 
+  // Breadcrumb JSON-LD
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -112,6 +120,33 @@ export default async function CategoryArchivePage({ params }: Props) {
     ],
   };
 
+  // FAQPage JSON-LD for featured snippet potential
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: `${cat.name}のフリーコンサル案件は何件ありますか？`,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: `現在、${cat.name}関連のフリーコンサル案件は${cases.length}件掲載中です。うち${activeCount}件が現在募集中です。PERSONAでは提携エージェント30社以上の案件を一括で検索できます。`,
+        },
+      },
+      {
+        "@type": "Question",
+        name: `${cat.name}案件の報酬相場はどのくらいですか？`,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: `PERSONAが扱う${cat.name}案件の報酬レンジは月額100万円〜250万円が中心です。経験やスキルセット、稼働率によって変動します。登録（無料）後に詳細な報酬情報をご確認いただけます。`,
+        },
+      },
+    ],
+  };
+
+  // Other categories for internal linking (exclude current)
+  const otherCategories = CASE_CATEGORIES.filter((c) => c.slug !== slug);
+
   return (
     <>
       <Header />
@@ -134,43 +169,111 @@ export default async function CategoryArchivePage({ params }: Props) {
           </nav>
 
           <p className="text-[10px] font-bold text-blue tracking-[0.18em] uppercase mb-2">
-            {slug.toUpperCase()} CASES
+            {cat.label} CASES
           </p>
           <h1 className="text-[clamp(22px,3vw,30px)] font-black text-navy leading-[1.35] mb-1.5">
             {cat.name}
             <em className="not-italic text-blue">案件一覧</em>
           </h1>
-          <p className="text-sm text-[#555] mt-2 mb-1 leading-[1.8]">
-            {cat.description}
+          <p className="text-sm text-[#555] mt-2 mb-1 leading-[1.8] max-w-[720px]">
+            {cat.intro}
           </p>
+
+          {/* Stats bar */}
+          <div className="flex items-center gap-5 mt-4 mb-2">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#1a8a5c]" />
+              <span className="text-[13px] text-[#555]">
+                募集中 <span className="font-bold text-navy">{activeCount}</span>件
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#ccc]" />
+              <span className="text-[13px] text-[#555]">
+                全{cases.length}件
+              </span>
+            </div>
+          </div>
+
           <div className="w-9 h-[3px] bg-blue mt-3 mb-8" />
 
-          <CaseFilters cases={cases} defaultCategory={cat.name} />
+          {/* Case listing with filters */}
+          <CaseFilters cases={cases} />
 
-          {/* Category navigation */}
-          <div className="mt-12 pt-8 border-t border-border">
-            <p className="text-[10px] font-bold text-[#888] tracking-[0.18em] uppercase mb-3">
-              OTHER CATEGORIES
-            </p>
-            <div className="flex flex-wrap gap-3">
-              {Object.entries(CATEGORIES)
-                .filter(([s]) => s !== slug)
-                .map(([s, c]) => (
+          {/* Related expertise/industry links */}
+          {(cat.relatedExpertise || cat.relatedIndustries) && (
+            <div className="mt-10 pt-6 border-t border-border">
+              <p className="text-[10px] font-bold text-[#888] tracking-[0.18em] uppercase mb-3">
+                RELATED PAGES
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {cat.relatedExpertise?.map((slug) => (
                   <Link
-                    key={s}
-                    href={`/cases/category/${s}`}
-                    className="px-4 py-2 text-[13px] font-bold text-navy bg-white border border-border hover:border-blue hover:text-blue transition-colors"
+                    key={slug}
+                    href={`/expertise/${slug}`}
+                    className="px-3 py-1.5 text-[12px] font-medium text-blue bg-blue/[0.06] hover:bg-blue/[0.12] rounded-full transition-colors"
                   >
-                    {c.name}案件一覧
+                    {cat.name}の専門領域ガイド →
                   </Link>
                 ))}
+                {cat.relatedIndustries?.map((slug) => (
+                  <Link
+                    key={slug}
+                    href={`/industries/${slug}`}
+                    className="px-3 py-1.5 text-[12px] font-medium text-blue bg-blue/[0.06] hover:bg-blue/[0.12] rounded-full transition-colors"
+                  >
+                    業界別案件を見る →
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Other category navigation — key for internal linking */}
+          <div className="mt-10 pt-8 border-t border-border">
+            <p className="text-[10px] font-bold text-[#888] tracking-[0.18em] uppercase mb-4">
+              OTHER CATEGORIES
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+              {otherCategories.map((c) => (
+                <Link
+                  key={c.slug}
+                  href={`/cases/category/${c.slug}`}
+                  className="px-4 py-2.5 text-[13px] font-bold text-navy bg-white border border-border hover:border-blue hover:text-blue transition-colors text-center"
+                >
+                  {c.name}
+                </Link>
+              ))}
               <Link
                 href="/cases"
-                className="px-4 py-2 text-[13px] font-bold text-navy bg-white border border-border hover:border-blue hover:text-blue transition-colors"
+                className="px-4 py-2.5 text-[13px] font-bold text-white bg-navy hover:bg-blue transition-colors text-center"
               >
                 すべての案件
               </Link>
             </div>
+          </div>
+
+          {/* CTA section */}
+          <div className="mt-12 bg-white border border-border rounded-2xl p-8 text-center">
+            <p className="text-[10px] font-bold text-blue tracking-[0.18em] uppercase mb-2">
+              FREE REGISTRATION
+            </p>
+            <h2 className="text-[20px] font-black text-navy mb-2">
+              {cat.name}案件をお探しですか？
+            </h2>
+            <p className="text-[13px] text-[#888] leading-[1.8] mb-5 max-w-[480px] mx-auto">
+              PERSONAに無料登録すると、非公開案件を含む{cat.name}関連の全案件にアクセスできます。
+              AIマッチングで最適な案件をご提案します。
+            </p>
+            <Link
+              href="/auth/register"
+              className="inline-flex items-center gap-2 bg-blue text-white px-8 py-3.5 text-[15px] font-bold transition-colors hover:bg-blue-dark shadow-[0_4px_14px_rgba(31,171,233,0.3)]"
+            >
+              無料で登録する
+              <span className="material-symbols-rounded" style={{ fontSize: "18px" }}>
+                arrow_forward
+              </span>
+            </Link>
           </div>
         </div>
       </main>
@@ -183,6 +286,10 @@ export default async function CategoryArchivePage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
     </>
   );

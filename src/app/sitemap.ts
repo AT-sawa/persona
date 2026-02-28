@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { EXPERTISE_SLUGS } from "@/lib/expertise-data";
 import { INDUSTRY_SLUGS } from "@/lib/industry-data";
 import { CASE_STUDY_SLUGS } from "@/lib/case-studies-data";
+import { CASE_CATEGORY_SLUGS } from "@/lib/case-categories";
 
 const BASE_URL = "https://persona-consultant.com";
 
@@ -44,18 +45,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "yearly",
       priority: 0.3,
     },
-    {
-      url: `${BASE_URL}/cases/category/consul`,
+    // Case category archive pages
+    ...CASE_CATEGORY_SLUGS.map((slug) => ({
+      url: `${BASE_URL}/cases/category/${slug}`,
       lastModified: new Date(),
-      changeFrequency: "daily",
+      changeFrequency: "daily" as const,
       priority: 0.8,
-    },
-    {
-      url: `${BASE_URL}/cases/category/si`,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 0.8,
-    },
+    })),
   ];
 
   // Expertise hub + detail pages
