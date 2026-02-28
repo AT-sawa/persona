@@ -12,9 +12,10 @@ interface NotifyPayload {
 
 export async function POST(req: NextRequest) {
   try {
-    // Simple check using Supabase anon key as shared secret
+    // Auth: use dedicated NOTIFY_SECRET, fallback to anon key for backward compat
     const authHeader = req.headers.get("x-notify-key");
-    if (authHeader !== process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    const secret = process.env.NOTIFY_SECRET || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!secret || authHeader !== secret) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -22,6 +23,8 @@ export async function POST(req: NextRequest) {
 
     let subject = "";
     let body = "";
+
+    const ADMIN_PANEL_URL = "https://app.persona-consultant.com/dashboard/admin";
 
     switch (type) {
       case "consultant_lead":
@@ -35,8 +38,8 @@ export async function POST(req: NextRequest) {
           `ファーム: ${data.firm || "—"}`,
           `経験: ${data.experience || "—"}`,
           "",
-          "Supabaseダッシュボードで詳細を確認してください。",
-          `https://supabase.com/dashboard/project/urikwrakbafnsllimcbl/editor`,
+          "管理画面で詳細を確認してください。",
+          `${ADMIN_PANEL_URL}/users`,
         ].join("\n");
         break;
 
@@ -51,8 +54,8 @@ export async function POST(req: NextRequest) {
           `電話: ${data.phone || "—"}`,
           `内容: ${data.message || "—"}`,
           "",
-          "Supabaseダッシュボードで詳細を確認してください。",
-          `https://supabase.com/dashboard/project/urikwrakbafnsllimcbl/editor`,
+          "管理画面で詳細を確認してください。",
+          ADMIN_PANEL_URL,
         ].join("\n");
         break;
 
@@ -65,8 +68,8 @@ export async function POST(req: NextRequest) {
           `メール: ${data.email || "—"}`,
           `メッセージ: ${data.message || "—"}`,
           "",
-          "Supabaseダッシュボードで詳細を確認してください。",
-          `https://supabase.com/dashboard/project/urikwrakbafnsllimcbl/editor`,
+          "管理画面で詳細を確認してください。",
+          `${ADMIN_PANEL_URL}/entries`,
         ].join("\n");
         break;
 
