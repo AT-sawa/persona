@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -56,6 +57,7 @@ export default function Header() {
               >
                 エントリー
               </Link>
+              <NotificationBell />
               <Link
                 href="/dashboard"
                 className="border border-blue text-blue px-[18px] py-2 text-[13px] font-bold transition-colors hover:bg-blue hover:text-white"
@@ -72,6 +74,24 @@ export default function Header() {
                 案件を探す
               </Link>
               <Link
+                href="/expertise"
+                className="text-[13px] font-medium text-text px-3.5 py-1.5 transition-colors hover:text-blue"
+              >
+                専門領域
+              </Link>
+              <Link
+                href="/industries"
+                className="text-[13px] font-medium text-text px-3.5 py-1.5 transition-colors hover:text-blue"
+              >
+                業界別案件
+              </Link>
+              <Link
+                href="/case-studies"
+                className="text-[13px] font-medium text-text px-3.5 py-1.5 transition-colors hover:text-blue"
+              >
+                導入事例
+              </Link>
+              <Link
                 href="/blog"
                 className="text-[13px] font-medium text-text px-3.5 py-1.5 transition-colors hover:text-blue"
               >
@@ -84,12 +104,15 @@ export default function Header() {
                 企業向け
               </Link>
               {isLoggedIn ? (
-                <Link
-                  href="/dashboard"
-                  className="border border-blue text-blue px-[18px] py-2 text-[13px] font-bold transition-colors hover:bg-blue hover:text-white"
-                >
-                  マイページ
-                </Link>
+                <>
+                  <NotificationBell />
+                  <Link
+                    href="/dashboard"
+                    className="border border-blue text-blue px-[18px] py-2 text-[13px] font-bold transition-colors hover:bg-blue hover:text-white"
+                  >
+                    マイページ
+                  </Link>
+                </>
               ) : (
                 <Link
                   href={isHome ? "#register" : "/auth/register"}
@@ -153,6 +176,13 @@ export default function Header() {
                 エントリー
               </Link>
               <Link
+                href="/dashboard/notifications"
+                onClick={() => setOpen(false)}
+                className="block px-6 py-3.5 text-[14px] font-medium text-text border-b border-border/50 hover:bg-[#f7faff]"
+              >
+                通知
+              </Link>
+              <Link
                 href="/dashboard/profile"
                 onClick={() => setOpen(false)}
                 className="block px-6 py-3.5 text-[14px] font-medium text-text border-b border-border/50 hover:bg-[#f7faff]"
@@ -177,6 +207,27 @@ export default function Header() {
                 className="block px-6 py-3.5 text-[14px] font-bold text-navy border-b border-border/50 hover:bg-[#f7faff]"
               >
                 案件を探す
+              </Link>
+              <Link
+                href="/expertise"
+                onClick={() => setOpen(false)}
+                className="block px-6 py-3.5 text-[14px] font-medium text-text border-b border-border/50 hover:bg-[#f7faff]"
+              >
+                専門領域
+              </Link>
+              <Link
+                href="/industries"
+                onClick={() => setOpen(false)}
+                className="block px-6 py-3.5 text-[14px] font-medium text-text border-b border-border/50 hover:bg-[#f7faff]"
+              >
+                業界別案件
+              </Link>
+              <Link
+                href="/case-studies"
+                onClick={() => setOpen(false)}
+                className="block px-6 py-3.5 text-[14px] font-medium text-text border-b border-border/50 hover:bg-[#f7faff]"
+              >
+                導入事例
               </Link>
               <Link
                 href="/blog"

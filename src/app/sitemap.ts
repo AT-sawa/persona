@@ -1,4 +1,7 @@
 import type { MetadataRoute } from "next";
+import { EXPERTISE_SLUGS } from "@/lib/expertise-data";
+import { INDUSTRY_SLUGS } from "@/lib/industry-data";
+import { CASE_STUDY_SLUGS } from "@/lib/case-studies-data";
 
 const BASE_URL = "https://persona-consultant.com";
 
@@ -55,6 +58,54 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
+  // Expertise hub + detail pages
+  const expertisePages: MetadataRoute.Sitemap = [
+    {
+      url: `${BASE_URL}/expertise`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    ...EXPERTISE_SLUGS.map((slug) => ({
+      url: `${BASE_URL}/expertise/${slug}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
+  ];
+
+  // Industry hub + detail pages
+  const industryPages: MetadataRoute.Sitemap = [
+    {
+      url: `${BASE_URL}/industries`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    ...INDUSTRY_SLUGS.map((slug) => ({
+      url: `${BASE_URL}/industries/${slug}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
+  ];
+
+  // Case studies hub + detail pages
+  const caseStudyPages: MetadataRoute.Sitemap = [
+    {
+      url: `${BASE_URL}/case-studies`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    ...CASE_STUDY_SLUGS.map((slug) => ({
+      url: `${BASE_URL}/case-studies/${slug}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
+  ];
+
   // Dynamic case pages from Supabase
   let casePages: MetadataRoute.Sitemap = [];
   if (
@@ -98,5 +149,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // No blog posts yet
   }
 
-  return [...staticPages, ...casePages, ...blogPages];
+  return [...staticPages, ...expertisePages, ...industryPages, ...caseStudyPages, ...casePages, ...blogPages];
 }

@@ -36,6 +36,16 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/expertise" className="text-xs text-white/30 transition-colors hover:text-white">
+                  専門領域
+                </Link>
+              </li>
+              <li>
+                <Link href="/industries" className="text-xs text-white/30 transition-colors hover:text-white">
+                  業界別案件
+                </Link>
+              </li>
+              <li>
                 <Link href="/auth/register" className="text-xs text-white/30 transition-colors hover:text-white">
                   無料登録
                 </Link>
@@ -50,6 +60,11 @@ export default function Footer() {
               <li>
                 <Link href="/for-enterprise" className="text-xs text-white/30 transition-colors hover:text-white">
                   企業様へ
+                </Link>
+              </li>
+              <li>
+                <Link href="/case-studies" className="text-xs text-white/30 transition-colors hover:text-white">
+                  導入事例
                 </Link>
               </li>
               <li>

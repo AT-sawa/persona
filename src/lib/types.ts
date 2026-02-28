@@ -110,3 +110,22 @@ export interface MatchingResult {
   matched_at: string | null;
   cases?: Case;
 }
+
+export interface Favorite {
+  id: string;
+  user_id: string;
+  case_id: string;
+  created_at: string | null;
+  cases?: Case;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: "info" | "matching" | "entry" | "system";
+  title: string;
+  message: string | null;
+  link: string | null;
+  is_read: boolean;
+  created_at: string | null;
+}

@@ -107,7 +107,7 @@ export default function AdminPage() {
         <h2 className="text-sm font-bold text-navy mb-4 pb-3 border-b-2 border-[#E15454]">
           クイックアクション
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Link
             href="/dashboard/admin/cases/new"
             className="p-4 border border-border text-center hover:bg-[#fafafa] transition-colors"
@@ -128,6 +128,13 @@ export default function AdminPage() {
           >
             <span className="text-2xl block mb-1"><Icon name="forward_to_inbox" className="text-[24px]" /></span>
             <span className="text-[13px] font-bold text-navy">エントリー確認</span>
+          </Link>
+          <Link
+            href="/dashboard/admin/analytics"
+            className="p-4 border border-border text-center hover:bg-[#fafafa] transition-colors"
+          >
+            <span className="text-2xl block mb-1"><Icon name="analytics" className="text-[24px]" /></span>
+            <span className="text-[13px] font-bold text-navy">アナリティクス</span>
           </Link>
         </div>
       </div>

@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "プライバシーポリシー",
   description:
     "PERSONA（ペルソナ）のプライバシーポリシー。個人情報の取り扱い、利用目的、安全管理措置について記載しています。",
+  robots: { index: false, follow: true },
 };
 
 export default function PrivacyPage() {

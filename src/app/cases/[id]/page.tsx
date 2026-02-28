@@ -96,14 +96,25 @@ export default async function CaseDetailPage({ params }: Props) {
     employmentType: "CONTRACT",
     industry: caseData.industry || "コンサルティング",
     baseSalary: caseData.fee
-      ? {
-          "@type": "MonetaryAmount",
-          currency: "JPY",
-          value: {
-            "@type": "QuantitativeValue",
-            unitText: "MONTH",
-          },
-        }
+      ? (() => {
+          // Parse fee string like "〜200万円/月", "100-200万円/月", "150万円〜"
+          const nums = caseData.fee!.match(/(\d+)/g);
+          const maxVal = nums ? Math.max(...nums.map(Number)) * 10000 : undefined;
+          const minVal = nums && nums.length > 1 ? Math.min(...nums.map(Number)) * 10000 : undefined;
+          return {
+            "@type": "MonetaryAmount",
+            currency: "JPY",
+            value: {
+              "@type": "QuantitativeValue",
+              ...(minVal && maxVal && minVal !== maxVal
+                ? { minValue: minVal, maxValue: maxVal }
+                : maxVal
+                ? { value: maxVal }
+                : {}),
+              unitText: "MONTH",
+            },
+          };
+        })()
       : undefined,
     skills: caseData.must_req,
   };

@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "利用規約",
   description:
     "PERSONA（ペルソナ）の利用規約。サービスの利用条件、禁止事項、免責事項について記載しています。",
+  robots: { index: false, follow: true },
 };
 
 export default function TermsPage() {
