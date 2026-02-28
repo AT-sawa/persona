@@ -4,7 +4,7 @@ import HeroForm from "./HeroForm";
 
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden">
+    <section id="hero" className="relative overflow-hidden">
       {/* ── Background layers ── */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#f0f7fe] via-white to-[#eaf4fd]" />
 

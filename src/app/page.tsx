@@ -12,6 +12,7 @@ import Firms from "@/components/Firms";
 import HomeFAQ from "@/components/HomeFAQ";
 import Register from "@/components/Register";
 import Footer from "@/components/Footer";
+import ScrollReveal from "@/components/ScrollReveal";
 
 async function getCases() {
   if (
@@ -99,14 +100,30 @@ export default async function Home() {
       <Header />
       <Hero />
       <Ticker />
-      <About />
-      <Banner />
-      <CasesSection cases={cases} />
-      <Strengths />
-      <Story />
-      <Firms />
-      <HomeFAQ />
-      <Register />
+      <ScrollReveal>
+        <About />
+      </ScrollReveal>
+      <ScrollReveal variant="scale">
+        <Banner />
+      </ScrollReveal>
+      <ScrollReveal>
+        <CasesSection cases={cases} />
+      </ScrollReveal>
+      <ScrollReveal>
+        <Strengths />
+      </ScrollReveal>
+      <ScrollReveal variant="left">
+        <Story />
+      </ScrollReveal>
+      <ScrollReveal>
+        <Firms />
+      </ScrollReveal>
+      <ScrollReveal>
+        <HomeFAQ />
+      </ScrollReveal>
+      <ScrollReveal>
+        <Register />
+      </ScrollReveal>
       <Footer />
       <script
         type="application/ld+json"
