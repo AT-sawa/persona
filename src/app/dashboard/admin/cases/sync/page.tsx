@@ -11,6 +11,7 @@ function Icon({ name, className = "" }: { name: string; className?: string }) {
   );
 }
 
+type SyncSource = "sheets" | "notion";
 type SyncStep = "input" | "preview" | "result";
 
 interface PreviewData {
@@ -27,7 +28,6 @@ interface ImportResult {
   columnMapping: Record<string, string>;
 }
 
-// Display labels for case fields
 const FIELD_LABELS: Record<string, string> = {
   title: "タイトル",
   case_no: "案件番号",
@@ -47,13 +47,14 @@ const FIELD_LABELS: Record<string, string> = {
   pdf_url: "PDF資料",
 };
 
-export default function AdminSheetSyncPage() {
+export default function AdminSyncPage() {
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
+  const [source, setSource] = useState<SyncSource>("sheets");
   const [step, setStep] = useState<SyncStep>("input");
 
   // Input state
-  const [sheetUrl, setSheetUrl] = useState("");
+  const [url, setUrl] = useState("");
   const [sheetName, setSheetName] = useState("");
   const [publish, setPublish] = useState(false);
   const [downloadPdfs, setDownloadPdfs] = useState(true);
@@ -90,23 +91,47 @@ export default function AdminSheetSyncPage() {
     checkAdmin();
   }, [router]);
 
+  function switchSource(s: SyncSource) {
+    setSource(s);
+    setStep("input");
+    setUrl("");
+    setSheetName("");
+    setPreview(null);
+    setResult(null);
+    setError("");
+  }
+
   async function handlePreview() {
-    if (!sheetUrl.trim()) {
-      setError("Google SheetsのURLを入力してください");
+    const label = source === "sheets" ? "Google Sheets" : "Notion";
+    if (!url.trim()) {
+      setError(`${label}のURLを入力してください`);
       return;
     }
     setError("");
     setLoading(true);
 
     try {
-      const res = await fetch("/api/admin/sync-sheet", {
+      const apiPath =
+        source === "sheets"
+          ? "/api/admin/sync-sheet"
+          : "/api/admin/sync-notion";
+
+      const body: Record<string, unknown> =
+        source === "sheets"
+          ? {
+              sheetUrl: url.trim(),
+              sheetName: sheetName.trim() || undefined,
+              mode: "preview",
+            }
+          : {
+              databaseUrl: url.trim(),
+              mode: "preview",
+            };
+
+      const res = await fetch(apiPath, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sheetUrl: sheetUrl.trim(),
-          sheetName: sheetName.trim() || undefined,
-          mode: "preview",
-        }),
+        body: JSON.stringify(body),
       });
 
       const data = await res.json();
@@ -117,9 +142,7 @@ export default function AdminSheetSyncPage() {
       setPreview(data);
       setStep("preview");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "エラーが発生しました"
-      );
+      setError(err instanceof Error ? err.message : "エラーが発生しました");
     } finally {
       setLoading(false);
     }
@@ -130,16 +153,31 @@ export default function AdminSheetSyncPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/admin/sync-sheet", {
+      const apiPath =
+        source === "sheets"
+          ? "/api/admin/sync-sheet"
+          : "/api/admin/sync-notion";
+
+      const body: Record<string, unknown> =
+        source === "sheets"
+          ? {
+              sheetUrl: url.trim(),
+              sheetName: sheetName.trim() || undefined,
+              mode: "import",
+              publish,
+              downloadPdfs,
+            }
+          : {
+              databaseUrl: url.trim(),
+              mode: "import",
+              publish,
+              downloadPdfs,
+            };
+
+      const res = await fetch(apiPath, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sheetUrl: sheetUrl.trim(),
-          sheetName: sheetName.trim() || undefined,
-          mode: "import",
-          publish,
-          downloadPdfs,
-        }),
+        body: JSON.stringify(body),
       });
 
       const data = await res.json();
@@ -150,9 +188,7 @@ export default function AdminSheetSyncPage() {
       setResult(data);
       setStep("result");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "エラーが発生しました"
-      );
+      setError(err instanceof Error ? err.message : "エラーが発生しました");
     } finally {
       setLoading(false);
     }
@@ -160,7 +196,7 @@ export default function AdminSheetSyncPage() {
 
   function handleReset() {
     setStep("input");
-    setSheetUrl("");
+    setUrl("");
     setSheetName("");
     setPreview(null);
     setResult(null);
@@ -185,88 +221,183 @@ export default function AdminSheetSyncPage() {
           href="/dashboard/admin/cases"
           className="text-[12px] text-[#E15454] hover:underline mb-2 inline-block"
         >
-          ← 案件管理
+          &larr; 案件管理
         </Link>
         <p className="text-[10px] font-bold text-[#E15454] tracking-[0.18em] uppercase mb-1">
-          ADMIN / SHEET SYNC
+          ADMIN / EXTERNAL SYNC
         </p>
-        <h1 className="text-xl font-black text-navy">
-          Google Sheets 同期
-        </h1>
+        <h1 className="text-xl font-black text-navy">外部データ同期</h1>
         <p className="text-[13px] text-[#888] mt-1">
-          パートナーのGoogle
-          Sheetsから案件を一括取得・登録します。PDF資料も自動ダウンロードできます。
+          パートナーのGoogle Sheets・Notionから案件を一括取得・登録します。
         </p>
       </div>
+
+      {/* ── Source Tabs ── */}
+      {step === "input" && (
+        <div className="flex gap-0 mb-5">
+          <button
+            onClick={() => switchSource("sheets")}
+            className={`px-5 py-2.5 text-[13px] font-bold border transition-colors ${
+              source === "sheets"
+                ? "bg-[#E15454] text-white border-[#E15454]"
+                : "bg-white text-[#888] border-border hover:text-navy"
+            }`}
+          >
+            <Icon
+              name="table_chart"
+              className="text-[16px] align-middle mr-1"
+            />
+            Google Sheets
+          </button>
+          <button
+            onClick={() => switchSource("notion")}
+            className={`px-5 py-2.5 text-[13px] font-bold border border-l-0 transition-colors ${
+              source === "notion"
+                ? "bg-[#E15454] text-white border-[#E15454]"
+                : "bg-white text-[#888] border-border hover:text-navy"
+            }`}
+          >
+            <Icon
+              name="article"
+              className="text-[16px] align-middle mr-1"
+            />
+            Notion
+          </button>
+        </div>
+      )}
 
       {/* ── Step 1: URL Input ── */}
       {step === "input" && (
         <div className="bg-white border border-border p-6 mb-5">
-          <h2 className="text-sm font-bold text-navy mb-1 pb-3 border-b-2 border-[#E15454]">
-            STEP 1 — スプレッドシートのURLを入力
-          </h2>
-          <p className="text-[12px] text-[#888] mb-4">
-            「リンクを知っている全員が閲覧可」に設定されたGoogle
-            SheetsのURLを入力してください。
-          </p>
+          {source === "sheets" ? (
+            <>
+              <h2 className="text-sm font-bold text-navy mb-1 pb-3 border-b-2 border-[#E15454]">
+                STEP 1 &mdash; スプレッドシートのURLを入力
+              </h2>
+              <p className="text-[12px] text-[#888] mb-4">
+                「リンクを知っている全員が閲覧可」に設定されたGoogle
+                SheetsのURLを入力してください。
+              </p>
 
-          <div className="flex flex-col gap-4">
-            {/* Sheet URL */}
-            <div>
-              <label className="text-[11px] font-bold text-[#888] mb-1 block">
-                Google Sheets URL <span className="text-[#E15454]">*必須</span>
-              </label>
+              <div className="flex flex-col gap-4">
+                <div>
+                  <label className="text-[11px] font-bold text-[#888] mb-1 block">
+                    Google Sheets URL{" "}
+                    <span className="text-[#E15454]">*必須</span>
+                  </label>
+                  <input
+                    type="url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="https://docs.google.com/spreadsheets/d/xxxxx/edit"
+                    className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-[#888] mb-1 block">
+                    シート名（タブ名）
+                    <span className="text-[#aaa] font-normal ml-1">
+                      省略時は最初のシート
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={sheetName}
+                    onChange={(e) => setSheetName(e.target.value)}
+                    placeholder="例: 案件一覧"
+                    className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
+                  />
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className="text-sm font-bold text-navy mb-1 pb-3 border-b-2 border-[#E15454]">
+                STEP 1 &mdash; NotionデータベースのURLを入力
+              </h2>
+              <p className="text-[12px] text-[#888] mb-4">
+                PERSONAインテグレーションと共有されたNotionデータベースのURLを入力してください。
+              </p>
+
+              <div className="flex flex-col gap-4">
+                <div>
+                  <label className="text-[11px] font-bold text-[#888] mb-1 block">
+                    Notion Database URL{" "}
+                    <span className="text-[#E15454]">*必須</span>
+                  </label>
+                  <input
+                    type="url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="https://www.notion.so/workspace/xxxxxxxxxxxxxxxx"
+                    className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
+                  />
+                </div>
+
+                {/* Notion setup guide */}
+                <div className="p-3 bg-[#fffbeb] border border-[#f59e0b]/20 text-[12px] text-[#666]">
+                  <p className="font-bold text-navy mb-1">
+                    <Icon
+                      name="info"
+                      className="text-[14px] text-[#f59e0b] align-middle mr-1"
+                    />
+                    Notionの事前設定
+                  </p>
+                  <ol className="list-decimal ml-4 space-y-1 text-[11px]">
+                    <li>
+                      Notionの
+                      <a
+                        href="https://www.notion.so/my-integrations"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue underline"
+                      >
+                        インテグレーション設定
+                      </a>
+                      でPERSONA用のインテグレーションを作成
+                    </li>
+                    <li>
+                      取得したAPIトークンをVercelの環境変数
+                      <code className="bg-[#f5f5f5] px-1 text-[#E15454]">
+                        NOTION_API_KEY
+                      </code>
+                      に設定
+                    </li>
+                    <li>
+                      対象のNotionデータベースで「コネクトを追加」→
+                      PERSONAインテグレーションを選択
+                    </li>
+                  </ol>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Common options */}
+          <div className="flex flex-col sm:flex-row gap-4 p-3 bg-[#f9f9fb] border border-border/50 mt-4">
+            <label className="flex items-center gap-2 cursor-pointer">
               <input
-                type="url"
-                value={sheetUrl}
-                onChange={(e) => setSheetUrl(e.target.value)}
-                placeholder="https://docs.google.com/spreadsheets/d/xxxxx/edit"
-                className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
+                type="checkbox"
+                checked={downloadPdfs}
+                onChange={(e) => setDownloadPdfs(e.target.checked)}
+                className="w-4 h-4 accent-[#E15454]"
               />
-            </div>
-
-            {/* Sheet name (optional) */}
-            <div>
-              <label className="text-[11px] font-bold text-[#888] mb-1 block">
-                シート名（タブ名）
-                <span className="text-[#aaa] font-normal ml-1">
-                  省略時は最初のシート
-                </span>
-              </label>
+              <span className="text-[12px] text-[#666]">
+                PDF資料を自動ダウンロード
+              </span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
               <input
-                type="text"
-                value={sheetName}
-                onChange={(e) => setSheetName(e.target.value)}
-                placeholder="例: 案件一覧"
-                className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
+                type="checkbox"
+                checked={publish}
+                onChange={(e) => setPublish(e.target.checked)}
+                className="w-4 h-4 accent-[#E15454]"
               />
-            </div>
-
-            {/* Options */}
-            <div className="flex flex-col sm:flex-row gap-4 p-3 bg-[#f9f9fb] border border-border/50">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={downloadPdfs}
-                  onChange={(e) => setDownloadPdfs(e.target.checked)}
-                  className="w-4 h-4 accent-[#E15454]"
-                />
-                <span className="text-[12px] text-[#666]">
-                  PDF資料を自動ダウンロード
-                </span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={publish}
-                  onChange={(e) => setPublish(e.target.checked)}
-                  className="w-4 h-4 accent-[#E15454]"
-                />
-                <span className="text-[12px] text-[#666]">
-                  インポート後すぐに公開
-                </span>
-              </label>
-            </div>
+              <span className="text-[12px] text-[#666]">
+                インポート後すぐに公開
+              </span>
+            </label>
           </div>
 
           {error && (
@@ -281,7 +412,10 @@ export default function AdminSheetSyncPage() {
             >
               {loading ? (
                 <span className="flex items-center gap-2">
-                  <Icon name="progress_activity" className="text-[16px] animate-spin" />
+                  <Icon
+                    name="progress_activity"
+                    className="text-[16px] animate-spin"
+                  />
                   取得中...
                 </span>
               ) : (
@@ -290,14 +424,14 @@ export default function AdminSheetSyncPage() {
             </button>
           </div>
 
-          {/* Help */}
+          {/* Column mapping help */}
           <details className="mt-6 text-[12px] text-[#888]">
             <summary className="cursor-pointer font-bold hover:text-navy">
-              対応するカラム名について
+              対応するカラム名・プロパティ名について
             </summary>
             <div className="mt-2 p-3 bg-[#f9f9fb] border border-border/50">
               <p className="mb-2">
-                以下の日本語・英語のカラム名を自動で認識します:
+                以下の日本語・英語の{source === "sheets" ? "カラム" : "プロパティ"}名を自動で認識します:
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 text-[11px]">
                 {Object.entries(FIELD_LABELS).map(([key, label]) => (
@@ -309,7 +443,7 @@ export default function AdminSheetSyncPage() {
                 ))}
               </div>
               <p className="mt-2 text-[11px] text-[#aaa]">
-                例:「案件名」「タイトル」「title」→ すべて「タイトル」として取り込みます
+                例:「案件名」「タイトル」「title」「Name」&rarr; すべて「タイトル」として取り込みます
               </p>
             </div>
           </details>
@@ -319,15 +453,19 @@ export default function AdminSheetSyncPage() {
       {/* ── Step 2: Preview ── */}
       {step === "preview" && preview && (
         <>
-          {/* Column mapping info */}
           <div className="bg-blue/[0.04] border border-blue/20 p-4 mb-5">
             <p className="text-[13px] font-bold text-navy mb-1">
-              <Icon name="check_circle" className="text-[16px] text-[#10b981] align-middle mr-1" />
-              {preview.total}件のデータを取得しました
+              <Icon
+                name="check_circle"
+                className="text-[16px] text-[#10b981] align-middle mr-1"
+              />
+              {preview.total}件のデータを
+              {source === "sheets" ? "Google Sheets" : "Notion"}
+              から取得しました
             </p>
             <div className="mt-2">
               <p className="text-[11px] text-[#888] mb-1">
-                認識されたカラム:
+                認識された{source === "sheets" ? "カラム" : "プロパティ"}:
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {Object.entries(preview.columnMapping).map(
@@ -336,20 +474,18 @@ export default function AdminSheetSyncPage() {
                       key={raw}
                       className="px-2 py-0.5 text-[11px] bg-blue/10 text-blue rounded-full"
                     >
-                      {raw} → {FIELD_LABELS[mapped] || mapped}
+                      {raw} &rarr; {FIELD_LABELS[mapped] || mapped}
                     </span>
                   )
                 )}
               </div>
             </div>
-            {/* Unmapped fields warning */}
             {Object.keys(FIELD_LABELS).filter(
-              (k) =>
-                !Object.values(preview.columnMapping).includes(k)
+              (k) => !Object.values(preview.columnMapping).includes(k)
             ).length > 0 && (
               <div className="mt-2">
                 <p className="text-[11px] text-[#aaa]">
-                  未認識:
+                  未認識:{" "}
                   {Object.keys(FIELD_LABELS)
                     .filter(
                       (k) =>
@@ -366,7 +502,7 @@ export default function AdminSheetSyncPage() {
           <div className="bg-white border border-border mb-5 overflow-x-auto">
             <div className="p-4 border-b border-border">
               <h2 className="text-sm font-bold text-navy">
-                STEP 2 — データプレビュー
+                STEP 2 &mdash; データプレビュー
                 <span className="text-[11px] text-[#888] font-normal ml-2">
                   先頭{Math.min(preview.preview.length, 20)}件を表示
                 </span>
@@ -379,9 +515,7 @@ export default function AdminSheetSyncPage() {
                     #
                   </th>
                   {Object.values(preview.columnMapping)
-                    .filter(
-                      (v, i, arr) => arr.indexOf(v) === i
-                    )
+                    .filter((v, i, arr) => arr.indexOf(v) === i)
                     .map((field) => (
                       <th
                         key={field}
@@ -400,9 +534,7 @@ export default function AdminSheetSyncPage() {
                   >
                     <td className="px-3 py-2 text-[#aaa]">{idx + 1}</td>
                     {Object.values(preview.columnMapping)
-                      .filter(
-                        (v, i, arr) => arr.indexOf(v) === i
-                      )
+                      .filter((v, i, arr) => arr.indexOf(v) === i)
                       .map((field) => (
                         <td
                           key={field}
@@ -419,7 +551,7 @@ export default function AdminSheetSyncPage() {
                             </span>
                           ) : (
                             row[field] || (
-                              <span className="text-[#ccc]">—</span>
+                              <span className="text-[#ccc]">&mdash;</span>
                             )
                           )}
                         </td>
@@ -460,7 +592,6 @@ export default function AdminSheetSyncPage() {
             <p className="text-[12px] text-[#E15454] mb-3">{error}</p>
           )}
 
-          {/* Actions */}
           <div className="flex items-center gap-3 mb-5">
             <button
               onClick={handleImport}
@@ -469,7 +600,10 @@ export default function AdminSheetSyncPage() {
             >
               {loading ? (
                 <span className="flex items-center gap-2">
-                  <Icon name="progress_activity" className="text-[16px] animate-spin" />
+                  <Icon
+                    name="progress_activity"
+                    className="text-[16px] animate-spin"
+                  />
                   インポート中...
                 </span>
               ) : (
@@ -493,7 +627,6 @@ export default function AdminSheetSyncPage() {
       {/* ── Step 3: Result ── */}
       {step === "result" && result && (
         <>
-          {/* Success / partial success */}
           <div
             className={`p-5 mb-5 border ${
               result.errors.length > 0
@@ -514,7 +647,8 @@ export default function AdminSheetSyncPage() {
               />
               <div className="flex-1">
                 <p className="text-[15px] font-bold text-navy">
-                  インポート完了
+                  {source === "sheets" ? "Google Sheets" : "Notion"}
+                  からのインポート完了
                 </p>
                 <div className="flex flex-wrap gap-4 mt-2 text-[13px]">
                   <span className="text-[#10b981] font-bold">
@@ -549,7 +683,6 @@ export default function AdminSheetSyncPage() {
               </div>
             </div>
 
-            {/* Error details */}
             {result.errors.length > 0 && (
               <div className="mt-3 p-3 bg-white/60 border border-[#E15454]/10">
                 <p className="text-[11px] font-bold text-[#E15454] mb-1">
@@ -564,12 +697,11 @@ export default function AdminSheetSyncPage() {
             )}
           </div>
 
-          {/* Column mapping used */}
           {result.columnMapping &&
             Object.keys(result.columnMapping).length > 0 && (
               <div className="bg-[#f9f9fb] border border-border p-4 mb-5">
                 <p className="text-[11px] font-bold text-[#888] mb-2">
-                  使用されたカラムマッピング:
+                  使用されたマッピング:
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {Object.entries(result.columnMapping).map(
@@ -578,7 +710,7 @@ export default function AdminSheetSyncPage() {
                         key={raw}
                         className="px-2 py-0.5 text-[11px] bg-blue/10 text-blue rounded-full"
                       >
-                        {raw} → {FIELD_LABELS[mapped] || mapped}
+                        {raw} &rarr; {FIELD_LABELS[mapped] || mapped}
                       </span>
                     )
                   )}
@@ -586,7 +718,6 @@ export default function AdminSheetSyncPage() {
               </div>
             )}
 
-          {/* Actions */}
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard/admin/cases"
@@ -604,7 +735,7 @@ export default function AdminSheetSyncPage() {
         </>
       )}
 
-      {/* Usage tips */}
+      {/* Usage tips (source-specific) */}
       {step === "input" && (
         <div className="bg-[#f9f9fb] border border-border p-5 mt-5">
           <h3 className="text-[13px] font-bold text-navy mb-3">
@@ -614,38 +745,87 @@ export default function AdminSheetSyncPage() {
             />
             使い方のヒント
           </h3>
-          <div className="grid sm:grid-cols-2 gap-4 text-[12px] text-[#666]">
-            <div>
-              <p className="font-bold text-navy mb-1">
-                1. スプレッドシートの共有設定
-              </p>
-              <p>
-                「リンクを知っている全員」に「閲覧者」権限を付与してください。
-                公開でなくてもリンク共有で読み取れます。
-              </p>
+
+          {source === "sheets" ? (
+            <div className="grid sm:grid-cols-2 gap-4 text-[12px] text-[#666]">
+              <div>
+                <p className="font-bold text-navy mb-1">
+                  1. スプレッドシートの共有設定
+                </p>
+                <p>
+                  「リンクを知っている全員」に「閲覧者」権限を付与してください。
+                  APIキーは不要で、リンク共有だけで読み取れます。
+                </p>
+              </div>
+              <div>
+                <p className="font-bold text-navy mb-1">
+                  2. カラム名の自動認識
+                </p>
+                <p>
+                  「案件名」「タイトル」「title」など、日本語・英語の多様なカラム名を自動マッピングします。
+                </p>
+              </div>
+              <div>
+                <p className="font-bold text-navy mb-1">3. PDF自動取得</p>
+                <p>
+                  「PDF」「資料」「添付」列にGoogle
+                  DriveのURLがある場合、PDFを自動でダウンロードして保存します。
+                </p>
+              </div>
+              <div>
+                <p className="font-bold text-navy mb-1">4. 重複チェック</p>
+                <p>
+                  同じタイトルの案件は自動でスキップされます。同じシートを繰り返し同期しても重複登録されません。
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="font-bold text-navy mb-1">
-                2. カラム名の自動認識
-              </p>
-              <p>
-                「案件名」「タイトル」「title」など、日本語・英語の多様なカラム名を自動マッピングします。
-              </p>
+          ) : (
+            <div className="grid sm:grid-cols-2 gap-4 text-[12px] text-[#666]">
+              <div>
+                <p className="font-bold text-navy mb-1">
+                  1. インテグレーション作成
+                </p>
+                <p>
+                  <a
+                    href="https://www.notion.so/my-integrations"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue underline"
+                  >
+                    notion.so/my-integrations
+                  </a>
+                  で新しいインテグレーションを作成し、APIトークンをコピーします。
+                </p>
+              </div>
+              <div>
+                <p className="font-bold text-navy mb-1">
+                  2. データベース共有
+                </p>
+                <p>
+                  対象のNotionデータベースを開き、右上の「...」&rarr;「コネクトを追加」&rarr;
+                  作成したインテグレーションを選択します。
+                </p>
+              </div>
+              <div>
+                <p className="font-bold text-navy mb-1">
+                  3. プロパティ自動認識
+                </p>
+                <p>
+                  title, rich_text, select, number, date, url,
+                  filesなど主要なNotionプロパティタイプに対応しています。
+                </p>
+              </div>
+              <div>
+                <p className="font-bold text-navy mb-1">
+                  4. 相手への影響
+                </p>
+                <p>
+                  APIアクセスはNotionの「インテグレーション」として記録されますが、
+                  読み取りのみのため相手のデータには影響しません。
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="font-bold text-navy mb-1">3. PDF自動取得</p>
-              <p>
-                「PDF」「資料」「添付」列にGoogle
-                DriveのURLがある場合、PDFを自動でダウンロードして保存します。
-              </p>
-            </div>
-            <div>
-              <p className="font-bold text-navy mb-1">4. 重複チェック</p>
-              <p>
-                同じタイトルの案件は自動でスキップされます。同じシートを繰り返し同期しても重複登録されません。
-              </p>
-            </div>
-          </div>
+          )}
         </div>
       )}
     </div>

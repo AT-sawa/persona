@@ -103,7 +103,7 @@ export default function AdminCasesPage() {
             href="/dashboard/admin/cases/sync"
             className="px-4 py-2 border border-[#E15454] text-[#E15454] text-[13px] font-bold hover:bg-[#fef2f2] transition-colors"
           >
-            シート同期
+            外部同期
           </Link>
           <Link
             href="/dashboard/admin/cases/email"
