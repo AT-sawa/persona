@@ -61,12 +61,14 @@ export default function ContactForm() {
 
   if (submitted) {
     return (
-      <div className="bg-white border border-border p-8" id="contact">
+      <div className="bg-white rounded-2xl border border-[#e8e8ed] p-8" id="contact">
         <div className="text-center py-8">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-blue/10 flex items-center justify-center">
-            <span className="text-blue text-2xl font-bold">✓</span>
+          <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[#34d399]/10 flex items-center justify-center">
+            <svg className="w-7 h-7 text-[#34d399]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M5 13l4 4L19 7" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </div>
-          <p className="text-[15px] font-bold text-navy mb-2">
+          <p className="text-[16px] font-bold text-[#091747] mb-2">
             お問い合わせを受け付けました
           </p>
           <p className="text-[13px] text-[#888] leading-[1.8]">
@@ -80,12 +82,12 @@ export default function ContactForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white border border-border p-8"
+      className="bg-white rounded-2xl border border-[#e8e8ed] p-8"
       id="contact"
     >
-      <p className="text-[15px] font-black text-navy pb-3 border-b-2 border-blue mb-5">
+      <h3 className="text-[16px] font-bold text-[#091747] mb-6">
         お問い合わせフォーム
-      </p>
+      </h3>
       {[
         {
           key: "companyName",
@@ -117,13 +119,10 @@ export default function ContactForm() {
         },
       ].map((field) => (
         <div key={field.key} className="mb-4">
-          <label className="block text-[11px] font-bold text-[#888] mb-1">
+          <label className="block text-[12px] font-semibold text-[#555] mb-1.5">
             {field.label}
             {field.required && (
-              <span className="text-[#E15454] text-[10px] ml-0.5">
-                {" "}
-                *必須
-              </span>
+              <span className="text-[#E15454] text-[10px] ml-1">*必須</span>
             )}
           </label>
           <input
@@ -132,14 +131,14 @@ export default function ContactForm() {
             onChange={(e) => update(field.key, e.target.value)}
             placeholder={field.placeholder}
             required={field.required}
-            className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
+            className="w-full px-4 py-3 rounded-xl border border-[#e8e8ed] text-[13px] text-[#091747] outline-none bg-[#f8f9fb] focus:border-[#1FABE9] focus:bg-white focus:shadow-[0_0_0_3px_rgba(31,171,233,0.08)] transition-all placeholder:text-[#bbb]"
           />
         </div>
       ))}
-      <div className="mb-4">
-        <label className="block text-[11px] font-bold text-[#888] mb-1">
+      <div className="mb-5">
+        <label className="block text-[12px] font-semibold text-[#555] mb-1.5">
           お問い合わせ内容
-          <span className="text-[#E15454] text-[10px] ml-0.5"> *必須</span>
+          <span className="text-[#E15454] text-[10px] ml-1">*必須</span>
         </label>
         <textarea
           value={formData.message}
@@ -147,7 +146,7 @@ export default function ContactForm() {
           rows={5}
           required
           placeholder="ご相談内容をお聞かせください（例：DX推進プロジェクトへのコンサルタントアサインについて相談したい）"
-          className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white resize-none"
+          className="w-full px-4 py-3 rounded-xl border border-[#e8e8ed] text-[13px] text-[#091747] outline-none bg-[#f8f9fb] focus:border-[#1FABE9] focus:bg-white focus:shadow-[0_0_0_3px_rgba(31,171,233,0.08)] transition-all resize-none placeholder:text-[#bbb]"
         />
       </div>
       {/* Honeypot */}
@@ -161,15 +160,15 @@ export default function ContactForm() {
         className="absolute opacity-0 h-0 w-0 pointer-events-none"
         aria-hidden="true"
       />
-      {error && <p className="text-[11px] text-[#E15454] mb-3">{error}</p>}
+      {error && <p className="text-[12px] text-[#E15454] mb-3">{error}</p>}
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-3.5 bg-blue text-white border-none text-[15px] font-bold cursor-pointer transition-colors hover:bg-blue-dark disabled:opacity-50"
+        className="w-full py-3.5 bg-gradient-to-r from-[#1FABE9] to-[#34d399] text-white text-[15px] font-bold rounded-xl transition-all hover:shadow-[0_4px_16px_rgba(31,171,233,0.3)] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
       >
         {loading ? "送信中..." : "お問い合わせを送信する"}
       </button>
-      <p className="text-[10px] text-[#aaa] text-center mt-2">
+      <p className="text-[11px] text-[#aaa] text-center mt-3">
         2営業日以内に担当者よりご連絡いたします
       </p>
     </form>

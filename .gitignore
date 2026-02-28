@@ -40,3 +40,13 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 supabase/.temp/
+
+# data files (import/export)
+*.xlsx
+*.csv
+all_cases.json
+cases_preview.json
+cases_import.csv
+
+# claude
+.claude/

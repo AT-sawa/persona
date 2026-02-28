@@ -101,6 +101,10 @@ export async function GET(request: NextRequest) {
             "",
             "---",
             "PERSONA - フリーコンサル案件紹介サービス",
+            "",
+            "このメールの配信を停止するには、ダッシュボードの",
+            "「設定」から通知設定を変更してください。",
+            "https://persona-consultant.com/dashboard/preferences",
           ].join("\n"),
         });
         emailsSent++;

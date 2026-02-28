@@ -143,6 +143,10 @@ export async function POST() {
             "",
             "---",
             "PERSONA - フリーコンサル案件紹介サービス",
+            "",
+            "このメールの配信を停止するには、ダッシュボードの",
+            "「設定」から通知設定を変更してください。",
+            "https://app.persona-consultant.com/dashboard/preferences",
           ].join("\n"),
         });
       } catch (emailErr) {

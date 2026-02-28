@@ -85,6 +85,10 @@ export default function ExperiencePage() {
       setError("会社名、役職、開始日は必須です");
       return;
     }
+    if (!form.is_current && form.end_date && form.end_date < form.start_date) {
+      setError("終了日は開始日より後の日付を指定してください");
+      return;
+    }
     if (!userId) return;
     setError("");
     setSaving(true);
