@@ -100,6 +100,12 @@ export default function AdminCasesPage() {
         </div>
         <div className="flex gap-2">
           <Link
+            href="/dashboard/admin/cases/email"
+            className="px-4 py-2 border border-[#E15454] text-[#E15454] text-[13px] font-bold hover:bg-[#fef2f2] transition-colors"
+          >
+            メールから登録
+          </Link>
+          <Link
             href="/dashboard/admin/cases/import"
             className="px-4 py-2 border border-[#E15454] text-[#E15454] text-[13px] font-bold hover:bg-[#fef2f2] transition-colors"
           >
