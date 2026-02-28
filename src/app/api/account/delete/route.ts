@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { logAudit } from "@/lib/audit";
 
 export async function POST() {
   try {
@@ -10,6 +11,13 @@ export async function POST() {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Log before deletion (while user session still exists)
+    await logAudit({
+      action: "account.delete",
+      resourceType: "profiles",
+      resourceId: user.id,
+    });
 
     const serviceClient = createServiceClient();
 

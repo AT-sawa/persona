@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { logAudit } from "@/lib/audit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -122,6 +123,13 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    await logAudit({
+      action: "cases.import",
+      resourceType: "cases",
+      details: { imported: data?.length ?? 0, duplicates: duplicateCount },
+      ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined,
+    });
 
     return NextResponse.json({
       imported: data?.length ?? 0,

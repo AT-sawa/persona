@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { maskEmail, maskPhone } from "@/lib/mask";
 import type { Profile } from "@/lib/types";
 
 function Icon({ name, className = "" }: { name: string; className?: string }) {
@@ -110,8 +111,8 @@ export default function AdminUsersPage() {
                   )}
                 </div>
                 <p className="text-[12px] text-[#888]">
-                  {u.email || "メール未設定"}
-                  {u.phone && ` ・ ${u.phone}`}
+                  {maskEmail(u.email)}
+                  {u.phone && ` ・ ${maskPhone(u.phone)}`}
                 </p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#888] mt-1">
                   {u.prefecture && <span><Icon name="location_on" className="text-[14px] align-middle" /> {u.prefecture}</span>}

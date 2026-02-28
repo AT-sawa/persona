@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { maskEmail } from "@/lib/mask";
 
 interface AdminEntry {
   id: string;
@@ -137,7 +138,7 @@ export default function AdminEntriesPage() {
                   </p>
                   <p className="text-[12px] text-[#666]">
                     応募者: {entry.profiles?.full_name || "名前未設定"} (
-                    {entry.profiles?.email || ""})
+                    {maskEmail(entry.profiles?.email)})
                   </p>
                   {entry.message && (
                     <p className="text-[12px] text-[#888] mt-1 line-clamp-2">

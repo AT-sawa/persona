@@ -5,9 +5,14 @@ import { Resend } from "resend";
 import type { Case, Profile, UserPreferences, UserExperience } from "@/lib/types";
 
 export async function GET(request: NextRequest) {
-  // Verify cron secret
+  // Verify cron secret (fail-closed: reject if not configured or too short)
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || cronSecret.length < 32) {
+    console.error("CRON_SECRET is not configured or too short");
+    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+  }
   const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

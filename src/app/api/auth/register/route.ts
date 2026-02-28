@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendNotification } from "@/lib/notify";
+import { logAudit } from "@/lib/audit";
+import { isValidEmail, sanitizeText, truncate } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,9 +16,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Email format validation
+    if (!isValidEmail(email)) {
+      return NextResponse.json(
+        { error: "有効なメールアドレスを入力してください" },
+        { status: 400 }
+      );
+    }
+
+    // Password strength validation (min 8 chars, at least one letter + one number)
     if (password.length < 8) {
       return NextResponse.json(
         { error: "パスワードは8文字以上で入力してください" },
+        { status: 400 }
+      );
+    }
+    if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+      return NextResponse.json(
+        { error: "パスワードには英字と数字をそれぞれ1文字以上含めてください" },
+        { status: 400 }
+      );
+    }
+
+    // Sanitize and enforce length limits
+    const sanitizedFullName = truncate(sanitizeText(fullName), 100);
+    const sanitizedEmail = truncate(sanitizeText(email), 254);
+    const sanitizedPhone = phone ? truncate(sanitizeText(phone), 20) : null;
+
+    if (!sanitizedFullName) {
+      return NextResponse.json(
+        { error: "氏名を入力してください" },
         { status: 400 }
       );
     }
@@ -26,10 +55,10 @@ export async function POST(request: NextRequest) {
     // Create user via admin API (bypasses email confirmation)
     const { data: userData, error: authError } =
       await supabase.auth.admin.createUser({
-        email,
+        email: sanitizedEmail,
         password,
         email_confirm: true,
-        user_metadata: { full_name: fullName },
+        user_metadata: { full_name: sanitizedFullName },
       });
 
     if (authError) {
@@ -60,9 +89,9 @@ export async function POST(request: NextRequest) {
     // Create profile
     const { error: profileError } = await supabase.from("profiles").insert({
       id: userData.user.id,
-      full_name: fullName,
-      email,
-      phone: phone || null,
+      full_name: sanitizedFullName,
+      email: sanitizedEmail,
+      phone: sanitizedPhone,
     });
 
     if (profileError) {
@@ -71,12 +100,27 @@ export async function POST(request: NextRequest) {
       // The user can fill in profile later
     }
 
+    // Audit log for registration (pass userId explicitly — no session yet)
+    try {
+      await logAudit({
+        action: "account.register",
+        resourceType: "profiles",
+        resourceId: userData.user.id,
+        userId: userData.user.id,
+        details: { email: sanitizedEmail },
+        ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined,
+        userAgent: request.headers.get("user-agent") || undefined,
+      });
+    } catch (auditErr) {
+      console.error("Audit log error:", auditErr);
+    }
+
     // Send notification to admin
     try {
       await sendNotification("consultant_lead", {
-        full_name: fullName,
-        email,
-        phone: phone || "",
+        full_name: sanitizedFullName,
+        email: sanitizedEmail,
+        phone: sanitizedPhone || "",
       });
     } catch (notifyErr) {
       console.error("Notification error:", notifyErr);
