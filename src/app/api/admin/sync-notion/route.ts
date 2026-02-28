@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
       mode = "preview",
       publish = false,
       downloadPdfs = true,
+      onConflict = "skip",
     } = body;
 
     if (!databaseUrl) {
@@ -97,6 +98,8 @@ export async function POST(request: NextRequest) {
     const result = await importCasesFromNotion(rows, {
       publish,
       downloadPdfs,
+      onConflict,
+      sourceUrl: databaseUrl,
     });
 
     result.columnMapping = columnMapping;
@@ -108,9 +111,12 @@ export async function POST(request: NextRequest) {
         databaseUrl,
         total: result.total,
         imported: result.imported,
+        updated: result.updated,
         skipped: result.skipped,
+        flagged: result.flagged,
         errors: result.errors.length,
         publish,
+        onConflict,
       },
       ip:
         request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||

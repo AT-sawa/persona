@@ -16,6 +16,26 @@ export default function AppCaseDetailPage() {
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [existingEntry, setExistingEntry] = useState<Entry | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Similar cases (admin only)
+  interface SimilarCase {
+    id: string;
+    title: string;
+    fee: string | null;
+    occupancy: string | null;
+    location: string | null;
+    must_req: string | null;
+    industry: string | null;
+    source: string | null;
+    source_url: string | null;
+    start_date: string | null;
+    office_days: string | null;
+    similarity: number;
+  }
+  const [similarCases, setSimilarCases] = useState<SimilarCase[]>([]);
+  const [showSimilar, setShowSimilar] = useState(false);
+  const [comparingId, setComparingId] = useState<string | null>(null);
 
   // Entry form
   const [showEntry, setShowEntry] = useState(false);
@@ -64,6 +84,28 @@ export default function AppCaseDetailPage() {
     // Default to primary resume
     const primary = (resumeRes.data ?? []).find((r: Resume) => r.is_primary);
     if (primary) setSelectedResume(primary.id);
+
+    // Check admin
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", user.id)
+      .single();
+    if (profileData?.is_admin) {
+      setIsAdmin(true);
+      // Fetch similar cases
+      try {
+        const simRes = await fetch(
+          `/api/admin/similar-cases?caseId=${caseId}`
+        );
+        if (simRes.ok) {
+          const simData = await simRes.json();
+          setSimilarCases(simData.similar || []);
+        }
+      } catch {
+        // Silent fail
+      }
+    }
 
     setLoading(false);
   }, [router, caseId]);
@@ -247,6 +289,189 @@ export default function AppCaseDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Similar cases (admin only) */}
+      {isAdmin && similarCases.length > 0 && (
+        <div className="bg-[#fffbeb] border border-[#f59e0b]/20 p-4 mb-5">
+          <button
+            onClick={() => setShowSimilar(!showSimilar)}
+            className="w-full flex items-center justify-between text-left"
+          >
+            <p className="text-[13px] font-bold text-navy">
+              <span className="material-symbols-rounded text-[16px] text-[#f59e0b] align-middle mr-1">
+                compare_arrows
+              </span>
+              類似案件が{similarCases.length}件あります
+              <span className="text-[11px] text-[#888] font-normal ml-2">
+                （他事業者からの類似案件）
+              </span>
+            </p>
+            <span className="material-symbols-rounded text-[16px] text-[#888]">
+              {showSimilar ? "expand_less" : "expand_more"}
+            </span>
+          </button>
+
+          {showSimilar && (
+            <div className="mt-3 space-y-2">
+              {similarCases.map((sim) => (
+                <div key={sim.id}>
+                  <div
+                    className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 bg-white border border-border cursor-pointer hover:bg-[#fafafa]"
+                    onClick={() =>
+                      setComparingId(
+                        comparingId === sim.id ? null : sim.id
+                      )
+                    }
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-bold text-navy truncate">
+                        {sim.title}
+                      </p>
+                      <p className="text-[11px] text-[#aaa]">
+                        {sim.source === "google_sheet"
+                          ? "Google Sheets"
+                          : sim.source === "notion"
+                          ? "Notion"
+                          : sim.source || "手動登録"}
+                      </p>
+                    </div>
+                    <span className="text-[13px] font-bold text-[#f59e0b] shrink-0">
+                      {Math.round(sim.similarity * 100)}% 類似
+                    </span>
+                    <span className="material-symbols-rounded text-[16px] text-[#888]">
+                      {comparingId === sim.id
+                        ? "expand_less"
+                        : "expand_more"}
+                    </span>
+                  </div>
+
+                  {/* Side-by-side comparison */}
+                  {comparingId === sim.id && caseData && (
+                    <div className="border border-t-0 border-border bg-white p-3">
+                      <p className="text-[11px] font-bold text-[#888] mb-2 pb-1 border-b border-border/50">
+                        条件比較
+                      </p>
+                      <table className="w-full text-[12px]">
+                        <thead>
+                          <tr className="text-[11px] text-[#888]">
+                            <th className="text-left py-1 w-[80px]">
+                              項目
+                            </th>
+                            <th className="text-left py-1">この案件</th>
+                            <th className="text-left py-1">
+                              比較案件
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            {
+                              label: "報酬",
+                              a: caseData.fee,
+                              b: sim.fee,
+                            },
+                            {
+                              label: "稼働率",
+                              a: caseData.occupancy,
+                              b: sim.occupancy,
+                            },
+                            {
+                              label: "勤務地",
+                              a: caseData.location,
+                              b: sim.location,
+                            },
+                            {
+                              label: "出社",
+                              a: caseData.office_days,
+                              b: sim.office_days,
+                            },
+                            {
+                              label: "業界",
+                              a: caseData.industry,
+                              b: sim.industry,
+                            },
+                            {
+                              label: "開始日",
+                              a: caseData.start_date,
+                              b: sim.start_date,
+                            },
+                          ]
+                            .filter((r) => r.a || r.b)
+                            .map((r) => (
+                              <tr
+                                key={r.label}
+                                className="border-t border-border/30"
+                              >
+                                <td className="py-1.5 text-[#888] font-bold">
+                                  {r.label}
+                                </td>
+                                <td className="py-1.5 text-text">
+                                  {r.a || (
+                                    <span className="text-[#ccc]">
+                                      &mdash;
+                                    </span>
+                                  )}
+                                </td>
+                                <td
+                                  className={`py-1.5 ${
+                                    r.a && r.b && r.a !== r.b
+                                      ? "text-[#E15454] font-bold"
+                                      : "text-text"
+                                  }`}
+                                >
+                                  {r.b || (
+                                    <span className="text-[#ccc]">
+                                      &mdash;
+                                    </span>
+                                  )}
+                                  {r.a && r.b && r.a !== r.b && (
+                                    <span className="text-[10px] text-[#f59e0b] ml-1">
+                                      差異あり
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          {/* Must req comparison */}
+                          {(caseData.must_req || sim.must_req) && (
+                            <tr className="border-t border-border/30">
+                              <td className="py-1.5 text-[#888] font-bold align-top">
+                                必須要件
+                              </td>
+                              <td className="py-1.5 text-text text-[11px] whitespace-pre-line">
+                                {caseData.must_req || (
+                                  <span className="text-[#ccc]">
+                                    &mdash;
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-1.5 text-text text-[11px] whitespace-pre-line">
+                                {sim.must_req || (
+                                  <span className="text-[#ccc]">
+                                    &mdash;
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                      <div className="mt-2 pt-2 border-t border-border/30">
+                        <Link
+                          href={`/dashboard/cases/${sim.id}`}
+                          className="text-[12px] text-blue hover:underline"
+                        >
+                          この案件の詳細を見る &rarr;
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Entry section */}
       {existingEntry || submitted ? (

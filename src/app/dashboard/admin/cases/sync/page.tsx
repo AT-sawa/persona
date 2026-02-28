@@ -20,12 +20,24 @@ interface PreviewData {
   preview: Record<string, string>[];
 }
 
+interface DuplicateFlag {
+  incomingTitle: string;
+  existingTitle: string;
+  existingId: string;
+  similarity: number;
+  matchType: string;
+  sameSource: boolean;
+}
+
 interface ImportResult {
   total: number;
   imported: number;
+  updated: number;
   skipped: number;
+  flagged: number;
   errors: string[];
   columnMapping: Record<string, string>;
+  duplicateFlags?: DuplicateFlag[];
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -58,6 +70,7 @@ export default function AdminSyncPage() {
   const [sheetName, setSheetName] = useState("");
   const [publish, setPublish] = useState(false);
   const [downloadPdfs, setDownloadPdfs] = useState(true);
+  const [onConflict, setOnConflict] = useState<"skip" | "update">("skip");
 
   // Loading / error
   const [loading, setLoading] = useState(false);
@@ -166,12 +179,14 @@ export default function AdminSyncPage() {
               mode: "import",
               publish,
               downloadPdfs,
+              onConflict,
             }
           : {
               databaseUrl: url.trim(),
               mode: "import",
               publish,
               downloadPdfs,
+              onConflict,
             };
 
       const res = await fetch(apiPath, {
@@ -203,6 +218,7 @@ export default function AdminSyncPage() {
     setError("");
     setPublish(false);
     setDownloadPdfs(true);
+    setOnConflict("skip");
   }
 
   if (!authorized) {
@@ -375,29 +391,67 @@ export default function AdminSyncPage() {
           )}
 
           {/* Common options */}
-          <div className="flex flex-col sm:flex-row gap-4 p-3 bg-[#f9f9fb] border border-border/50 mt-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={downloadPdfs}
-                onChange={(e) => setDownloadPdfs(e.target.checked)}
-                className="w-4 h-4 accent-[#E15454]"
-              />
-              <span className="text-[12px] text-[#666]">
-                PDF資料を自動ダウンロード
-              </span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={publish}
-                onChange={(e) => setPublish(e.target.checked)}
-                className="w-4 h-4 accent-[#E15454]"
-              />
-              <span className="text-[12px] text-[#666]">
-                インポート後すぐに公開
-              </span>
-            </label>
+          <div className="flex flex-col gap-3 p-3 bg-[#f9f9fb] border border-border/50 mt-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={downloadPdfs}
+                  onChange={(e) => setDownloadPdfs(e.target.checked)}
+                  className="w-4 h-4 accent-[#E15454]"
+                />
+                <span className="text-[12px] text-[#666]">
+                  PDF資料を自動ダウンロード
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={publish}
+                  onChange={(e) => setPublish(e.target.checked)}
+                  className="w-4 h-4 accent-[#E15454]"
+                />
+                <span className="text-[12px] text-[#666]">
+                  インポート後すぐに公開
+                </span>
+              </label>
+            </div>
+
+            {/* Dedup options */}
+            <div className="pt-2 border-t border-border/50">
+              <p className="text-[11px] font-bold text-[#888] mb-2">
+                同じソースの重複案件
+              </p>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="onConflict"
+                    checked={onConflict === "skip"}
+                    onChange={() => setOnConflict("skip")}
+                    className="w-4 h-4 accent-[#E15454]"
+                  />
+                  <span className="text-[12px] text-[#666]">
+                    スキップ（既存を維持）
+                  </span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="onConflict"
+                    checked={onConflict === "update"}
+                    onChange={() => setOnConflict("update")}
+                    className="w-4 h-4 accent-[#E15454]"
+                  />
+                  <span className="text-[12px] text-[#666]">
+                    上書き更新（最新データで更新）
+                  </span>
+                </label>
+              </div>
+              <p className="text-[10px] text-[#aaa] mt-1">
+                別の事業者からの類似案件は両方保持され、管理画面で比較できます。
+              </p>
+            </div>
           </div>
 
           {error && (
@@ -653,11 +707,20 @@ export default function AdminSyncPage() {
                 <div className="flex flex-wrap gap-4 mt-2 text-[13px]">
                   <span className="text-[#10b981] font-bold">
                     <Icon
-                      name="check"
+                      name="add_circle"
                       className="text-[14px] align-middle"
                     />{" "}
-                    登録: {result.imported}件
+                    新規登録: {result.imported}件
                   </span>
+                  {result.updated > 0 && (
+                    <span className="text-blue font-bold">
+                      <Icon
+                        name="sync"
+                        className="text-[14px] align-middle"
+                      />{" "}
+                      更新: {result.updated}件
+                    </span>
+                  )}
                   {result.skipped > 0 && (
                     <span className="text-[#888]">
                       <Icon
@@ -665,9 +728,15 @@ export default function AdminSyncPage() {
                         className="text-[14px] align-middle"
                       />{" "}
                       スキップ: {result.skipped}件
-                      <span className="text-[11px] text-[#aaa] ml-1">
-                        (重複・タイトルなし)
-                      </span>
+                    </span>
+                  )}
+                  {result.flagged > 0 && (
+                    <span className="text-[#f59e0b] font-bold">
+                      <Icon
+                        name="compare_arrows"
+                        className="text-[14px] align-middle"
+                      />{" "}
+                      類似案件検出: {result.flagged}件
                     </span>
                   )}
                   {result.errors.length > 0 && (
@@ -696,6 +765,55 @@ export default function AdminSyncPage() {
               </div>
             )}
           </div>
+
+          {/* Duplicate flags: similar cases from different sources */}
+          {result.duplicateFlags && result.duplicateFlags.length > 0 && (
+            <div className="bg-[#fffbeb] border border-[#f59e0b]/20 p-4 mb-5">
+              <p className="text-[13px] font-bold text-navy mb-2">
+                <Icon
+                  name="compare_arrows"
+                  className="text-[16px] text-[#f59e0b] align-middle mr-1"
+                />
+                別事業者に類似案件あり（両方保持済み）
+              </p>
+              <p className="text-[11px] text-[#888] mb-3">
+                以下の案件は既存の案件と類似しています。管理画面の案件詳細で条件を比較できます。
+              </p>
+              <div className="space-y-2">
+                {result.duplicateFlags.map((dup, i) => (
+                  <div
+                    key={i}
+                    className="flex flex-col sm:flex-row sm:items-center gap-2 p-2 bg-white/60 border border-[#f59e0b]/10 text-[12px]"
+                  >
+                    <div className="flex-1">
+                      <span className="text-[#10b981] font-bold mr-1">
+                        NEW
+                      </span>
+                      <span className="text-text">{dup.incomingTitle}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-[#f59e0b] font-bold shrink-0">
+                      <Icon
+                        name="swap_horiz"
+                        className="text-[14px]"
+                      />
+                      {Math.round(dup.similarity * 100)}%
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-[#888] font-bold mr-1">
+                        EXISTING
+                      </span>
+                      <Link
+                        href={`/dashboard/cases/${dup.existingId}`}
+                        className="text-blue hover:underline"
+                      >
+                        {dup.existingTitle}
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {result.columnMapping &&
             Object.keys(result.columnMapping).length > 0 && (

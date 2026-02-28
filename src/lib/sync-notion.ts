@@ -3,98 +3,99 @@
  * Fetches rows from a shared Notion database via the Notion API,
  * maps properties to case fields, and downloads linked PDFs.
  *
- * Requirements:
- *   - NOTION_API_KEY env var (internal integration token)
- *   - Database must be shared with the PERSONA integration in Notion
+ * Dedup strategy:
+ *   - Same source URL → skip or update existing
+ *   - Different source URL → keep both, flag as similar
  */
 
 import { createServiceClient } from "@/lib/supabase/service";
+import {
+  normalizeCaseTitle,
+  computeSourceHash,
+  findCaseMatch,
+  prepareCaseCandidates,
+  CASE_THRESHOLDS,
+  type CaseMatchCandidate,
+} from "@/lib/dedup";
 
 const NOTION_API_VERSION = "2022-06-28";
 const NOTION_API_BASE = "https://api.notion.com/v1";
 
 // ── Property name aliases → case fields ──
 const PROPERTY_MAP: Record<string, string> = {
-  // Japanese
-  "タイトル": "title",
-  "案件名": "title",
-  "案件タイトル": "title",
-  "名前": "title",
-  "Name": "title",
-  "案件番号": "case_no",
-  "No": "case_no",
-  "カテゴリ": "category",
-  "業界": "industry",
-  "業種": "industry",
-  "報酬": "fee",
-  "単価": "fee",
-  "月額": "fee",
-  "金額": "fee",
-  "稼働率": "occupancy",
-  "稼働": "occupancy",
-  "勤務地": "location",
-  "場所": "location",
-  "出社": "office_days",
-  "出社日数": "office_days",
-  "リモート": "office_days",
-  "勤務形態": "office_days",
-  "開始日": "start_date",
-  "開始時期": "start_date",
-  "期間": "start_date",
-  "延長": "extendable",
-  "延長可否": "extendable",
-  "案件背景": "background",
-  "背景": "background",
-  "概要": "background",
-  "業務内容": "description",
-  "内容": "description",
-  "説明": "description",
-  "必須要件": "must_req",
-  "必須スキル": "must_req",
-  "歓迎要件": "nice_to_have",
-  "歓迎スキル": "nice_to_have",
-  "選考フロー": "flow",
-  "選考": "flow",
-  "PDF": "pdf_url",
-  "資料": "pdf_url",
-  "詳細資料": "pdf_url",
-  "添付": "pdf_url",
-  "ステータス": "_status",
-  "状態": "_status",
-  "Status": "_status",
-  // English
-  "title": "title",
-  "Title": "title",
-  "case_no": "case_no",
-  "category": "category",
-  "industry": "industry",
-  "fee": "fee",
-  "occupancy": "occupancy",
-  "location": "location",
-  "office_days": "office_days",
-  "start_date": "start_date",
-  "extendable": "extendable",
-  "background": "background",
-  "description": "description",
-  "must_req": "must_req",
-  "nice_to_have": "nice_to_have",
-  "flow": "flow",
-  "pdf_url": "pdf_url",
-  "pdf": "pdf_url",
+  タイトル: "title",
+  案件名: "title",
+  案件タイトル: "title",
+  名前: "title",
+  Name: "title",
+  案件番号: "case_no",
+  No: "case_no",
+  カテゴリ: "category",
+  業界: "industry",
+  業種: "industry",
+  報酬: "fee",
+  単価: "fee",
+  月額: "fee",
+  金額: "fee",
+  稼働率: "occupancy",
+  稼働: "occupancy",
+  勤務地: "location",
+  場所: "location",
+  出社: "office_days",
+  出社日数: "office_days",
+  リモート: "office_days",
+  勤務形態: "office_days",
+  開始日: "start_date",
+  開始時期: "start_date",
+  期間: "start_date",
+  延長: "extendable",
+  延長可否: "extendable",
+  案件背景: "background",
+  背景: "background",
+  概要: "background",
+  業務内容: "description",
+  内容: "description",
+  説明: "description",
+  必須要件: "must_req",
+  必須スキル: "must_req",
+  歓迎要件: "nice_to_have",
+  歓迎スキル: "nice_to_have",
+  選考フロー: "flow",
+  選考: "flow",
+  PDF: "pdf_url",
+  資料: "pdf_url",
+  詳細資料: "pdf_url",
+  添付: "pdf_url",
+  ステータス: "_status",
+  状態: "_status",
+  Status: "_status",
+  title: "title",
+  Title: "title",
+  case_no: "case_no",
+  category: "category",
+  industry: "industry",
+  fee: "fee",
+  occupancy: "occupancy",
+  location: "location",
+  office_days: "office_days",
+  start_date: "start_date",
+  extendable: "extendable",
+  background: "background",
+  description: "description",
+  must_req: "must_req",
+  nice_to_have: "nice_to_have",
+  flow: "flow",
+  pdf_url: "pdf_url",
+  pdf: "pdf_url",
 };
 
 /**
  * Extract a Notion database ID from various URL formats.
- * e.g. https://www.notion.so/workspace/abc123def456...?v=xxx
- * or   https://www.notion.so/abc123def456...
  */
 export function extractNotionDatabaseId(url: string): string | null {
-  // Remove query params
   const cleanUrl = url.split("?")[0];
-  // Match 32-char hex ID (with or without hyphens)
   const match = cleanUrl.match(/([a-f0-9]{32})/i);
   if (!match) {
-    // Try hyphenated UUID format
     const uuidMatch = cleanUrl.match(
       /([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i
     );
@@ -104,9 +105,6 @@ export function extractNotionDatabaseId(url: string): string | null {
   return match[1];
 }
 
-/**
- * Format a database ID with hyphens for the API.
- */
 function formatDatabaseId(id: string): string {
   const clean = id.replace(/-/g, "");
   return `${clean.slice(0, 8)}-${clean.slice(8, 12)}-${clean.slice(
@@ -115,9 +113,6 @@ function formatDatabaseId(id: string): string {
   )}-${clean.slice(16, 20)}-${clean.slice(20)}`;
 }
 
-/**
- * Extract plain text from a Notion rich text array.
- */
 function richTextToString(
   richTexts: Array<{ plain_text: string }> | undefined
 ): string {
@@ -125,9 +120,6 @@ function richTextToString(
   return richTexts.map((t) => t.plain_text).join("");
 }
 
-/**
- * Extract value from a Notion property based on its type.
- */
 function extractPropertyValue(prop: {
   type: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -161,7 +153,6 @@ function extractPropertyValue(prop: {
     case "phone_number":
       return prop.phone_number || "";
     case "files":
-      // Return first file URL
       if (prop.files && prop.files.length > 0) {
         const file = prop.files[0];
         return file.file?.url || file.external?.url || file.name || "";
@@ -186,7 +177,8 @@ function extractPropertyValue(prop: {
           return prop.rollup.number != null
             ? String(prop.rollup.number)
             : "";
-        if (prop.rollup.type === "array") return `${prop.rollup.array?.length || 0}件`;
+        if (prop.rollup.type === "array")
+          return `${prop.rollup.array?.length || 0}件`;
       }
       return "";
     case "relation":
@@ -279,7 +271,6 @@ export async function fetchNotionDatabase(
     return { rows: [], columnMapping: {} };
   }
 
-  // Build column mapping from first page's properties
   const firstPage = allPages[0];
   const columnMapping: Record<string, string> = {};
   const propertyNames = Object.keys(firstPage.properties || {});
@@ -291,7 +282,6 @@ export async function fetchNotionDatabase(
     }
   }
 
-  // Convert pages to flat rows
   const rows = allPages.map((page) => {
     const row: Record<string, string> = {};
 
@@ -321,7 +311,6 @@ async function downloadAndStorePDF(
   try {
     let downloadUrl = pdfUrl;
 
-    // Handle Google Drive links
     const driveMatch = pdfUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
     if (driveMatch) {
       downloadUrl = `https://drive.google.com/uc?export=download&id=${driveMatch[1]}`;
@@ -375,27 +364,101 @@ async function downloadAndStorePDF(
 export interface NotionSyncResult {
   total: number;
   imported: number;
+  updated: number;
   skipped: number;
+  flagged: number;
   errors: string[];
   columnMapping: Record<string, string>;
+  duplicateFlags?: Array<{
+    incomingTitle: string;
+    existingTitle: string;
+    existingId: string;
+    similarity: number;
+    matchType: string;
+    sameSource: boolean;
+  }>;
 }
 
 /**
- * Import cases from Notion database rows.
+ * Build case insert/update payload with source tracking.
+ */
+function buildCasePayload(
+  row: Record<string, string>,
+  meta: {
+    source: string;
+    sourceUrl: string;
+    pdfPath?: string | null;
+    publish?: boolean;
+  }
+): Record<string, unknown> {
+  return {
+    case_no: row.case_no || null,
+    title: row.title,
+    title_normalized: normalizeCaseTitle(row.title),
+    category: row.category || null,
+    background: row.background || null,
+    description: row.description
+      ? `${row.description}${meta.pdfPath ? "\n\n[詳細資料あり]" : ""}`
+      : null,
+    industry: row.industry || null,
+    start_date: row.start_date || null,
+    extendable: row.extendable || null,
+    occupancy: row.occupancy || null,
+    fee: row.fee || null,
+    office_days: row.office_days || null,
+    location: row.location || null,
+    must_req: row.must_req || null,
+    nice_to_have: row.nice_to_have || null,
+    flow: row.flow || null,
+    source: meta.source,
+    source_url: meta.sourceUrl,
+    synced_at: new Date().toISOString(),
+    source_hash: computeSourceHash(row),
+    ...(meta.publish !== undefined
+      ? { is_active: meta.publish, status: meta.publish ? "active" : "draft" }
+      : {}),
+  };
+}
+
+/**
+ * Import cases from Notion database rows with dedup.
  */
 export async function importCasesFromNotion(
   rows: Record<string, string>[],
-  options: { publish?: boolean; downloadPdfs?: boolean } = {}
+  options: {
+    publish?: boolean;
+    downloadPdfs?: boolean;
+    onConflict?: "skip" | "update";
+    sourceUrl?: string;
+  } = {}
 ): Promise<NotionSyncResult> {
-  const { publish = false, downloadPdfs = true } = options;
+  const {
+    publish = false,
+    downloadPdfs = true,
+    onConflict = "skip",
+    sourceUrl = "",
+  } = options;
   const supabase = createServiceClient();
+
   const result: NotionSyncResult = {
     total: rows.length,
     imported: 0,
+    updated: 0,
     skipped: 0,
+    flagged: 0,
     errors: [],
     columnMapping: {},
+    duplicateFlags: [],
   };
+
+  // Load all existing cases
+  const { data: existingRaw } = await supabase
+    .from("cases")
+    .select("id, title, case_no, source_url");
+
+  const existingCases: CaseMatchCandidate[] = prepareCaseCandidates(
+    existingRaw || []
+  );
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
@@ -406,51 +469,104 @@ export async function importCasesFromNotion(
       continue;
     }
 
-    // Check duplicate
-    const { data: existing } = await supabase
-      .from("cases")
-      .select("id")
-      .eq("title", title)
-      .limit(1);
+    const match = findCaseMatch(
+      title,
+      row.case_no || null,
+      sourceUrl,
+      existingCases
+    );
 
-    if (existing && existing.length > 0) {
-      result.skipped++;
-      continue;
+    if (match) {
+      if (match.sameSource && match.similarity >= CASE_THRESHOLDS.AUTO_MATCH) {
+        if (onConflict === "update") {
+          const updatePayload = buildCasePayload(row, {
+            source: "notion",
+            sourceUrl,
+          });
+          const { error } = await supabase
+            .from("cases")
+            .update(updatePayload)
+            .eq("id", match.existingId);
+          if (error) {
+            result.errors.push(`行${i + 1}: 更新失敗 - ${error.message}`);
+          } else {
+            result.updated++;
+          }
+        } else {
+          result.skipped++;
+        }
+        continue;
+      }
+
+      if (!match.sameSource && match.similarity >= CASE_THRESHOLDS.SIMILAR) {
+        result.flagged++;
+        result.duplicateFlags!.push({
+          incomingTitle: title,
+          existingTitle: match.existingTitle,
+          existingId: match.existingId,
+          similarity: Math.round(match.similarity * 100) / 100,
+          matchType: match.matchType,
+          sameSource: false,
+        });
+        // Fall through to import
+      }
+
+      if (
+        match.sameSource &&
+        match.similarity >= CASE_THRESHOLDS.SIMILAR &&
+        match.similarity < CASE_THRESHOLDS.AUTO_MATCH
+      ) {
+        if (onConflict === "update") {
+          const updatePayload = buildCasePayload(row, {
+            source: "notion",
+            sourceUrl,
+          });
+          const { error } = await supabase
+            .from("cases")
+            .update(updatePayload)
+            .eq("id", match.existingId);
+          if (error) {
+            result.errors.push(`行${i + 1}: 更新失敗 - ${error.message}`);
+          } else {
+            result.updated++;
+          }
+        } else {
+          result.skipped++;
+        }
+        continue;
+      }
     }
 
-    // Download PDF if available
+    // Insert new case
     let pdfPath: string | null = null;
     if (downloadPdfs && row.pdf_url) {
       pdfPath = await downloadAndStorePDF(row.pdf_url, title);
     }
 
-    // Insert
-    const { error: insertError } = await supabase.from("cases").insert({
-      case_no: row.case_no || null,
-      title,
-      category: row.category || null,
-      background: row.background || null,
-      description: row.description
-        ? `${row.description}${pdfPath ? "\n\n[詳細資料あり]" : ""}`
-        : null,
-      industry: row.industry || null,
-      start_date: row.start_date || null,
-      extendable: row.extendable || null,
-      occupancy: row.occupancy || null,
-      fee: row.fee || null,
-      office_days: row.office_days || null,
-      location: row.location || null,
-      must_req: row.must_req || null,
-      nice_to_have: row.nice_to_have || null,
-      flow: row.flow || null,
-      is_active: publish,
-      status: publish ? "active" : "draft",
+    const insertPayload = buildCasePayload(row, {
+      source: "notion",
+      sourceUrl,
+      pdfPath,
+      publish,
     });
+
+    const { data: inserted, error: insertError } = await supabase
+      .from("cases")
+      .insert(insertPayload)
+      .select("id, title, case_no, source_url")
+      .single();
 
     if (insertError) {
       result.errors.push(`行${i + 1}: ${insertError.message}`);
     } else {
       result.imported++;
+      existingCases.push({
+        id: inserted.id,
+        title: inserted.title,
+        case_no: inserted.case_no,
+        source_url: inserted.source_url,
+        normalizedTitle: normalizeCaseTitle(inserted.title),
+      });
     }
   }
 
