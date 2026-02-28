@@ -118,6 +118,11 @@ export default function PreferencesPage() {
         setHasExisting(true);
       }
       setSaved(true);
+
+      // Trigger matching recalculation in the background
+      fetch("/api/matching/trigger", { method: "POST" }).catch(() => {
+        // Silent fail — matching will run on next cron anyway
+      });
     } catch {
       setError("保存に失敗しました。もう一度お試しください。");
     } finally {

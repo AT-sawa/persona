@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { sendNotification } from "@/lib/notify";
 import { logAudit } from "@/lib/audit";
 import { isValidEmail, sanitizeText, truncate } from "@/lib/validation";
+import { runMatching } from "@/lib/matching/runMatching";
 
 export async function POST(request: NextRequest) {
   try {
@@ -124,6 +125,18 @@ export async function POST(request: NextRequest) {
       });
     } catch (notifyErr) {
       console.error("Notification error:", notifyErr);
+    }
+
+    // Run initial matching for the new user (immediate, no debounce)
+    try {
+      await runMatching({
+        targetUserId: userData.user.id,
+        sendEmails: true,
+        triggerType: "user_register",
+      });
+    } catch (matchErr) {
+      console.error("Initial matching error:", matchErr);
+      // Don't fail registration if matching fails
     }
 
     return NextResponse.json({

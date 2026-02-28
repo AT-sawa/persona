@@ -3,9 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import { runMatching } from "@/lib/matching/runMatching";
 
 /**
- * POST /api/matching/run
- * User-initiated matching — runs for the current authenticated user.
- * Now delegates to the shared runMatching service.
+ * POST /api/matching/trigger
+ * Trigger matching for the current authenticated user.
+ * Called after profile or preference updates.
+ *
+ * This runs immediately (no debounce) since it's a single-user operation.
  */
 export async function POST() {
   try {
@@ -20,18 +22,18 @@ export async function POST() {
 
     const result = await runMatching({
       targetUserId: user.id,
-      sendEmails: true,
-      triggerType: "user_manual",
+      sendEmails: false, // Don't email on self-triggered matching
+      triggerType: "user_update",
     });
 
     return NextResponse.json({
-      results: [],
-      count: result.totalMatches,
+      success: true,
+      matches: result.totalMatches,
     });
   } catch (err) {
-    console.error("Matching error:", err);
+    console.error("User matching trigger error:", err);
     return NextResponse.json(
-      { error: "マッチング計算に失敗しました" },
+      { error: "マッチング実行に失敗しました" },
       { status: 500 }
     );
   }

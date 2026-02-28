@@ -6,6 +6,7 @@ import {
   importCasesFromNotion,
   extractNotionDatabaseId,
 } from "@/lib/sync-notion";
+import { queueMatchingRun } from "@/lib/matching/runMatching";
 
 /**
  * POST /api/admin/sync-notion
@@ -122,6 +123,18 @@ export async function POST(request: NextRequest) {
         request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
         undefined,
     });
+
+    // Queue matching run after import (debounced — waits for imports to settle)
+    if (result.imported > 0 || result.updated > 0) {
+      try {
+        await queueMatchingRun({
+          triggerType: "sync",
+          createdBy: user.id,
+        });
+      } catch (queueErr) {
+        console.error("Matching queue error:", queueErr);
+      }
+    }
 
     return NextResponse.json(result);
   } catch (err) {
