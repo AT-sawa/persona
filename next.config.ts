@@ -46,6 +46,16 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // Long cache for static assets (images, fonts, JS/CSS chunks)
+      {
+        source: "/images/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
     ];
   },
 };

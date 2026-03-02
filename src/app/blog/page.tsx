@@ -1,9 +1,12 @@
 import { getAllPosts } from "@/lib/blog";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import BlogCategoryFilter from "@/components/BlogCategoryFilter";
+import NewsletterForm from "@/components/NewsletterForm";
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "ブログ",
@@ -22,11 +25,26 @@ const CATEGORY_COLORS: Record<string, string> = {
   "サービス紹介": "bg-red-50 text-[#E15454]",
 };
 
-export default function BlogPage() {
-  const posts = getAllPosts();
+interface PageProps {
+  searchParams: Promise<{ category?: string }>;
+}
+
+export default async function BlogPage({ searchParams }: PageProps) {
+  const { category } = await searchParams;
+  const allPosts = getAllPosts();
   const categories = Array.from(
-    new Set(posts.map((p) => p.category).filter(Boolean))
-  );
+    new Set(allPosts.map((p) => p.category).filter(Boolean))
+  ) as string[];
+
+  const counts: Record<string, number> = {};
+  for (const cat of categories) {
+    counts[cat] = allPosts.filter((p) => p.category === cat).length;
+  }
+
+  // Filter posts by category if specified
+  const posts = category
+    ? allPosts.filter((p) => p.category === category)
+    : allPosts;
 
   // Featured: latest post
   const featured = posts[0];
@@ -43,7 +61,7 @@ export default function BlogPage() {
               BLOG
             </p>
             <h1 className="text-[clamp(26px,4vw,36px)] font-black text-navy leading-[1.3] mb-2">
-              ブログ
+              {category ? `${category}の記事` : "ブログ"}
             </h1>
             <p className="text-[14px] text-[#666] leading-[1.8] max-w-[520px]">
               フリーコンサルのキャリア設計・案件獲得ノウハウ・
@@ -55,21 +73,36 @@ export default function BlogPage() {
 
         <div className="max-w-[1100px] mx-auto px-6">
           {/* Category filter */}
-          <div className="flex flex-wrap gap-2 mb-10 -mt-2">
-            <span className="inline-flex items-center text-[11px] font-bold text-navy bg-white border border-border px-3 py-1.5 rounded-full">
-              すべて ({posts.length})
-            </span>
-            {categories.map((cat) => (
-              <span
-                key={cat}
-                className={`inline-flex items-center text-[11px] font-bold px-3 py-1.5 rounded-full ${
-                  CATEGORY_COLORS[cat!] || "bg-gray-50 text-gray-700"
-                }`}
+          <Suspense
+            fallback={
+              <div className="flex flex-wrap gap-2 mb-10 -mt-2">
+                <span className="inline-flex items-center text-[11px] font-bold text-navy bg-white border border-border px-3 py-1.5 rounded-full">
+                  すべて ({allPosts.length})
+                </span>
+              </div>
+            }
+          >
+            <BlogCategoryFilter
+              categories={categories}
+              counts={counts}
+              totalCount={allPosts.length}
+            />
+          </Suspense>
+
+          {/* No results */}
+          {posts.length === 0 && (
+            <div className="text-center py-20">
+              <p className="text-[15px] text-[#888] mb-4">
+                「{category}」カテゴリーの記事はまだありません。
+              </p>
+              <Link
+                href="/blog"
+                className="inline-flex items-center text-[13px] font-bold text-blue hover:underline"
               >
-                {cat} ({posts.filter((p) => p.category === cat).length})
-              </span>
-            ))}
-          </div>
+                すべての記事を見る
+              </Link>
+            </div>
+          )}
 
           {/* Featured article */}
           {featured && (
@@ -92,9 +125,11 @@ export default function BlogPage() {
                 )}
                 <div className="p-8 lg:p-10 flex flex-col justify-center">
                   <div className="flex items-center gap-2.5 mb-3">
-                    <span className="text-[10px] font-bold text-white bg-blue px-2.5 py-1 rounded-full tracking-wide">
-                      NEW
-                    </span>
+                    {!category && (
+                      <span className="text-[10px] font-bold text-white bg-blue px-2.5 py-1 rounded-full tracking-wide">
+                        NEW
+                      </span>
+                    )}
                     {featured.category && (
                       <span
                         className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
@@ -185,6 +220,11 @@ export default function BlogPage() {
               ))}
             </div>
           )}
+
+          {/* Newsletter */}
+          <div className="mt-16">
+            <NewsletterForm />
+          </div>
         </div>
       </main>
       <Footer />
