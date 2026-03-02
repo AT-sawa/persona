@@ -14,8 +14,8 @@ const items = [
     label: "MULTI-AGENT ACCESS",
     title: "10社以上のエージェントと連携\nここだけで他社案件にも効率的にエントリー",
     text: "PERSONA一つで複数エージェントの案件に一括アクセス。個別登録・個別面談の手間を大幅に削減できます。",
-    img: "/images/brainstorm.jpg",
-    imgAlt: "複数エージェントの案件にチームで効率的にアクセス",
+    img: "/images/feature_2.png",
+    imgAlt: "複数エージェント案件に一括アクセスできるPERSONAの仕組み",
   },
   {
     num: "03",
