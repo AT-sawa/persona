@@ -220,6 +220,13 @@ export default function AdminPage() {
             <span className="text-2xl block mb-1"><Icon name="group" className="text-[24px]" /></span>
             <span className="text-[13px] font-bold text-navy">外部人材DB</span>
           </Link>
+          <Link
+            href="/dashboard/admin/outreach"
+            className="p-4 border border-border text-center hover:bg-[#fafafa] transition-colors"
+          >
+            <span className="text-2xl block mb-1"><Icon name="campaign" className="text-[24px]" /></span>
+            <span className="text-[13px] font-bold text-navy">営業メール送信</span>
+          </Link>
         </div>
       </div>
 
