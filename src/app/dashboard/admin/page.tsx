@@ -213,6 +213,13 @@ export default function AdminPage() {
             <span className="text-2xl block mb-1"><Icon name="analytics" className="text-[24px]" /></span>
             <span className="text-[13px] font-bold text-navy">アナリティクス</span>
           </Link>
+          <Link
+            href="/dashboard/admin/talents"
+            className="p-4 border border-border text-center hover:bg-[#fafafa] transition-colors"
+          >
+            <span className="text-2xl block mb-1"><Icon name="group" className="text-[24px]" /></span>
+            <span className="text-[13px] font-bold text-navy">外部人材DB</span>
+          </Link>
         </div>
       </div>
 
