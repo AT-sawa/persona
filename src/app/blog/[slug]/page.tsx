@@ -48,7 +48,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  キャリア: "bg-blue/10 text-blue",
+  キャリア: "bg-[#EBF5FF] text-blue",
   "業界トレンド": "bg-emerald-50 text-emerald-700",
   ノウハウ: "bg-amber-50 text-amber-700",
   "企業向け": "bg-purple-50 text-purple-700",
@@ -82,9 +82,7 @@ export default async function BlogPostPage({ params }: Props) {
     datePublished: post.date,
     dateModified: post.date,
     ...(post.thumbnail
-      ? {
-          image: `https://persona-consultant.com${post.thumbnail}`,
-        }
+      ? { image: `https://persona-consultant.com${post.thumbnail}` }
       : {}),
     author: {
       "@type": "Organization",
@@ -104,7 +102,8 @@ export default async function BlogPostPage({ params }: Props) {
       "@type": "WebPage",
       "@id": `https://persona-consultant.com/blog/${slug}`,
     },
-    keywords: post.keywords?.join(", ") || post.category || "フリーコンサル",
+    keywords:
+      post.keywords?.join(", ") || post.category || "フリーコンサル",
   };
 
   // BreadcrumbList JSON-LD
@@ -136,101 +135,127 @@ export default async function BlogPostPage({ params }: Props) {
   return (
     <>
       <Header />
-      <main className="py-[72px] px-6">
-        <article className="max-w-[800px] mx-auto">
-          {/* Breadcrumbs */}
-          <nav
-            aria-label="パンくずリスト"
-            className="text-xs text-[#888] mb-6 flex items-center gap-1.5"
-          >
-            <Link href="/" className="hover:text-blue transition-colors">
-              ホーム
-            </Link>
-            <span>/</span>
-            <Link href="/blog" className="hover:text-blue transition-colors">
-              ブログ
-            </Link>
-            <span>/</span>
-            <span className="text-navy truncate max-w-[200px]">{post.title}</span>
-          </nav>
-
-          <div className="flex items-center gap-3 mb-3">
-            <time className="text-xs text-[#888]">{post.date}</time>
-            {post.category && (
-              <span
-                className={`inline-block text-[10px] font-bold tracking-[0.1em] px-2 py-0.5 ${
-                  CATEGORY_COLORS[post.category] || "bg-blue/5 text-blue"
-                }`}
+      <main className="pt-[72px] pb-16">
+        {/* Hero section */}
+        <div className="bg-gradient-to-b from-[#f0f8ff] to-white">
+          <div className="max-w-[780px] mx-auto px-6 pt-8 pb-4">
+            {/* Breadcrumbs */}
+            <nav
+              aria-label="パンくずリスト"
+              className="text-[12px] text-[#999] mb-6 flex items-center gap-1.5 flex-wrap"
+            >
+              <Link
+                href="/"
+                className="hover:text-blue transition-colors"
               >
-                {post.category}
+                ホーム
+              </Link>
+              <svg className="w-3 h-3 text-[#ccc]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              <Link
+                href="/blog"
+                className="hover:text-blue transition-colors"
+              >
+                ブログ
+              </Link>
+              <svg className="w-3 h-3 text-[#ccc]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              <span className="text-[#666] truncate max-w-[280px]">
+                {post.title}
               </span>
-            )}
+            </nav>
+
+            {/* Meta */}
+            <div className="flex items-center gap-3 mb-4">
+              {post.category && (
+                <span
+                  className={`text-[11px] font-bold px-3 py-1 rounded-full ${
+                    CATEGORY_COLORS[post.category] || "bg-blue/5 text-blue"
+                  }`}
+                >
+                  {post.category}
+                </span>
+              )}
+              <time className="text-[12px] text-[#999]">{post.date}</time>
+            </div>
+
+            {/* Title */}
+            <h1 className="text-[clamp(24px,4vw,34px)] font-black text-navy leading-[1.4] mb-6">
+              {post.title}
+            </h1>
           </div>
+        </div>
 
-          <h1 className="text-[clamp(22px,3vw,30px)] font-black text-navy leading-[1.4] mb-6">
-            {post.title}
-          </h1>
-
-          {/* Hero thumbnail */}
-          {post.thumbnail && (
-            <div className="relative aspect-[16/9] overflow-hidden mb-8 bg-[#f5f5f5]">
+        {/* Hero thumbnail — full bleed then constrained */}
+        {post.thumbnail && (
+          <div className="max-w-[780px] mx-auto px-6 mb-10">
+            <div className="relative aspect-[16/9] overflow-hidden rounded-xl bg-[#f5f5f5] shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
               <Image
                 src={post.thumbnail}
                 alt={post.title || ""}
                 fill
                 className="object-cover"
-                sizes="(max-width: 800px) 100vw, 800px"
+                sizes="(max-width: 780px) 100vw, 780px"
                 priority
               />
             </div>
-          )}
+          </div>
+        )}
 
+        {/* Article content */}
+        <article className="max-w-[780px] mx-auto px-6">
           <div
-            className="prose prose-sm max-w-none text-[#555] leading-[1.9]"
+            className="blog-content"
             dangerouslySetInnerHTML={{ __html: post.content ?? "" }}
           />
 
-          {/* Related content / cross-links */}
-          <aside className="mt-12 pt-8 border-t border-border">
-            <h2 className="text-lg font-black text-navy mb-4">
-              関連コンテンツ
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-              <Link
-                href="/cases"
-                className="block p-4 border border-border hover:bg-[#f0f8ff] transition-colors"
-              >
-                <p className="text-[10px] font-bold text-blue tracking-[0.1em] uppercase mb-1">
-                  CASES
+          {/* Author / CTA */}
+          <div className="mt-14 p-6 sm:p-8 bg-gradient-to-r from-[#f0f8ff] to-[#f5f0ff] rounded-xl border border-blue/10">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-full bg-navy flex items-center justify-center shrink-0">
+                <span className="text-white font-black text-sm">P</span>
+              </div>
+              <div>
+                <p className="text-[13px] font-bold text-navy mb-1">
+                  PERSONA（ペルソナ）
                 </p>
-                <p className="text-sm font-bold text-navy">
-                  フリーコンサル案件一覧を見る →
+                <p className="text-[12px] text-[#666] leading-[1.7] mb-3">
+                  大手コンサルファーム出身者1,200名以上が登録するフリーコンサル案件紹介プラットフォーム。30社以上の提携エージェントの案件を集約し、AIマッチングで最適な案件をご紹介します。
                 </p>
-              </Link>
-              <Link
-                href="/for-enterprise"
-                className="block p-4 border border-border hover:bg-[#f0f8ff] transition-colors"
-              >
-                <p className="text-[10px] font-bold text-blue tracking-[0.1em] uppercase mb-1">
-                  FOR ENTERPRISE
-                </p>
-                <p className="text-sm font-bold text-navy">
-                  企業向けサービスを見る →
-                </p>
-              </Link>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href="/auth/register"
+                    className="inline-flex items-center text-[12px] font-bold text-white bg-blue px-4 py-2 rounded-lg hover:bg-blue-dark transition-colors"
+                  >
+                    無料登録する
+                  </Link>
+                  <Link
+                    href="/cases"
+                    className="inline-flex items-center text-[12px] font-bold text-blue bg-white px-4 py-2 rounded-lg border border-blue/20 hover:bg-blue/5 transition-colors"
+                  >
+                    案件を見る
+                  </Link>
+                </div>
+              </div>
             </div>
+          </div>
 
+          {/* Related content */}
+          <aside className="mt-14">
             {relatedPosts.length > 0 && (
               <>
-                <h3 className="text-sm font-bold text-navy mb-3">
-                  関連記事
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-1 h-6 bg-blue rounded-full" />
+                  <h2 className="text-lg font-black text-navy">関連記事</h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
                   {relatedPosts.map((rp) => (
                     <Link
                       key={rp.slug}
                       href={`/blog/${rp.slug}`}
-                      className="group block border border-border hover:bg-[#f0f8ff] transition-colors overflow-hidden"
+                      className="group block bg-white rounded-xl border border-border overflow-hidden transition-all hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:-translate-y-0.5"
                     >
                       {rp.thumbnail && (
                         <div className="relative aspect-[16/9] overflow-hidden bg-[#f5f5f5]">
@@ -238,14 +263,16 @@ export default async function BlogPostPage({ params }: Props) {
                             src={rp.thumbnail}
                             alt={rp.title || ""}
                             fill
-                            className="object-cover"
+                            className="object-cover transition-transform duration-500 group-hover:scale-105"
                             sizes="(max-width: 640px) 100vw, 250px"
                           />
                         </div>
                       )}
-                      <div className="p-3">
-                        <p className="text-[11px] text-[#888] mb-0.5">{rp.date}</p>
-                        <p className="text-[13px] font-bold text-navy leading-[1.5] line-clamp-2 group-hover:text-blue transition-colors">
+                      <div className="p-4">
+                        <time className="text-[10px] text-[#aaa] block mb-1.5">
+                          {rp.date}
+                        </time>
+                        <p className="text-[13px] font-bold text-navy leading-[1.55] line-clamp-2 group-hover:text-blue transition-colors">
                           {rp.title}
                         </p>
                       </div>
@@ -254,6 +281,32 @@ export default async function BlogPostPage({ params }: Props) {
                 </div>
               </>
             )}
+
+            {/* Cross-links */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Link
+                href="/cases"
+                className="group block p-5 bg-white rounded-xl border border-border hover:border-blue/20 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all"
+              >
+                <p className="text-[10px] font-bold text-blue tracking-[0.12em] uppercase mb-1">
+                  CASES
+                </p>
+                <p className="text-[14px] font-bold text-navy group-hover:text-blue transition-colors">
+                  フリーコンサル案件一覧を見る →
+                </p>
+              </Link>
+              <Link
+                href="/for-enterprise"
+                className="group block p-5 bg-white rounded-xl border border-border hover:border-blue/20 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all"
+              >
+                <p className="text-[10px] font-bold text-blue tracking-[0.12em] uppercase mb-1">
+                  FOR ENTERPRISE
+                </p>
+                <p className="text-[14px] font-bold text-navy group-hover:text-blue transition-colors">
+                  企業向けサービスを見る →
+                </p>
+              </Link>
+            </div>
           </aside>
         </article>
       </main>
@@ -262,11 +315,15 @@ export default async function BlogPostPage({ params }: Props) {
       {/* Structured data */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogPostingJsonLd) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(blogPostingJsonLd),
+        }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbJsonLd),
+        }}
       />
     </>
   );

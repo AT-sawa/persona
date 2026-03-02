@@ -120,3 +120,241 @@ body {
 html {
   scroll-behavior: smooth;
 }
+
+/* ── Blog article typography ── */
+.blog-content {
+  font-size: 15px;
+  line-height: 2;
+  color: #333;
+  word-break: break-word;
+}
+
+.blog-content > *:first-child {
+  margin-top: 0;
+}
+
+/* Headings */
+.blog-content h2 {
+  font-size: 1.35em;
+  font-weight: 900;
+  color: var(--navy);
+  margin-top: 3em;
+  margin-bottom: 1em;
+  padding-bottom: 0.5em;
+  border-bottom: 2px solid var(--blue);
+  line-height: 1.4;
+}
+
+.blog-content h3 {
+  font-size: 1.15em;
+  font-weight: 800;
+  color: var(--navy);
+  margin-top: 2.2em;
+  margin-bottom: 0.8em;
+  padding-left: 0.8em;
+  border-left: 4px solid var(--blue);
+  line-height: 1.5;
+}
+
+.blog-content h4 {
+  font-size: 1.05em;
+  font-weight: 700;
+  color: var(--navy);
+  margin-top: 1.8em;
+  margin-bottom: 0.6em;
+  line-height: 1.5;
+}
+
+.blog-content h4::before {
+  content: "■ ";
+  color: var(--blue);
+  font-size: 0.7em;
+}
+
+/* Paragraphs */
+.blog-content p {
+  margin-bottom: 1.5em;
+}
+
+/* Strong / emphasis */
+.blog-content strong {
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.blog-content em {
+  font-style: normal;
+  background: linear-gradient(transparent 60%, rgba(31, 171, 233, 0.15) 60%);
+  padding: 0 2px;
+}
+
+/* Links */
+.blog-content a {
+  color: var(--blue);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: opacity 0.2s;
+}
+
+.blog-content a:hover {
+  opacity: 0.7;
+}
+
+/* Lists */
+.blog-content ul {
+  margin: 1.2em 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.blog-content ul li {
+  position: relative;
+  padding-left: 1.5em;
+  margin-bottom: 0.6em;
+}
+
+.blog-content ul li::before {
+  content: "";
+  position: absolute;
+  left: 0.2em;
+  top: 0.7em;
+  width: 7px;
+  height: 7px;
+  background: var(--blue);
+  border-radius: 50%;
+}
+
+.blog-content ol {
+  margin: 1.2em 0;
+  padding-left: 0;
+  list-style: none;
+  counter-reset: ol-counter;
+}
+
+.blog-content ol li {
+  position: relative;
+  padding-left: 2.2em;
+  margin-bottom: 0.6em;
+  counter-increment: ol-counter;
+}
+
+.blog-content ol li::before {
+  content: counter(ol-counter);
+  position: absolute;
+  left: 0;
+  top: 0.15em;
+  width: 1.6em;
+  height: 1.6em;
+  background: var(--blue);
+  color: #fff;
+  font-size: 0.75em;
+  font-weight: 700;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* Nested lists */
+.blog-content li ul,
+.blog-content li ol {
+  margin-top: 0.4em;
+  margin-bottom: 0.2em;
+}
+
+/* Blockquote */
+.blog-content blockquote {
+  margin: 2em 0;
+  padding: 1.2em 1.5em;
+  background: #f8fafc;
+  border-left: 4px solid var(--blue);
+  border-radius: 0 6px 6px 0;
+  color: #555;
+  font-size: 0.95em;
+}
+
+.blog-content blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* Tables */
+.blog-content table {
+  width: 100%;
+  margin: 1.5em 0;
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+
+.blog-content thead th {
+  background: var(--navy);
+  color: #fff;
+  font-weight: 700;
+  padding: 0.7em 1em;
+  text-align: left;
+  font-size: 0.9em;
+}
+
+.blog-content tbody td {
+  padding: 0.7em 1em;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.blog-content tbody tr:nth-child(even) {
+  background: #fafbfc;
+}
+
+.blog-content tbody tr:hover {
+  background: #f0f8ff;
+}
+
+/* Horizontal rule */
+.blog-content hr {
+  border: none;
+  height: 1px;
+  background: var(--border);
+  margin: 2.5em 0;
+}
+
+/* Code */
+.blog-content code {
+  font-family: "SFMono-Regular", Consolas, monospace;
+  background: #f1f5f9;
+  color: #e11d48;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+.blog-content pre {
+  margin: 1.5em 0;
+  padding: 1.2em 1.5em;
+  background: #1e293b;
+  color: #e2e8f0;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 0.85em;
+  line-height: 1.7;
+}
+
+.blog-content pre code {
+  background: none;
+  color: inherit;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+/* Images in content */
+.blog-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin: 1.5em 0;
+}
+
+/* Checkboxes (from markdown ☐) */
+.blog-content p:has(> input[type="checkbox"]) {
+  padding-left: 0.5em;
+}
