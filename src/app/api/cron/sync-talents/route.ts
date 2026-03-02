@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { syncAllPartnerSheets } from "@/lib/sync-talent-sheet";
+import { syncTalentNotion, type NotionTalentSyncResult } from "@/lib/sync-talent-notion";
+import { createServiceClient } from "@/lib/supabase/service";
 
 /**
  * GET /api/cron/sync-talents
- * Daily sync of external talent sheets from partner companies.
+ * Daily sync of external talent data from partner companies.
+ * Supports both Google Sheets and Notion sources.
  * Runs at 21:00 UTC (06:00 JST) via Vercel Cron.
  *
- * READ-ONLY: only fetches data from Google Sheets, never writes back.
- * API-efficient: one CSV request per sheet per sync.
+ * READ-ONLY: only fetches data from external sources, never writes back.
  */
 export async function GET(request: NextRequest) {
   // Verify cron secret
@@ -26,17 +28,43 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const results = await syncAllPartnerSheets();
+    // 1. Sync Google Sheet sources
+    const sheetResults = await syncAllPartnerSheets();
+
+    // 2. Sync Notion sources (only if NOTION_API_KEY is configured)
+    const notionResults: NotionTalentSyncResult[] = [];
+
+    if (process.env.NOTION_API_KEY) {
+      const supabase = createServiceClient();
+      const { data: notionSources } = await supabase
+        .from("partner_sheet_sources")
+        .select("*")
+        .eq("sync_enabled", true)
+        .eq("source_type", "notion");
+
+      if (notionSources && notionSources.length > 0) {
+        for (const source of notionSources) {
+          const result = await syncTalentNotion(source);
+          notionResults.push(result);
+        }
+      }
+    }
+
+    // Combine results
+    const allResults = [
+      ...sheetResults.map((r) => ({ ...r, sourceType: "google_sheet" as const })),
+      ...notionResults.map((r) => ({ ...r, sourceType: "notion" as const })),
+    ];
 
     const summary = {
       syncedAt: new Date().toISOString(),
-      sources: results.length,
-      totalInserted: results.reduce((s, r) => s + r.inserted, 0),
-      totalUpdated: results.reduce((s, r) => s + r.updated, 0),
-      totalDeactivated: results.reduce((s, r) => s + r.deactivated, 0),
-      totalUnchanged: results.reduce((s, r) => s + r.unchanged, 0),
-      totalErrors: results.reduce((s, r) => s + r.errors.length, 0),
-      details: results,
+      sources: allResults.length,
+      totalInserted: allResults.reduce((s, r) => s + r.inserted, 0),
+      totalUpdated: allResults.reduce((s, r) => s + r.updated, 0),
+      totalDeactivated: allResults.reduce((s, r) => s + r.deactivated, 0),
+      totalUnchanged: allResults.reduce((s, r) => s + r.unchanged, 0),
+      totalErrors: allResults.reduce((s, r) => s + r.errors.length, 0),
+      details: allResults,
     };
 
     console.log("[sync-talents]", JSON.stringify(summary));

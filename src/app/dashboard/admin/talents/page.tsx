@@ -14,6 +14,13 @@ interface ExternalTalent {
   project_type: string | null;
   personnel_info: string | null;
   resume_url: string | null;
+  position: string | null;
+  age_range: string | null;
+  work_style: string | null;
+  fee_min: number | null;
+  fee_max: number | null;
+  introduction: string | null;
+  distribution: string | null;
   raw_data: Record<string, string>;
   is_active: boolean;
   first_synced_at: string | null;
@@ -24,6 +31,7 @@ interface PartnerSource {
   id: string;
   name: string;
   sheet_url: string;
+  source_type: "google_sheet" | "notion";
   sync_enabled: boolean;
   last_synced_at: string | null;
   last_sync_result: {
@@ -175,15 +183,20 @@ export default function AdminTalentsPage() {
                   </p>
                 </div>
               </div>
-              <a
-                href={src.sheet_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[12px] text-blue hover:underline flex items-center gap-1"
-              >
-                <Icon name="open_in_new" className="text-[14px]" />
-                シート
-              </a>
+              <div className="flex items-center gap-2">
+                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-[#f0f0f0] text-[#666]">
+                  {src.source_type === "notion" ? "Notion" : "Sheet"}
+                </span>
+                <a
+                  href={src.sheet_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[12px] text-blue hover:underline flex items-center gap-1"
+                >
+                  <Icon name="open_in_new" className="text-[14px]" />
+                  {src.source_type === "notion" ? "ページ" : "シート"}
+                </a>
+              </div>
             </div>
           ))}
         </div>
@@ -280,6 +293,34 @@ export default function AdminTalentsPage() {
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[#666]">
+                    {talent.position && (
+                      <span>
+                        <Icon name="badge" className="text-[14px] align-middle mr-0.5" />
+                        {talent.position}
+                      </span>
+                    )}
+                    {talent.age_range && (
+                      <span>
+                        <Icon name="person" className="text-[14px] align-middle mr-0.5" />
+                        {talent.age_range}
+                      </span>
+                    )}
+                    {talent.work_style && (
+                      <span>
+                        <Icon name="location_on" className="text-[14px] align-middle mr-0.5" />
+                        {talent.work_style}
+                      </span>
+                    )}
+                    {(talent.fee_min || talent.fee_max) && (
+                      <span>
+                        <Icon name="payments" className="text-[14px] align-middle mr-0.5" />
+                        {talent.fee_min && talent.fee_max
+                          ? `${(talent.fee_min / 10000).toFixed(0)}〜${(talent.fee_max / 10000).toFixed(0)}万`
+                          : talent.fee_max
+                            ? `〜${(talent.fee_max / 10000).toFixed(0)}万`
+                            : `${((talent.fee_min ?? 0) / 10000).toFixed(0)}万〜`}
+                      </span>
+                    )}
                     {talent.availability_date && (
                       <span>
                         <Icon name="calendar_month" className="text-[14px] align-middle mr-0.5" />
@@ -315,6 +356,26 @@ export default function AdminTalentsPage() {
               {/* Expanded details */}
               {expandedId === talent.id && (
                 <div className="mt-3 pt-3 border-t border-border">
+                  {/* Notion-specific structured fields */}
+                  {(talent.introduction || talent.distribution) && (
+                    <div className="mb-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {talent.introduction && (
+                        <div>
+                          <p className="text-[11px] font-bold text-[#888] mb-1">紹介文</p>
+                          <p className="text-[13px] text-navy whitespace-pre-wrap">
+                            {talent.introduction}
+                          </p>
+                        </div>
+                      )}
+                      {talent.distribution && (
+                        <div>
+                          <p className="text-[11px] font-bold text-[#888] mb-1">商流</p>
+                          <p className="text-[13px] text-navy">{talent.distribution}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {talent.personnel_info && (
                     <div className="mb-3">
                       <p className="text-[11px] font-bold text-[#888] mb-1">人員情報</p>
@@ -328,13 +389,13 @@ export default function AdminTalentsPage() {
                   {Object.keys(talent.raw_data).length > 0 && (
                     <div className="mb-3">
                       <p className="text-[11px] font-bold text-[#888] mb-1">
-                        シート原データ
+                        ソース原データ
                       </p>
-                      <div className="bg-[#f8f8f8] p-2 text-[12px]">
+                      <div className="bg-[#f8f8f8] p-2 text-[12px] max-h-60 overflow-y-auto">
                         {Object.entries(talent.raw_data).map(([key, val]) => (
                           <div key={key} className="flex gap-2 py-0.5">
-                            <span className="text-[#888] shrink-0 w-24">{key}:</span>
-                            <span className="text-navy">{val}</span>
+                            <span className="text-[#888] shrink-0 w-32">{key}:</span>
+                            <span className="text-navy break-all">{val}</span>
                           </div>
                         ))}
                       </div>
