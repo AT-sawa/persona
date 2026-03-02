@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { sendNotification } from "@/lib/notify";
+import { useHoneypot } from "@/lib/useHoneypot";
 
-const htmlContent = `
+/* ── HTML before the contact section ── */
+const htmlMain = `
 <nav>
   <div class="logo">PERSONA <span style="font-size:10px;font-weight:500;letter-spacing:1px;color:var(--faint);margin-left:8px">AI導入効果アセスメント</span></div>
   <a href="#contact" class="cta">お問い合わせ</a>
@@ -281,25 +285,160 @@ const htmlContent = `
     </div>
   </div>
 </section>
+`;
 
-<!-- CTA -->
-<section class="cta-sec" id="contact">
-  <h2>AI導入効果アセスメント、<br>まずはご相談ください</h2>
-  <p>御社の状況をお伺いし、最適なプランをご提案します。</p>
-  <div class="cta-btns">
-    <a href="https://persona-consultant.com/" class="btn-p">無料相談を申し込む</a>
-    <a href="#deliverables" class="btn-g">納品物をもう一度見る</a>
-  </div>
-</section>
-
+/* ── Footer HTML ── */
+const htmlFooter = `
 <footer>
   <div class="fl">PERSONA</div>
   <p>Activated Trigger株式会社 | プロフェッショナルクラウド「PERSONA」</p>
   <p style="margin-top:6px">&copy; 2026 Activated Trigger Inc.</p>
 </footer>
-
 `;
 
+/* ── Contact Form ── */
+function AssessmentContactForm() {
+  const [formData, setFormData] = useState({
+    companyName: "",
+    fullName: "",
+    email: "",
+    phone: "",
+    message: "",
+  });
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const hp = useHoneypot();
+
+  function update(key: string, value: string) {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (hp.isFilled) { setSubmitted(true); return; }
+    if (!formData.companyName || !formData.fullName || !formData.email) {
+      setError("必須項目をすべて入力してください");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    try {
+      const supabase = createClient();
+      const { error: insertError } = await supabase
+        .from("inquiries")
+        .insert({
+          type: "assessment_inquiry",
+          company_name: formData.companyName,
+          full_name: formData.fullName,
+          email: formData.email,
+          phone: formData.phone || null,
+          message: formData.message || null,
+        });
+      if (insertError) throw insertError;
+      sendNotification("enterprise_inquiry", {
+        company_name: `【AIアセスメント】${formData.companyName}`,
+        full_name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        message: formData.message,
+      });
+      setSubmitted(true);
+    } catch {
+      setError("送信に失敗しました。もう一度お試しください。");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="cf-card">
+      {submitted ? (
+        <div className="cf-success">
+          <div className="cf-check">&#10003;</div>
+          <h3>お問い合わせありがとうございます</h3>
+          <p>内容を確認の上、担当者より1営業日以内にご連絡いたします。</p>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <div className="cf-grid">
+            <div>
+              <label className="cf-label">会社名<span className="cf-req">*</span></label>
+              <input
+                className="cf-input"
+                type="text"
+                required
+                placeholder="株式会社〇〇"
+                value={formData.companyName}
+                onChange={(e) => update("companyName", e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="cf-label">ご担当者名<span className="cf-req">*</span></label>
+              <input
+                className="cf-input"
+                type="text"
+                required
+                placeholder="山田 太郎"
+                value={formData.fullName}
+                onChange={(e) => update("fullName", e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="cf-label">メールアドレス<span className="cf-req">*</span></label>
+              <input
+                className="cf-input"
+                type="email"
+                required
+                placeholder="example@company.com"
+                value={formData.email}
+                onChange={(e) => update("email", e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="cf-label">電話番号</label>
+              <input
+                className="cf-input"
+                type="tel"
+                placeholder="03-0000-0000"
+                value={formData.phone}
+                onChange={(e) => update("phone", e.target.value)}
+              />
+            </div>
+            <div className="cf-full">
+              <label className="cf-label">ご相談内容</label>
+              <textarea
+                className="cf-input cf-textarea"
+                rows={4}
+                placeholder="ご検討中の内容やご質問をお聞かせください"
+                value={formData.message}
+                onChange={(e) => update("message", e.target.value)}
+              />
+            </div>
+          </div>
+          {/* Honeypot */}
+          <input
+            type="text"
+            name="website"
+            value={hp.value}
+            onChange={(e) => hp.setValue(e.target.value)}
+            tabIndex={-1}
+            autoComplete="off"
+            style={{ position: "absolute", opacity: 0, height: 0, width: 0, pointerEvents: "none" }}
+            aria-hidden="true"
+          />
+          {error && <div className="cf-error">{error}</div>}
+          <button type="submit" className="cf-submit" disabled={loading}>
+            {loading ? "送信中..." : "無料相談を申し込む"}
+          </button>
+          <p className="cf-note">1営業日以内に担当者よりご連絡いたします</p>
+        </form>
+      )}
+    </div>
+  );
+}
+
+/* ── Main Component ── */
 export default function AssessmentLP() {
   useEffect(() => {
     const handleFaqClick = (e: Event) => {
@@ -319,7 +458,16 @@ export default function AssessmentLP() {
         rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&family=JetBrains+Mono:wght@500&family=Noto+Sans+JP:wght@400;500;700;900&display=swap"
       />
-      <div className="assessment-lp" dangerouslySetInnerHTML={{ __html: htmlContent }} />
+      <div className="assessment-lp">
+        <div dangerouslySetInnerHTML={{ __html: htmlMain }} />
+        {/* Contact / CTA section with embedded form */}
+        <section className="cta-sec" id="contact">
+          <h2>AI導入効果アセスメント、<br />まずはご相談ください</h2>
+          <p>御社の状況をお伺いし、最適なプランをご提案します。</p>
+          <AssessmentContactForm />
+        </section>
+        <div dangerouslySetInnerHTML={{ __html: htmlFooter }} />
+      </div>
     </>
   );
 }
