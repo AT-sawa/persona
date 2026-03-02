@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP, Noto_Serif_JP } from "next/font/google";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import FloatingCTA from "@/components/FloatingCTA";
@@ -35,7 +35,18 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
+    site: "@persona_consul",
+    creator: "@persona_consul",
   },
+  alternates: {
+    types: {
+      "application/rss+xml": "/feed.xml",
+    },
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1fabe9",
 };
 
 export default function RootLayout({

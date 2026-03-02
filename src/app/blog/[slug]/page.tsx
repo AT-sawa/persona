@@ -44,6 +44,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           }
         : {}),
     },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.description,
+      site: "@persona_consul",
+      creator: "@persona_consul",
+      ...(post.thumbnail
+        ? {
+            images: [`https://persona-consultant.com${post.thumbnail}`],
+          }
+        : {}),
+    },
   };
 }
 

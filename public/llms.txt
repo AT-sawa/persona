@@ -1,0 +1,76 @@
+# PERSONA（ペルソナ）
+
+> コンサルティングファーム出身者のためのフリーコンサル案件紹介プラットフォーム
+
+## サービス概要
+
+PERSONAは、McKinsey・BCG・Deloitte・PwC・Accenture等の大手コンサルティングファーム出身のフリーランスコンサルタントと、企業のプロジェクトを最適にマッチングするプラットフォームです。
+
+- 登録コンサルタント: 1,200名以上（大手ファーム出身者中心）
+- 提携エージェント: 30社以上
+- 常時案件数: 100件以上
+- 月額報酬帯: 100万〜250万円
+- AIスキルマッチング搭載
+
+## 主な機能
+
+### コンサルタント向け
+- 無料会員登録・プロフィール作成
+- AIによる案件自動マッチング
+- 30社以上のエージェント案件を一括検索
+- スキル・経験に基づくレコメンデーション
+- キャリア相談・サポート
+
+### 企業向け
+- フリーコンサルタントの即日アサイン
+- 戦略・業務・IT/DX・PMOなど幅広い領域をカバー
+- 大手ファーム品質を外注コストで実現
+- 1名・1ヶ月からの柔軟な契約
+- 稼働中のフォロー体制
+
+## 対応領域
+
+### 専門分野
+- 戦略コンサルティング
+- DX・IT戦略
+- PMO（プロジェクトマネジメント）
+- SAP/ERP導入
+- 業務改革（BPR）
+- 新規事業開発
+- M&Aアドバイザリー
+- 組織・人事改革
+- マーケティング戦略
+- サプライチェーン最適化
+
+### 対応業界
+- 製造業
+- 金融・保険
+- IT・通信
+- ヘルスケア・製薬
+- 小売・消費財
+- エネルギー・インフラ
+- 官公庁・公共
+
+## URL構造
+
+- トップページ: https://persona-consultant.com
+- 案件一覧: https://persona-consultant.com/cases
+- ブログ: https://persona-consultant.com/blog
+- 企業向け: https://persona-consultant.com/for-enterprise
+- 専門分野: https://persona-consultant.com/expertise
+- 業界別: https://persona-consultant.com/industries
+- 導入事例: https://persona-consultant.com/case-studies
+- 会員登録: https://persona-consultant.com/auth/register
+
+## ブログカテゴリ
+
+- キャリア: フリーコンサルタントのキャリア設計、独立のタイミング、年収シミュレーション
+- 業界トレンド: DX、AI、SAP等のコンサルティング業界動向
+- ノウハウ: 案件獲得、スキルシート作成、単価交渉のコツ
+- 企業向け: フリーコンサル活用ガイド、コスト削減事例
+- サービス紹介: PERSONAの機能・使い方ガイド
+
+## 連絡先
+
+- Web: https://persona-consultant.com/for-enterprise#contact
+- 言語: 日本語
