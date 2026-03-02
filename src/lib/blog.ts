@@ -13,6 +13,7 @@ export interface BlogPost {
   description?: string;
   category?: string;
   keywords?: string[];
+  thumbnail?: string;
   content?: string;
   [key: string]: unknown;
 }
