@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const HIDDEN_PATHS = ["/auth/register", "/dashboard", "/onboarding"];
+const HIDDEN_PATHS = ["/auth/register", "/dashboard", "/onboarding", "/services/assessment"];
 const SESSION_KEY = "persona_cta_dismissed";
 
 export default function FloatingCTA() {

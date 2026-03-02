@@ -273,11 +273,11 @@ const htmlContent = `
       <div style="height:40px"></div>
     </div>
     <div class="faq">
-      <div class="faq-item open"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">アセスメントにはどれくらいの期間がかかりますか？</div><div class="faq-a">Lightプラン（1部署）で約2週間、Standardプラン（3-5部署）で約1〜1.5ヶ月が目安です。</div></div>
-      <div class="faq-item"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">社員のヒアリングにはどの程度の負荷がかかりますか？</div><div class="faq-a">1人あたり30〜45分の個別ヒアリングを1回実施します。日常業務への影響は最小限に調整します。</div></div>
-      <div class="faq-item"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">アセスメント後、実装支援も依頼できますか？</div><div class="faq-a">はい。レポートに「必要な人材像」を明記しており、PERSONAから最適な人材をご紹介します。</div></div>
-      <div class="faq-item"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">特定のAIツールを推奨されることはありますか？</div><div class="faq-a">ベンダーニュートラルの立場で診断します。御社の環境・予算に最適なツールを客観的に提案します。</div></div>
-      <div class="faq-item"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">まずは1部署だけ試すことはできますか？</div><div class="faq-a">Lightプラン（125万円）でスモールスタート可能です。</div></div>
+      <div class="faq-item open"><div class="faq-q">アセスメントにはどれくらいの期間がかかりますか？</div><div class="faq-a">Lightプラン（1部署）で約2週間、Standardプラン（3-5部署）で約1〜1.5ヶ月が目安です。</div></div>
+      <div class="faq-item"><div class="faq-q">社員のヒアリングにはどの程度の負荷がかかりますか？</div><div class="faq-a">1人あたり30〜45分の個別ヒアリングを1回実施します。日常業務への影響は最小限に調整します。</div></div>
+      <div class="faq-item"><div class="faq-q">アセスメント後、実装支援も依頼できますか？</div><div class="faq-a">はい。レポートに「必要な人材像」を明記しており、PERSONAから最適な人材をご紹介します。</div></div>
+      <div class="faq-item"><div class="faq-q">特定のAIツールを推奨されることはありますか？</div><div class="faq-a">ベンダーニュートラルの立場で診断します。御社の環境・予算に最適なツールを客観的に提案します。</div></div>
+      <div class="faq-item"><div class="faq-q">まずは1部署だけ試すことはできますか？</div><div class="faq-a">Lightプラン（125万円）でスモールスタート可能です。</div></div>
     </div>
   </div>
 </section>
@@ -295,25 +295,31 @@ const htmlContent = `
 <footer>
   <div class="fl">PERSONA</div>
   <p>Activated Trigger株式会社 | プロフェッショナルクラウド「PERSONA」</p>
-  <p style="margin-top:6px">© 2026 Activated Trigger Inc.</p>
+  <p style="margin-top:6px">&copy; 2026 Activated Trigger Inc.</p>
 </footer>
 
 `;
 
 export default function AssessmentLP() {
   useEffect(() => {
-    const faqItems = document.querySelectorAll(".faq-q");
-    faqItems.forEach((q) => {
-      q.addEventListener("click", () => {
-        q.parentElement?.classList.toggle("open");
-      });
-    });
+    const handleFaqClick = (e: Event) => {
+      const target = e.currentTarget as HTMLElement;
+      target.parentElement?.classList.toggle("open");
+    };
+    const faqItems = document.querySelectorAll(".assessment-lp .faq-q");
+    faqItems.forEach((q) => q.addEventListener("click", handleFaqClick));
     return () => {
-      faqItems.forEach((q) => {
-        q.replaceWith(q.cloneNode(true));
-      });
+      faqItems.forEach((q) => q.removeEventListener("click", handleFaqClick));
     };
   }, []);
 
-  return <div dangerouslySetInnerHTML={{ __html: htmlContent }} />;
+  return (
+    <>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&family=JetBrains+Mono:wght@500&family=Noto+Sans+JP:wght@400;500;700;900&display=swap"
+      />
+      <div className="assessment-lp" dangerouslySetInnerHTML={{ __html: htmlContent }} />
+    </>
+  );
 }
