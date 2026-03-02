@@ -19,6 +19,12 @@ export interface Case {
   published_at: string | null;
   created_at: string | null;
   is_active: boolean;
+  // Dedup / source tracking
+  source: string | null;
+  source_url: string | null;
+  synced_at: string | null;
+  title_normalized: string | null;
+  source_hash: string | null;
 }
 
 export interface Profile {
