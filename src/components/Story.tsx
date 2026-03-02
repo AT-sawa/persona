@@ -65,15 +65,28 @@ export default function Story() {
               ))}
             </div>
           </div>
-          <div>
-            <Image
-              src="/images/story_person.jpeg"
-              alt="PERSONAの創業背景 — フリーコンサルの課題を解決するプラットフォーム"
-              width={560}
-              height={400}
-              className="w-full rounded"
-              sizes="(max-width: 1024px) 100vw, 50vw"
-            />
+          <div className="relative">
+            <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.3)]">
+              <Image
+                src="/images/freelance_cafe.jpg"
+                alt="カフェで自由に働くフリーランスコンサルタント"
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+              />
+              {/* Gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-navy/40 via-transparent to-transparent" />
+            </div>
+            {/* Second image overlaid */}
+            <div className="absolute -bottom-6 -right-4 w-[55%] aspect-[16/10] rounded-xl overflow-hidden shadow-[0_6px_24px_rgba(0,0,0,0.25)] border-2 border-navy">
+              <Image
+                src="/images/urban_professional.jpg"
+                alt="自分のペースで活躍するプロフェッショナル"
+                fill
+                className="object-cover"
+                sizes="250px"
+              />
+            </div>
           </div>
         </div>
       </div>

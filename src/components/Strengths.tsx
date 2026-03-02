@@ -6,24 +6,24 @@ const items = [
     label: "EXCLUSIVE NETWORK",
     title: "独自の顧客ネットワークで\n100万円〜250万円の高単価案件\n常時100件以上を取り扱い",
     text: "PERSONAで登録・案件検索依頼をすることで、他社エージェントの案件にも効率的に簡単エントリー。面倒だった稼働共有や複数回の面談の手間が省けます。",
-    img: "/images/feature_1.jpeg",
-    imgAlt: "PERSONAの独自ネットワークによる高単価フリーコンサル案件",
+    img: "/images/data_analysis.jpg",
+    imgAlt: "PERSONAの独自ネットワークによる高単価フリーコンサル案件のデータ分析",
   },
   {
     num: "02",
     label: "MULTI-AGENT ACCESS",
     title: "10社以上のエージェントと連携\nここだけで他社案件にも効率的にエントリー",
     text: "PERSONA一つで複数エージェントの案件に一括アクセス。個別登録・個別面談の手間を大幅に削減できます。",
-    img: "/images/feature_2.png",
-    imgAlt: "複数エージェント案件に一括アクセスできるPERSONAの仕組み",
+    img: "/images/brainstorm.jpg",
+    imgAlt: "複数エージェントの案件にチームで効率的にアクセス",
   },
   {
     num: "03",
     label: "CONSULTANT-MADE",
     title: "コンサル出身者が作った\nフリーコンサル案件紹介サービス\nコンサルの理想のサービスを実現。",
     text: "フリーコンサルとして活動する中で「このようなサービスがあれば良いな」を詰め込みました。担当エージェントは全員ファーム出身かつフリーコンサル経験者。",
-    img: "/images/feature_3.png",
-    imgAlt: "コンサル出身者が設計したPERSONAのサービス体験",
+    img: "/images/team_success.jpg",
+    imgAlt: "コンサル出身者チームが笑顔でサポート",
   },
 ];
 
@@ -62,13 +62,12 @@ export default function Strengths() {
                   {item.text}
                 </p>
               </div>
-              <div>
+              <div className="relative aspect-[16/10] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
                 <Image
                   src={item.img}
                   alt={item.imgAlt}
-                  width={380}
-                  height={220}
-                  className="w-full rounded"
+                  fill
+                  className="object-cover"
                   sizes="(max-width: 1024px) 100vw, 380px"
                 />
               </div>

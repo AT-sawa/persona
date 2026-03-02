@@ -42,15 +42,21 @@ export default function About() {
               案件を探す →
             </Link>
           </div>
-          <div>
-            <Image
-              src="/images/hero_person.jpeg"
-              alt="フリーコンサル案件紹介サービスPERSONA"
-              width={420}
-              height={280}
-              className="w-full rounded"
-              sizes="(max-width: 1024px) 100vw, 420px"
-            />
+          <div className="relative">
+            <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+              <Image
+                src="/images/consultant_woman.jpg"
+                alt="PERSONAに登録するフリーコンサルタント"
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 420px"
+              />
+            </div>
+            {/* Floating stat card */}
+            <div className="absolute -bottom-4 -left-4 bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.1)] p-4 border border-border">
+              <div className="text-[22px] font-black text-blue leading-none">1,200+</div>
+              <div className="text-[10px] text-[#888] mt-0.5">登録コンサルタント</div>
+            </div>
           </div>
         </div>
       </div>

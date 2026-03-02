@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
+import Image from "next/image";
 import { INDUSTRY_AREAS } from "@/lib/industry-data";
 
 const BASE_URL = "https://persona-consultant.com";
@@ -98,6 +99,14 @@ export default function IndustriesIndexPage() {
       <main>
         {/* Hero */}
         <section className="relative overflow-hidden bg-[#091747] py-20 px-6">
+          <Image
+            src="/images/coworking_office.jpg"
+            alt=""
+            fill
+            className="object-cover opacity-15"
+            sizes="100vw"
+            priority
+          />
           <div className="absolute top-[-120px] right-[-80px] w-[500px] h-[500px] rounded-full bg-[#1FABE9]/15 blur-[120px]" />
           <div className="absolute bottom-[-100px] left-[-60px] w-[400px] h-[400px] rounded-full bg-[#6366f1]/10 blur-[100px]" />
           <div className="relative max-w-[1000px] mx-auto">

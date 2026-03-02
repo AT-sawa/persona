@@ -2,6 +2,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ContactForm from "@/components/ContactForm";
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -88,6 +89,15 @@ export default function ForEnterprisePage() {
       <main>
         {/* ── A. Hero ── */}
         <section className="relative overflow-hidden bg-[#091747] py-24 px-6">
+          {/* Background image */}
+          <Image
+            src="/images/hero_consultant.jpg"
+            alt=""
+            fill
+            className="object-cover opacity-15"
+            sizes="100vw"
+            priority
+          />
           {/* Gradient orbs */}
           <div className="absolute top-[-120px] right-[-80px] w-[500px] h-[500px] rounded-full bg-[#1FABE9]/15 blur-[120px]" />
           <div className="absolute bottom-[-100px] left-[-60px] w-[400px] h-[400px] rounded-full bg-[#6366f1]/10 blur-[100px]" />
@@ -165,6 +175,28 @@ export default function ForEnterprisePage() {
           </div>
         </section>
 
+        {/* ── Visual Break: Team Image ── */}
+        <div className="relative h-[320px] overflow-hidden">
+          <Image
+            src="/images/team_analytics.jpg"
+            alt="プロジェクトチームがデータ分析を行う様子"
+            fill
+            className="object-cover"
+            sizes="100vw"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#091747]/70 to-[#091747]/40" />
+          <div className="relative h-full max-w-[1000px] mx-auto px-6 flex items-center">
+            <div>
+              <p className="text-white/60 text-[13px] font-bold tracking-wider uppercase mb-2">
+                PROFESSIONAL TALENT
+              </p>
+              <p className="text-white text-[clamp(20px,3vw,30px)] font-black leading-[1.4]">
+                大手ファーム出身の<br />プロフェッショナルが多数在籍
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* ── C. Talent Showcase ── */}
         <section className="py-20 px-6 bg-[#f8f9fb]">
           <div className="max-w-[1000px] mx-auto">
@@ -236,24 +268,38 @@ export default function ForEnterprisePage() {
                   num: "01",
                   title: "即戦力のプロフェッショナル",
                   desc: "McKinsey, BCG, Deloitte, PwC, アクセンチュアなど大手コンサルファーム出身者のみを厳選。プロジェクト開始後すぐに成果を出します。",
+                  img: "/images/business_meeting.jpg",
                 },
                 {
                   num: "02",
                   title: "柔軟な契約形態",
                   desc: "月単位での契約が可能。稼働率の調整や期間延長にも柔軟に対応。プロジェクトの規模や期間に合わせた最適なアサインを実現します。",
+                  img: "/images/remote_work.jpg",
                 },
                 {
                   num: "03",
                   title: "専門コーディネーター",
                   desc: "ファーム出身のコーディネーターが御社の課題を深く理解し、最適な人材をご提案。ミスマッチを最小限に抑えます。",
+                  img: "/images/team_meeting.jpg",
                 },
               ].map((item) => (
-                <div key={item.num} className="relative p-7 rounded-2xl bg-[#f8f9fb] border border-transparent hover:bg-white hover:border-[#e8e8ed] hover:shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-all duration-300">
-                  <span className="text-[40px] font-black bg-gradient-to-br from-[#1FABE9]/20 to-[#091747]/10 bg-clip-text leading-none" style={{ WebkitTextFillColor: "transparent" }}>
-                    {item.num}
-                  </span>
-                  <h3 className="text-[15px] font-bold text-[#091747] mt-2 mb-3">{item.title}</h3>
-                  <p className="text-[13px] text-[#666] leading-[1.85]">{item.desc}</p>
+                <div key={item.num} className="relative rounded-2xl bg-[#f8f9fb] border border-transparent hover:bg-white hover:border-[#e8e8ed] hover:shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-all duration-300 overflow-hidden">
+                  <div className="relative aspect-[16/9] overflow-hidden">
+                    <Image
+                      src={item.img}
+                      alt={item.title}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                    />
+                  </div>
+                  <div className="p-7">
+                    <span className="text-[40px] font-black bg-gradient-to-br from-[#1FABE9]/20 to-[#091747]/10 bg-clip-text leading-none" style={{ WebkitTextFillColor: "transparent" }}>
+                      {item.num}
+                    </span>
+                    <h3 className="text-[15px] font-bold text-[#091747] mt-2 mb-3">{item.title}</h3>
+                    <p className="text-[13px] text-[#666] leading-[1.85]">{item.desc}</p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -461,6 +507,13 @@ export default function ForEnterprisePage() {
 
         {/* ── J. CTA Banner ── */}
         <section className="relative overflow-hidden bg-[#091747] py-16 px-6 text-center">
+          <Image
+            src="/images/creative_office.jpg"
+            alt=""
+            fill
+            className="object-cover opacity-10"
+            sizes="100vw"
+          />
           <div className="absolute top-[-80px] left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full bg-[#1FABE9]/10 blur-[100px]" />
           <div className="relative max-w-[800px] mx-auto">
             <p className="text-white/50 text-[13px] mb-3">
