@@ -380,6 +380,34 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* Admin Section — only visible to admin users */}
+      {profile?.is_admin && (
+        <div className="bg-gradient-to-r from-[#0f1c3f] to-[#1a2d5c] rounded-2xl p-5 mb-6 shadow-[0_2px_12px_rgba(0,0,0,0.15)]">
+          <div className="flex items-center gap-2 mb-4">
+            <Icon name="admin_panel_settings" className="text-[20px] text-[#E15454]" />
+            <h2 className="text-[14px] font-bold text-white">管理者メニュー</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            {[
+              { href: "/dashboard/admin", label: "管理者TOP", icon: "dashboard" },
+              { href: "/dashboard/admin/cases", label: "案件管理", icon: "work" },
+              { href: "/dashboard/admin/entries", label: "エントリー", icon: "forward_to_inbox" },
+              { href: "/dashboard/admin/talents", label: "外部人材DB", icon: "group" },
+              { href: "/dashboard/admin/analytics", label: "分析", icon: "analytics" },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
+              >
+                <Icon name={item.icon} className="text-[18px] text-white/70" />
+                <span className="text-[12px] font-bold text-white">{item.label}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Quick actions */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {[
