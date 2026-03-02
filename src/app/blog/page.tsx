@@ -25,12 +25,15 @@ const CATEGORY_COLORS: Record<string, string> = {
   "サービス紹介": "bg-red-50 text-[#E15454]",
 };
 
+const POSTS_PER_PAGE = 12;
+
 interface PageProps {
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{ category?: string; page?: string }>;
 }
 
 export default async function BlogPage({ searchParams }: PageProps) {
-  const { category } = await searchParams;
+  const { category, page: pageStr } = await searchParams;
+  const currentPage = Math.max(1, parseInt(pageStr || "1", 10) || 1);
   const allPosts = getAllPosts();
   const categories = Array.from(
     new Set(allPosts.map((p) => p.category).filter(Boolean))
@@ -42,13 +45,29 @@ export default async function BlogPage({ searchParams }: PageProps) {
   }
 
   // Filter posts by category if specified
-  const posts = category
+  const filteredPosts = category
     ? allPosts.filter((p) => p.category === category)
     : allPosts;
 
-  // Featured: latest post
-  const featured = posts[0];
-  const rest = posts.slice(1);
+  // Featured: latest post (only on page 1)
+  const featured = currentPage === 1 ? filteredPosts[0] : undefined;
+  const afterFeatured = currentPage === 1 ? filteredPosts.slice(1) : filteredPosts;
+
+  // Pagination
+  const totalPosts = afterFeatured.length;
+  const totalPages = Math.max(1, Math.ceil(totalPosts / POSTS_PER_PAGE));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIdx = (safePage - 1) * POSTS_PER_PAGE;
+  const paginatedPosts = afterFeatured.slice(startIdx, startIdx + POSTS_PER_PAGE);
+
+  // Build pagination URL helper
+  function pageUrl(p: number) {
+    const params = new URLSearchParams();
+    if (category) params.set("category", category);
+    if (p > 1) params.set("page", String(p));
+    const qs = params.toString();
+    return `/blog${qs ? `?${qs}` : ""}`;
+  }
 
   return (
     <>
@@ -90,7 +109,7 @@ export default async function BlogPage({ searchParams }: PageProps) {
           </Suspense>
 
           {/* No results */}
-          {posts.length === 0 && (
+          {filteredPosts.length === 0 && (
             <div className="text-center py-20">
               <p className="text-[15px] text-[#888] mb-4">
                 「{category}」カテゴリーの記事はまだありません。
@@ -104,7 +123,7 @@ export default async function BlogPage({ searchParams }: PageProps) {
             </div>
           )}
 
-          {/* Featured article */}
+          {/* Featured article (page 1 only) */}
           {featured && (
             <Link
               href={`/blog/${featured.slug}`}
@@ -174,9 +193,9 @@ export default async function BlogPage({ searchParams }: PageProps) {
           )}
 
           {/* Article grid */}
-          {rest.length > 0 && (
+          {paginatedPosts.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {rest.map((post) => (
+              {paginatedPosts.map((post) => (
                 <Link
                   key={post.slug}
                   href={`/blog/${post.slug}`}
@@ -219,6 +238,51 @@ export default async function BlogPage({ searchParams }: PageProps) {
                 </Link>
               ))}
             </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <nav
+              aria-label="ページネーション"
+              className="flex items-center justify-center gap-1.5 mt-12"
+            >
+              {safePage > 1 && (
+                <Link
+                  href={pageUrl(safePage - 1)}
+                  className="inline-flex items-center justify-center w-9 h-9 text-[13px] text-[#666] bg-white border border-border rounded-lg hover:bg-[#f8f8f8] transition-colors"
+                  aria-label="前のページ"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </Link>
+              )}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <Link
+                  key={p}
+                  href={pageUrl(p)}
+                  className={`inline-flex items-center justify-center w-9 h-9 text-[13px] font-bold rounded-lg transition-colors ${
+                    p === safePage
+                      ? "bg-blue text-white"
+                      : "text-[#666] bg-white border border-border hover:bg-[#f8f8f8]"
+                  }`}
+                  aria-current={p === safePage ? "page" : undefined}
+                >
+                  {p}
+                </Link>
+              ))}
+              {safePage < totalPages && (
+                <Link
+                  href={pageUrl(safePage + 1)}
+                  className="inline-flex items-center justify-center w-9 h-9 text-[13px] text-[#666] bg-white border border-border rounded-lg hover:bg-[#f8f8f8] transition-colors"
+                  aria-label="次のページ"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              )}
+            </nav>
           )}
 
           {/* Newsletter */}

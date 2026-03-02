@@ -43,6 +43,14 @@ export const metadata: Metadata = {
       "application/rss+xml": "/feed.xml",
     },
   },
+  // Google Search Console verification (set via env var)
+  ...(process.env.NEXT_PUBLIC_GSC_VERIFICATION
+    ? {
+        verification: {
+          google: process.env.NEXT_PUBLIC_GSC_VERIFICATION,
+        },
+      }
+    : {}),
 };
 
 export const viewport: Viewport = {

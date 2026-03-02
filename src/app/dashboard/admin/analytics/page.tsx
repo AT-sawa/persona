@@ -7,18 +7,29 @@ import { createClient } from "@/lib/supabase/client";
 
 /* ─── Types ─── */
 
-interface KPIs {
+interface SummaryKPIs {
+  totalCases: number;
+  totalEntries: number;
   totalUsers: number;
   activeCases: number;
-  totalEntries: number;
-  entriesThisMonth: number;
-  avgMatchScore: number;
 }
 
-interface MonthlyReg {
-  month: string; // "2025-06" etc.
-  label: string; // "6月" etc.
+interface DailyEntry {
+  date: string; // "2026-03-01"
+  label: string; // "3/1"
   count: number;
+}
+
+interface CategoryCount {
+  category: string;
+  count: number;
+  color: string;
+}
+
+interface TopCaseByEntry {
+  case_id: string;
+  title: string;
+  entryCount: number;
 }
 
 interface StatusBreakdown {
@@ -28,25 +39,12 @@ interface StatusBreakdown {
   rejected: number;
 }
 
-interface TopCase {
-  case_id: string;
-  title: string;
-  matchCount: number;
-  avgScore: number;
-}
-
 interface RecentEntry {
   id: string;
   userName: string;
   caseTitle: string;
   status: string;
   createdAt: string;
-}
-
-interface CategoryDist {
-  consul: number;
-  si: number;
-  other: number;
 }
 
 /* ─── Helpers ─── */
@@ -65,33 +63,41 @@ const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> =
     rejected: { label: "不採用", color: "#ef4444", bg: "#fef2f2" },
   };
 
+const CATEGORY_COLORS = [
+  "#1fabe9",
+  "#091747",
+  "#10b981",
+  "#f59e0b",
+  "#8b5cf6",
+  "#ef4444",
+  "#6366f1",
+  "#14b8a6",
+  "#f97316",
+  "#ec4899",
+];
+
 /* ─── Component ─── */
 
 export default function AdminAnalyticsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
 
-  const [kpis, setKpis] = useState<KPIs>({
+  const [kpis, setKpis] = useState<SummaryKPIs>({
+    totalCases: 0,
+    totalEntries: 0,
     totalUsers: 0,
     activeCases: 0,
-    totalEntries: 0,
-    entriesThisMonth: 0,
-    avgMatchScore: 0,
   });
-  const [monthlyRegs, setMonthlyRegs] = useState<MonthlyReg[]>([]);
+  const [dailyEntries, setDailyEntries] = useState<DailyEntry[]>([]);
+  const [categoryData, setCategoryData] = useState<CategoryCount[]>([]);
+  const [topCases, setTopCases] = useState<TopCaseByEntry[]>([]);
   const [statusBreakdown, setStatusBreakdown] = useState<StatusBreakdown>({
     pending: 0,
     reviewing: 0,
     accepted: 0,
     rejected: 0,
   });
-  const [topCases, setTopCases] = useState<TopCase[]>([]);
   const [recentEntries, setRecentEntries] = useState<RecentEntry[]>([]);
-  const [categoryDist, setCategoryDist] = useState<CategoryDist>({
-    consul: 0,
-    si: 0,
-    other: 0,
-  });
 
   useEffect(() => {
     async function fetchData() {
@@ -115,68 +121,124 @@ export default function AdminAnalyticsPage() {
         return;
       }
 
-      /* ── KPI counts ── */
-      const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-
-      const [usersRes, casesRes, entriesRes, entriesMonthRes, matchScoreRes] =
+      /* ── 1. Summary KPIs ── */
+      const [totalCasesRes, activeCasesRes, totalEntriesRes, totalUsersRes] =
         await Promise.all([
-          supabase.from("profiles").select("id", { count: "exact", head: true }),
+          supabase
+            .from("cases")
+            .select("id", { count: "exact", head: true }),
           supabase
             .from("cases")
             .select("id", { count: "exact", head: true })
             .eq("is_active", true),
-          supabase.from("entries").select("id", { count: "exact", head: true }),
           supabase
             .from("entries")
-            .select("id", { count: "exact", head: true })
-            .gte("created_at", monthStart),
-          supabase.from("matching_results").select("score"),
+            .select("id", { count: "exact", head: true }),
+          supabase
+            .from("profiles")
+            .select("id", { count: "exact", head: true }),
         ]);
 
-      const scores = (matchScoreRes.data ?? []).map(
-        (r: { score: number }) => r.score
-      );
-      const avgScore =
-        scores.length > 0
-          ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length)
-          : 0;
-
       setKpis({
-        totalUsers: usersRes.count ?? 0,
-        activeCases: casesRes.count ?? 0,
-        totalEntries: entriesRes.count ?? 0,
-        entriesThisMonth: entriesMonthRes.count ?? 0,
-        avgMatchScore: avgScore,
+        totalCases: totalCasesRes.count ?? 0,
+        activeCases: activeCasesRes.count ?? 0,
+        totalEntries: totalEntriesRes.count ?? 0,
+        totalUsers: totalUsersRes.count ?? 0,
       });
 
-      /* ── Monthly registrations (last 12 months) ── */
-      const { data: allProfiles } = await supabase
-        .from("profiles")
+      /* ── 2. Entries over last 30 days ── */
+      const now = new Date();
+      const thirtyDaysAgo = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() - 29
+      );
+      const thirtyDaysAgoISO = thirtyDaysAgo.toISOString();
+
+      const { data: recentEntriesRaw } = await supabase
+        .from("entries")
         .select("created_at")
+        .gte("created_at", thirtyDaysAgoISO)
         .order("created_at", { ascending: true });
 
-      const months: MonthlyReg[] = [];
-      for (let i = 11; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-        months.push({
-          month: key,
-          label: `${d.getMonth() + 1}月`,
+      // Build 30-day buckets
+      const dayBuckets: DailyEntry[] = [];
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(
+          thirtyDaysAgo.getFullYear(),
+          thirtyDaysAgo.getMonth(),
+          thirtyDaysAgo.getDate() + i
+        );
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        dayBuckets.push({
+          date: key,
+          label: `${d.getMonth() + 1}/${d.getDate()}`,
           count: 0,
         });
       }
 
-      (allProfiles ?? []).forEach((p: { created_at: string | null }) => {
-        if (!p.created_at) return;
-        const d = new Date(p.created_at);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-        const item = months.find((m) => m.month === key);
-        if (item) item.count++;
-      });
-      setMonthlyRegs(months);
+      (recentEntriesRaw ?? []).forEach(
+        (e: { created_at: string | null }) => {
+          if (!e.created_at) return;
+          const d = new Date(e.created_at);
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+          const bucket = dayBuckets.find((b) => b.date === key);
+          if (bucket) bucket.count++;
+        }
+      );
+      setDailyEntries(dayBuckets);
 
-      /* ── Entry status breakdown ── */
+      /* ── 3. Cases by category (horizontal bar chart) ── */
+      const { data: allCases } = await supabase
+        .from("cases")
+        .select("category")
+        .eq("is_active", true);
+
+      const catMap: Record<string, number> = {};
+      (allCases ?? []).forEach((c: { category: string | null }) => {
+        const cat = c.category?.trim() || "未分類";
+        catMap[cat] = (catMap[cat] || 0) + 1;
+      });
+
+      const sortedCategories = Object.entries(catMap)
+        .map(([category, count], i) => ({
+          category,
+          count,
+          color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
+        }))
+        .sort((a, b) => b.count - a.count);
+
+      setCategoryData(sortedCategories);
+
+      /* ── 4. Top cases by entry count ── */
+      const { data: entriesWithCases } = await supabase
+        .from("entries")
+        .select("case_id, cases(title)");
+
+      const caseEntryMap: Record<string, { title: string; count: number }> = {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (entriesWithCases ?? []).forEach((e: any) => {
+        const caseId = e.case_id as string;
+        const caseData = Array.isArray(e.cases) ? e.cases[0] : e.cases;
+        const title = caseData?.title ?? "不明";
+        if (!caseEntryMap[caseId]) {
+          caseEntryMap[caseId] = { title, count: 0 };
+        }
+        caseEntryMap[caseId].count++;
+      });
+
+      const topCasesArr = Object.entries(caseEntryMap)
+        .map(([caseId, v]) => ({
+          case_id: caseId,
+          title: v.title,
+          entryCount: v.count,
+        }))
+        .sort((a, b) => b.entryCount - a.entryCount)
+        .slice(0, 10);
+
+      setTopCases(topCasesArr);
+
+      /* ── 5. Entry status breakdown ── */
       const { data: allEntries } = await supabase
         .from("entries")
         .select("status");
@@ -194,52 +256,19 @@ export default function AdminAnalyticsPage() {
       });
       setStatusBreakdown(breakdown);
 
-      /* ── Top 10 cases by match count ── */
-      const { data: matchingData } = await supabase
-        .from("matching_results")
-        .select("case_id, score, cases(title)");
-
-      const caseMap: Record<
-        string,
-        { title: string; scores: number[] }
-      > = {};
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (matchingData ?? []).forEach((m: any) => {
-          const caseId = m.case_id as string;
-          const score = m.score as number;
-          const caseTitle = Array.isArray(m.cases)
-            ? m.cases[0]?.title ?? "不明"
-            : m.cases?.title ?? "不明";
-          if (!caseMap[caseId]) {
-            caseMap[caseId] = { title: caseTitle, scores: [] };
-          }
-          caseMap[caseId].scores.push(score);
-        }
-      );
-      const topCasesArr: TopCase[] = Object.entries(caseMap)
-        .map(([caseId, v]) => ({
-          case_id: caseId,
-          title: v.title,
-          matchCount: v.scores.length,
-          avgScore: Math.round(
-            v.scores.reduce((a, b) => a + b, 0) / v.scores.length
-          ),
-        }))
-        .sort((a, b) => b.matchCount - a.matchCount)
-        .slice(0, 10);
-      setTopCases(topCasesArr);
-
-      /* ── Recent 20 entries ── */
+      /* ── 6. Recent entries feed ── */
       const { data: recentData } = await supabase
         .from("entries")
         .select("id, status, created_at, profiles(full_name), cases(title)")
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(15);
 
       setRecentEntries(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (recentData ?? []).map((e: any) => {
-          const profileData = Array.isArray(e.profiles) ? e.profiles[0] : e.profiles;
+          const profileData = Array.isArray(e.profiles)
+            ? e.profiles[0]
+            : e.profiles;
           const caseData = Array.isArray(e.cases) ? e.cases[0] : e.cases;
           return {
             id: e.id,
@@ -250,25 +279,6 @@ export default function AdminAnalyticsPage() {
           };
         })
       );
-
-      /* ── Category distribution ── */
-      const { data: activeCases } = await supabase
-        .from("cases")
-        .select("category")
-        .eq("is_active", true);
-
-      const dist: CategoryDist = { consul: 0, si: 0, other: 0 };
-      (activeCases ?? []).forEach((c: { category: string | null }) => {
-        const cat = (c.category ?? "").toLowerCase();
-        if (cat.includes("consul") || cat === "コンサル") {
-          dist.consul++;
-        } else if (cat.includes("si") || cat === "SI") {
-          dist.si++;
-        } else {
-          dist.other++;
-        }
-      });
-      setCategoryDist(dist);
 
       setLoading(false);
     }
@@ -284,14 +294,22 @@ export default function AdminAnalyticsPage() {
     );
   }
 
-  const maxRegCount = Math.max(...monthlyRegs.map((m) => m.count), 1);
+  /* ── Derived values ── */
+  const maxDailyCount = Math.max(...dailyEntries.map((d) => d.count), 1);
+  const maxCategoryCount = Math.max(
+    ...categoryData.map((c) => c.count),
+    1
+  );
+  const maxTopCaseCount = Math.max(
+    ...topCases.map((c) => c.entryCount),
+    1
+  );
   const totalStatusEntries =
     statusBreakdown.pending +
     statusBreakdown.reviewing +
     statusBreakdown.accepted +
     statusBreakdown.rejected;
-  const totalCategoryCases =
-    categoryDist.consul + categoryDist.si + categoryDist.other;
+  const totalEntries30d = dailyEntries.reduce((sum, d) => sum + d.count, 0);
 
   return (
     <div className="py-6">
@@ -312,106 +330,185 @@ export default function AdminAnalyticsPage() {
         </p>
       </div>
 
-      {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+      {/* ── Summary KPI Cards ── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {[
           {
-            label: "登録ユーザー",
-            value: kpis.totalUsers,
-            icon: "group",
-            color: "#3b82f6",
+            label: "総案件数",
+            value: kpis.totalCases,
+            icon: "work",
+            color: "#091747",
           },
           {
-            label: "公開案件",
-            value: kpis.activeCases,
-            icon: "folder_open",
+            label: "総エントリー数",
+            value: kpis.totalEntries,
+            icon: "send",
+            color: "#1fabe9",
+          },
+          {
+            label: "登録ユーザー数",
+            value: kpis.totalUsers,
+            icon: "group",
             color: "#10b981",
           },
           {
-            label: "総エントリー",
-            value: kpis.totalEntries,
-            icon: "send",
-            color: "#8b5cf6",
-          },
-          {
-            label: "今月のエントリー",
-            value: kpis.entriesThisMonth,
-            icon: "calendar_month",
+            label: "公開中の案件",
+            value: kpis.activeCases,
+            icon: "folder_open",
             color: "#f59e0b",
-          },
-          {
-            label: "平均マッチスコア",
-            value: kpis.avgMatchScore > 0 ? `${kpis.avgMatchScore}%` : "---",
-            icon: "auto_awesome",
-            color: "#E15454",
           },
         ].map((card) => (
           <div
             key={card.label}
-            className="bg-white rounded-2xl border border-border/60 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+            className="bg-white rounded-xl border border-[#e3e6eb] p-5"
           >
-            <div className="flex items-center gap-2 mb-2">
-              <span
-                className="material-symbols-rounded text-[20px]"
-                style={{ color: card.color }}
+            <div className="flex items-center gap-2 mb-3">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ backgroundColor: card.color + "12" }}
               >
-                {card.icon}
-              </span>
-              <p className="text-[10px] font-bold text-[#888] tracking-wide">
+                <span
+                  className="material-symbols-rounded text-[18px]"
+                  style={{ color: card.color }}
+                >
+                  {card.icon}
+                </span>
+              </div>
+              <p className="text-[11px] font-bold text-[#666] tracking-wide">
                 {card.label}
               </p>
             </div>
-            <p className="text-2xl font-black text-navy">{card.value}</p>
+            <p className="text-3xl font-black text-[#091747]">{card.value}</p>
           </div>
         ))}
       </div>
 
-      {/* ── Registration Trends ── */}
-      <div className="bg-white rounded-2xl border border-border/60 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] mb-6">
-        <h2 className="text-sm font-bold text-navy mb-1 flex items-center gap-2">
-          <Icon name="trending_up" className="text-[18px] text-[#3b82f6]" />
-          ユーザー登録推移（過去12ヶ月）
-        </h2>
-        <p className="text-[11px] text-[#888] mb-5">
-          月別の新規ユーザー登録数
+      {/* ── Entries over time (last 30 days bar chart) ── */}
+      <div className="bg-white rounded-xl border border-[#e3e6eb] p-6 mb-6">
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="text-sm font-bold text-[#091747] flex items-center gap-2">
+            <Icon name="bar_chart" className="text-[18px] text-[#1fabe9]" />
+            エントリー推移（過去30日間）
+          </h2>
+          <span className="text-[12px] font-bold text-[#1fabe9]">
+            合計 {totalEntries30d}件
+          </span>
+        </div>
+        <p className="text-[11px] text-[#666] mb-5">
+          日別のエントリー数を表示
         </p>
 
-        <div className="flex items-end gap-1.5 h-[160px]">
-          {monthlyRegs.map((m) => {
-            const pct = maxRegCount > 0 ? (m.count / maxRegCount) * 100 : 0;
-            return (
-              <div
-                key={m.month}
-                className="flex-1 flex flex-col items-center justify-end h-full group"
-              >
-                {/* Tooltip on hover */}
-                <div className="relative mb-1">
-                  <span className="text-[10px] font-bold text-navy opacity-0 group-hover:opacity-100 transition-opacity">
-                    {m.count}
-                  </span>
-                </div>
+        {totalEntries30d === 0 ? (
+          <p className="text-[13px] text-[#888] text-center py-8">
+            過去30日間のエントリーデータがありません
+          </p>
+        ) : (
+          <div className="flex items-end gap-[3px] h-[180px]">
+            {dailyEntries.map((d, i) => {
+              const pct =
+                maxDailyCount > 0 ? (d.count / maxDailyCount) * 100 : 0;
+              // Show labels every 5 days to avoid overlap
+              const showLabel = i % 5 === 0 || i === dailyEntries.length - 1;
+              return (
                 <div
-                  className="w-full rounded-t-md bg-[#3b82f6] hover:bg-[#2563eb] transition-colors min-h-[2px]"
-                  style={{ height: `${Math.max(pct, 2)}%` }}
-                />
-                <span className="text-[9px] text-[#888] mt-1.5 font-medium">
-                  {m.label}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+                  key={d.date}
+                  className="flex-1 flex flex-col items-center justify-end h-full group"
+                >
+                  {/* Hover tooltip */}
+                  <div className="relative mb-1">
+                    <span className="text-[9px] font-bold text-[#091747] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                      {d.count}件
+                    </span>
+                  </div>
+                  <div
+                    className="w-full rounded-t bg-[#1fabe9] hover:bg-[#0d8ec7] transition-colors min-h-[2px]"
+                    style={{ height: `${Math.max(pct, 1.5)}%` }}
+                  />
+                  {showLabel ? (
+                    <span className="text-[8px] text-[#888] mt-1.5 font-medium whitespace-nowrap">
+                      {d.label}
+                    </span>
+                  ) : (
+                    <span className="text-[8px] mt-1.5 invisible">.</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* ── Two-column row: Entry Status + Category Distribution ── */}
+      {/* ── Two-column row: Category + Entry Status ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        {/* Cases by category (horizontal bar chart) */}
+        <div className="bg-white rounded-xl border border-[#e3e6eb] p-6">
+          <h2 className="text-sm font-bold text-[#091747] mb-1 flex items-center gap-2">
+            <Icon name="category" className="text-[18px] text-[#091747]" />
+            カテゴリ別案件数
+          </h2>
+          <p className="text-[11px] text-[#666] mb-5">
+            公開中案件のカテゴリ内訳
+          </p>
+
+          {categoryData.length === 0 ? (
+            <p className="text-[13px] text-[#888] text-center py-4">
+              案件データがありません
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {categoryData.map((cat) => {
+                const pct =
+                  maxCategoryCount > 0
+                    ? (cat.count / maxCategoryCount) * 100
+                    : 0;
+                return (
+                  <div key={cat.category}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[12px] font-bold text-[#091747] truncate max-w-[60%]">
+                        {cat.category}
+                      </span>
+                      <span className="text-[12px] font-bold text-[#091747]">
+                        {cat.count}
+                        <span className="text-[10px] text-[#666] ml-0.5">件</span>
+                      </span>
+                    </div>
+                    <div className="w-full h-6 bg-[#f5f6f8] rounded overflow-hidden">
+                      <div
+                        className="h-full rounded transition-all flex items-center pl-2"
+                        style={{
+                          width: `${Math.max(pct, 4)}%`,
+                          backgroundColor: cat.color,
+                        }}
+                      >
+                        {pct > 15 && (
+                          <span className="text-[10px] font-bold text-white">
+                            {Math.round(
+                              (cat.count /
+                                categoryData.reduce(
+                                  (s, c) => s + c.count,
+                                  0
+                                )) *
+                                100
+                            )}
+                            %
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         {/* Entry Status Breakdown */}
-        <div className="bg-white rounded-2xl border border-border/60 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-          <h2 className="text-sm font-bold text-navy mb-1 flex items-center gap-2">
+        <div className="bg-white rounded-xl border border-[#e3e6eb] p-6">
+          <h2 className="text-sm font-bold text-[#091747] mb-1 flex items-center gap-2">
             <Icon name="donut_small" className="text-[18px] text-[#8b5cf6]" />
             エントリーステータス
           </h2>
-          <p className="text-[11px] text-[#888] mb-5">
+          <p className="text-[11px] text-[#666] mb-5">
             ステータス別エントリー数
           </p>
 
@@ -420,206 +517,153 @@ export default function AdminAnalyticsPage() {
               エントリーデータがありません
             </p>
           ) : (
-            <div className="space-y-3">
-              {(
-                Object.entries(statusBreakdown) as [
-                  keyof StatusBreakdown,
-                  number
-                ][]
-              ).map(([key, count]) => {
-                const s = STATUS_MAP[key];
-                const pct =
-                  totalStatusEntries > 0
-                    ? Math.round((count / totalStatusEntries) * 100)
-                    : 0;
-                return (
-                  <div key={key}>
-                    <div className="flex items-center justify-between mb-1">
+            <>
+              {/* Stacked bar overview */}
+              <div className="w-full h-3 bg-[#f5f6f8] rounded-full overflow-hidden flex mb-5">
+                {(
+                  Object.entries(statusBreakdown) as [
+                    keyof StatusBreakdown,
+                    number,
+                  ][]
+                ).map(([key, count]) => {
+                  const pct =
+                    totalStatusEntries > 0
+                      ? (count / totalStatusEntries) * 100
+                      : 0;
+                  if (pct === 0) return null;
+                  return (
+                    <div
+                      key={key}
+                      className="h-full first:rounded-l-full last:rounded-r-full"
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: STATUS_MAP[key].color,
+                      }}
+                    />
+                  );
+                })}
+              </div>
+
+              <div className="space-y-3">
+                {(
+                  Object.entries(statusBreakdown) as [
+                    keyof StatusBreakdown,
+                    number,
+                  ][]
+                ).map(([key, count]) => {
+                  const s = STATUS_MAP[key];
+                  const pct =
+                    totalStatusEntries > 0
+                      ? Math.round((count / totalStatusEntries) * 100)
+                      : 0;
+                  return (
+                    <div key={key} className="flex items-center gap-3">
+                      <div
+                        className="w-3 h-3 rounded-sm shrink-0"
+                        style={{ backgroundColor: s.color }}
+                      />
                       <span
-                        className="text-[12px] font-bold px-2.5 py-0.5 rounded-full"
+                        className="text-[12px] font-bold px-2 py-0.5 rounded-full"
                         style={{ color: s.color, backgroundColor: s.bg }}
                       >
                         {s.label}
                       </span>
-                      <span className="text-[12px] font-bold text-navy">
+                      <div className="flex-1" />
+                      <span className="text-[13px] font-black text-[#091747]">
                         {count}
-                        <span className="text-[10px] text-[#888] ml-1">
-                          ({pct}%)
-                        </span>
+                      </span>
+                      <span className="text-[11px] text-[#888] w-10 text-right">
+                        {pct}%
                       </span>
                     </div>
-                    <div className="w-full h-2 bg-[#f5f5f5] rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${pct}%`,
-                          backgroundColor: s.color,
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Category Distribution */}
-        <div className="bg-white rounded-2xl border border-border/60 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-          <h2 className="text-sm font-bold text-navy mb-1 flex items-center gap-2">
-            <Icon name="category" className="text-[18px] text-[#10b981]" />
-            カテゴリ分布
-          </h2>
-          <p className="text-[11px] text-[#888] mb-5">
-            公開案件のカテゴリ内訳
-          </p>
-
-          {totalCategoryCases === 0 ? (
-            <p className="text-[13px] text-[#888] text-center py-4">
-              案件データがありません
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {[
-                {
-                  key: "consul",
-                  label: "コンサル",
-                  count: categoryDist.consul,
-                  color: "#3b82f6",
-                },
-                {
-                  key: "si",
-                  label: "SI",
-                  count: categoryDist.si,
-                  color: "#10b981",
-                },
-                {
-                  key: "other",
-                  label: "その他",
-                  count: categoryDist.other,
-                  color: "#888",
-                },
-              ].map((cat) => {
-                const pct =
-                  totalCategoryCases > 0
-                    ? Math.round((cat.count / totalCategoryCases) * 100)
-                    : 0;
-                return (
-                  <div key={cat.key}>
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-sm"
-                          style={{ backgroundColor: cat.color }}
-                        />
-                        <span className="text-[13px] font-bold text-navy">
-                          {cat.label}
-                        </span>
-                      </div>
-                      <span className="text-[13px] font-bold text-navy">
-                        {cat.count}件
-                        <span className="text-[10px] text-[#888] ml-1">
-                          ({pct}%)
-                        </span>
-                      </span>
-                    </div>
-                    <div className="w-full h-2.5 bg-[#f5f5f5] rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${pct}%`,
-                          backgroundColor: cat.color,
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
       </div>
 
-      {/* ── Top Matched Cases ── */}
-      <div className="bg-white rounded-2xl border border-border/60 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] mb-6">
-        <h2 className="text-sm font-bold text-navy mb-1 flex items-center gap-2">
+      {/* ── Top cases by entry count ── */}
+      <div className="bg-white rounded-xl border border-[#e3e6eb] p-6 mb-6">
+        <h2 className="text-sm font-bold text-[#091747] mb-1 flex items-center gap-2">
           <Icon name="leaderboard" className="text-[18px] text-[#f59e0b]" />
-          マッチ数TOP案件
+          エントリー数TOP案件
         </h2>
-        <p className="text-[11px] text-[#888] mb-4">
-          マッチング結果が多い上位10案件
+        <p className="text-[11px] text-[#666] mb-5">
+          エントリー数が多い上位10案件
         </p>
 
         {topCases.length === 0 ? (
-          <p className="text-[13px] text-[#888] text-center py-4">
-            マッチングデータがありません
+          <p className="text-[13px] text-[#888] text-center py-6">
+            エントリーデータがありません
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border/60">
-                  <th className="text-left text-[10px] font-bold text-[#888] tracking-wider uppercase py-2 pr-4">
-                    #
-                  </th>
-                  <th className="text-left text-[10px] font-bold text-[#888] tracking-wider uppercase py-2 pr-4">
-                    案件名
-                  </th>
-                  <th className="text-right text-[10px] font-bold text-[#888] tracking-wider uppercase py-2 pr-4">
-                    マッチ数
-                  </th>
-                  <th className="text-right text-[10px] font-bold text-[#888] tracking-wider uppercase py-2">
-                    平均スコア
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {topCases.map((tc, i) => (
-                  <tr
-                    key={tc.case_id}
-                    className="border-b border-border/30 last:border-b-0"
+          <div className="space-y-3">
+            {topCases.map((tc, i) => {
+              const pct =
+                maxTopCaseCount > 0
+                  ? (tc.entryCount / maxTopCaseCount) * 100
+                  : 0;
+              return (
+                <div key={tc.case_id} className="flex items-center gap-3">
+                  {/* Rank */}
+                  <span
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 ${
+                      i === 0
+                        ? "bg-[#f59e0b] text-white"
+                        : i === 1
+                          ? "bg-[#94a3b8] text-white"
+                          : i === 2
+                            ? "bg-[#cd7f32] text-white"
+                            : "bg-[#f5f6f8] text-[#888]"
+                    }`}
                   >
-                    <td className="py-2.5 pr-4 text-[12px] font-bold text-[#aaa]">
-                      {i + 1}
-                    </td>
-                    <td className="py-2.5 pr-4">
-                      <span className="text-[13px] font-bold text-navy line-clamp-1">
-                        {tc.title}
-                      </span>
-                    </td>
-                    <td className="py-2.5 pr-4 text-right">
-                      <span className="text-[13px] font-black text-navy">
-                        {tc.matchCount}
-                      </span>
-                    </td>
-                    <td className="py-2.5 text-right">
-                      <span
-                        className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                          tc.avgScore >= 70
-                            ? "text-[#10b981] bg-[#ecfdf5]"
-                            : tc.avgScore >= 40
-                            ? "text-[#f59e0b] bg-[#fffbeb]"
-                            : "text-[#888] bg-[#f5f5f5]"
-                        }`}
-                      >
-                        {tc.avgScore}%
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    {i + 1}
+                  </span>
+                  {/* Title + bar */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-bold text-[#091747] truncate mb-1">
+                      {tc.title}
+                    </p>
+                    <div className="w-full h-2 bg-[#f5f6f8] rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${Math.max(pct, 3)}%`,
+                          backgroundColor:
+                            i === 0
+                              ? "#f59e0b"
+                              : i === 1
+                                ? "#94a3b8"
+                                : i === 2
+                                  ? "#cd7f32"
+                                  : "#1fabe9",
+                        }}
+                      />
+                    </div>
+                  </div>
+                  {/* Count */}
+                  <span className="text-[14px] font-black text-[#091747] shrink-0 min-w-[40px] text-right">
+                    {tc.entryCount}
+                    <span className="text-[10px] text-[#666] font-bold ml-0.5">
+                      件
+                    </span>
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
       {/* ── Recent Activity Feed ── */}
-      <div className="bg-white rounded-2xl border border-border/60 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-        <h2 className="text-sm font-bold text-navy mb-1 flex items-center gap-2">
+      <div className="bg-white rounded-xl border border-[#e3e6eb] p-6">
+        <h2 className="text-sm font-bold text-[#091747] mb-1 flex items-center gap-2">
           <Icon name="history" className="text-[18px] text-[#E15454]" />
           最近のエントリー
         </h2>
-        <p className="text-[11px] text-[#888] mb-4">直近20件のエントリー</p>
+        <p className="text-[11px] text-[#666] mb-4">直近15件のエントリー</p>
 
         {recentEntries.length === 0 ? (
           <p className="text-[13px] text-[#888] text-center py-4">
@@ -638,7 +682,7 @@ export default function AdminAnalyticsPage() {
                   key={entry.id}
                   className={`flex items-center gap-3 py-3 ${
                     i < recentEntries.length - 1
-                      ? "border-b border-border/30"
+                      ? "border-b border-[#e3e6eb]/60"
                       : ""
                   }`}
                 >
@@ -648,7 +692,7 @@ export default function AdminAnalyticsPage() {
                     style={{ backgroundColor: s.color }}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] text-navy font-medium truncate">
+                    <p className="text-[13px] text-[#091747] font-medium truncate">
                       <span className="font-bold">{entry.userName}</span>
                       <span className="text-[#888] mx-1">→</span>
                       <span>{entry.caseTitle}</span>

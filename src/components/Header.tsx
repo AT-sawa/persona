@@ -40,6 +40,15 @@ export default function Header() {
           {isDashboard ? (
             <>
               <Link
+                href="/search"
+                className="flex items-center justify-center w-8 h-8 text-[#888] hover:text-blue transition-colors mr-0.5"
+                aria-label="検索"
+              >
+                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+              </Link>
+              <Link
                 href="/dashboard/cases"
                 className="bg-blue text-white px-[18px] py-2 font-bold text-[13px] transition-colors hover:bg-blue-dark"
               >
@@ -67,6 +76,15 @@ export default function Header() {
             </>
           ) : (
             <>
+              <Link
+                href="/search"
+                className="flex items-center justify-center w-8 h-8 text-[#888] hover:text-blue transition-colors mr-0.5"
+                aria-label="検索"
+              >
+                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+              </Link>
               <Link
                 href="/cases"
                 className="bg-blue text-white px-[18px] py-2 font-bold text-[13px] transition-colors hover:bg-blue-dark"
@@ -155,6 +173,16 @@ export default function Header() {
           {isDashboard ? (
             <>
               <Link
+                href="/search"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2 px-6 py-3.5 text-[14px] font-medium text-text border-b border-border/50 hover:bg-[#f7faff]"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                検索
+              </Link>
+              <Link
                 href="/dashboard/cases"
                 onClick={() => setOpen(false)}
                 className="block px-6 py-3.5 text-[14px] font-bold text-navy border-b border-border/50 hover:bg-[#f7faff]"
@@ -201,6 +229,16 @@ export default function Header() {
             </>
           ) : (
             <>
+              <Link
+                href="/search"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2 px-6 py-3.5 text-[14px] font-medium text-text border-b border-border/50 hover:bg-[#f7faff]"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                検索
+              </Link>
               <Link
                 href="/cases"
                 onClick={() => setOpen(false)}

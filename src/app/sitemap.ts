@@ -25,7 +25,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${BASE_URL}/blog`,
       lastModified: new Date(),
       changeFrequency: "weekly",
-      priority: 0.7,
+      priority: 0.8,
+    },
+    {
+      url: `${BASE_URL}/search`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.4,
     },
     {
       url: `${BASE_URL}/for-enterprise`,
@@ -139,7 +145,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${BASE_URL}/blog/${p.slug}`,
       lastModified: p.date ? new Date(p.date) : new Date(),
       changeFrequency: "monthly" as const,
-      priority: 0.6,
+      priority: 0.7,
+      ...(p.thumbnail
+        ? {
+            images: [`${BASE_URL}${p.thumbnail}`],
+          }
+        : {}),
     }));
   } catch {
     // No blog posts yet
