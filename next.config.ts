@@ -23,6 +23,51 @@ const nextConfig: NextConfig = {
     ],
     formats: ["image/avif", "image/webp"],
   },
+  async redirects() {
+    return [
+      // ── Legacy site URL redirects (preserve SEO equity) ──
+      // Old consultant-facing top
+      { source: "/free-consultant", destination: "/", permanent: true },
+      { source: "/free-consultant/", destination: "/", permanent: true },
+      // Old project detail pages → new case pages
+      {
+        source: "/free-consultant/projects/:id",
+        destination: "/cases/:id",
+        permanent: true,
+      },
+      {
+        source: "/project_detail/:id",
+        destination: "/cases/:id",
+        permanent: true,
+      },
+      // Old company page → for-enterprise
+      { source: "/company", destination: "/for-enterprise", permanent: true },
+      { source: "/company/", destination: "/for-enterprise", permanent: true },
+      // Old job search pages → cases
+      {
+        source: "/search-job/:path*",
+        destination: "/cases",
+        permanent: true,
+      },
+      // Old blog content pages
+      {
+        source: "/free-consultant/dx-success-cases",
+        destination: "/blog",
+        permanent: true,
+      },
+      {
+        source: "/free-consultant/dx-success-cases/",
+        destination: "/blog",
+        permanent: true,
+      },
+      // Old category/column paths
+      {
+        source: "/free-consultant/:slug",
+        destination: "/blog",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

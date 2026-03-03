@@ -7,13 +7,16 @@ import type { Metadata } from "next";
 import { BASE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "企業向けサービス | フリーコンサル人材のご紹介",
+  title: "企業向けフリーコンサル人材紹介｜戦略・DX・PMO即戦力マッチング",
   description:
-    "コンサルファーム出身のフリーランスコンサルタントを貴社プロジェクトにマッチング。戦略・DX推進・PMO・SAP導入支援など幅広い領域に対応。",
+    "McKinsey・BCG・Deloitte等ファーム出身のフリーコンサルタントを最短1週間でアサイン。戦略立案・DX推進・PMO・SAP導入支援など幅広い領域に対応。大手ファーム比1/2〜1/3のコストで即戦力人材をご紹介。",
   openGraph: {
-    title: "企業向けサービス | PERSONA",
+    title: "企業向けフリーコンサル人材紹介 | PERSONA",
     description:
-      "即戦力のフリーランスコンサルタントを最短1週間でアサイン。大手ファーム出身者のみを厳選してご紹介します。",
+      "即戦力のフリーコンサルタントを最短1週間でアサイン。登録1,200名以上、大手ファーム出身者を厳選してご紹介。",
+  },
+  alternates: {
+    canonical: `${BASE_URL}/for-enterprise`,
   },
 };
 

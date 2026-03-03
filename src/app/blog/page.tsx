@@ -9,9 +9,9 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 export const metadata: Metadata = {
-  title: "ブログ",
+  title: "フリーコンサルブログ｜キャリア・案件獲得・業界トレンド",
   description:
-    "フリーコンサルタントのキャリア、案件獲得のコツ、DXトレンドなど実務に役立つ情報を発信。PERSONA公式ブログ。",
+    "フリーコンサルタントのキャリア設計、高単価案件の獲得ノウハウ、DX・AI業界トレンドなど実務に役立つ情報を発信。ファーム出身者による現場視点のコラム。PERSONA公式ブログ。",
   alternates: {
     canonical: "/blog",
   },
