@@ -22,13 +22,24 @@ export const metadata: Metadata = {
     description:
       "業務プロセス分析×AI×ファーム出身コンサルの伴走で、AI導入効果を定量的にアセスメント。1部署125万円〜。",
     type: "website",
-    url: `${BASE_URL}/services/assessment/`,
+    url: `${BASE_URL}/services/assessment`,
+    locale: "ja_JP",
+    siteName: "PERSONA（ペルソナ）",
+    images: [
+      {
+        url: "/opengraph-image.png",
+        width: 1200,
+        height: 630,
+        alt: "PERSONA AI導入効果アセスメント",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "AI導入効果アセスメント | PERSONA",
     description:
       "業務プロセス分析×AI×ファーム出身コンサルの伴走で、導入効果を定量的にアセスメント",
+    images: ["/opengraph-image.png"],
   },
   alternates: {
     canonical: `${BASE_URL}/services/assessment`,
