@@ -2,8 +2,8 @@
  * メールテキストから案件情報をパースするユーティリティ
  *
  * 対応フォーマット:
- * - XIENZ / LASINVA 形式（**** 区切り）
- * - 【】括弧によるフィールド定義
+ * - Format A: XIENZ / LASINVA 形式（**** 区切り + 【】括弧）
+ * - Format B: コロニー等（[案件名][単価][必須スキル] 半角角括弧）
  */
 
 export interface ParsedCase {
@@ -40,38 +40,46 @@ export interface ParseResult {
 
 /**
  * メール本文から案件を抽出してパースする
+ * 自動的にフォーマットを検出して適切なパーサーを使用
  */
 export function parseEmailCases(emailBody: string): ParseResult {
+  // Format B 検出: [案件名] パターン
+  if (/\[案件名\]/i.test(emailBody)) {
+    return parseBracketFormat(emailBody);
+  }
+
+  // Format A: XIENZ/LASINVA 形式
+  return parseXienzFormat(emailBody);
+}
+
+// ═══════════════════════════════════════════════
+// Format A: XIENZ / LASINVA 形式
+// 区切り: ***** + 【】フィールド
+// ═══════════════════════════════════════════════
+
+function parseXienzFormat(emailBody: string): ParseResult {
   const errors: string[] = [];
 
   // ***** 区切りでセクションを分割
-  // 区切り線: 5個以上の * が連続
   const sections = emailBody.split(/\*{5,}/);
 
   const cases: ParsedCase[] = [];
   let rawSections = 0;
 
   // セクションは「ヘッダー」「ボディ」が交互に来る
-  // ヘッダー: 案件タイトル・担当営業・XIENZリンク
-  // ボディ: 【業種】【案件内容】...
   for (let i = 0; i < sections.length; i++) {
     const section = sections[i].trim();
     if (!section) continue;
 
-    // 案件タイトルを含むセクションを探す
     if (section.includes("案件タイトル")) {
       rawSections++;
       const headerSection = section;
-
-      // 次のセクションがボディ
       const bodySection = i + 1 < sections.length ? sections[i + 1].trim() : "";
-      i++; // ボディをスキップ
+      i++;
 
       try {
-        const parsed = parseSingleCase(headerSection, bodySection);
-        if (parsed) {
-          cases.push(parsed);
-        }
+        const parsed = parseXienzSingleCase(headerSection, bodySection);
+        if (parsed) cases.push(parsed);
       } catch (e) {
         const titleMatch = headerSection.match(/案件タイトル[：:](.+)/);
         const title = titleMatch ? titleMatch[1].trim() : `セクション ${rawSections}`;
@@ -80,39 +88,19 @@ export function parseEmailCases(emailBody: string): ParseResult {
     }
   }
 
-  // セクション分割がうまくいかない場合、行ベースで再試行
+  // 区切りが無い場合、行ベースで再試行
   if (cases.length === 0 && emailBody.includes("案件タイトル")) {
-    const lineBasedResult = parseLineBasedFormat(emailBody);
-    if (lineBasedResult.cases.length > 0) {
-      return lineBasedResult;
-    }
-  }
-
-  return { cases, errors, rawSections };
-}
-
-/**
- * 行ベースのパース（区切り線がない場合のフォールバック）
- */
-function parseLineBasedFormat(text: string): ParseResult {
-  const cases: ParsedCase[] = [];
-  const errors: string[] = [];
-
-  // 「案件タイトル」で分割
-  const parts = text.split(/(?=案件タイトル[：:])/);
-  let rawSections = 0;
-
-  for (const part of parts) {
-    if (!part.includes("案件タイトル")) continue;
-    rawSections++;
-
-    try {
-      const parsed = parseSingleCase(part, part);
-      if (parsed) {
-        cases.push(parsed);
+    const parts = emailBody.split(/(?=案件タイトル[：:])/);
+    let idx = 0;
+    for (const part of parts) {
+      if (!part.includes("案件タイトル")) continue;
+      rawSections = ++idx;
+      try {
+        const parsed = parseXienzSingleCase(part, part);
+        if (parsed) cases.push(parsed);
+      } catch (e) {
+        errors.push(`セクション ${idx} のパースに失敗: ${e instanceof Error ? e.message : String(e)}`);
       }
-    } catch (e) {
-      errors.push(`セクション ${rawSections} のパースに失敗: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
@@ -120,16 +108,13 @@ function parseLineBasedFormat(text: string): ParseResult {
 }
 
 /**
- * 1案件分のヘッダー+ボディをパース
+ * XIENZ形式の1案件パース
  */
-function parseSingleCase(header: string, body: string): ParsedCase | null {
-  // === ヘッダーパース ===
+function parseXienzSingleCase(header: string, body: string): ParsedCase | null {
   const titleMatch = header.match(/案件タイトル[：:](.+?)(?:\n|$)/);
   if (!titleMatch) return null;
 
   const rawTitle = titleMatch[1].trim();
-
-  // タイトルから案件番号を抽出（例: "1695_官公庁向け..." → case_no="1695", title="官公庁向け..."）
   let caseNo = "";
   let title = rawTitle;
   const noMatch = rawTitle.match(/^(\d+)[_＿](.+)$/);
@@ -138,57 +123,36 @@ function parseSingleCase(header: string, body: string): ParsedCase | null {
     title = noMatch[2].trim();
   }
 
-  // 担当営業
   const salesMatch = header.match(/担当営業[：:](.+?)(?:\n|$)/);
   const salesRep = salesMatch ? salesMatch[1].trim() : "";
 
-  // ソースURL（XIENZリンクなど）
   const urlMatch = header.match(/(?:XIENZ|リンク)[^：:]*[：:]?\s*(https?:\/\/[^\s]+)/i);
   const sourceUrl = urlMatch ? urlMatch[1].trim() : "";
 
-  // === ボディパース ===
   const combined = header + "\n" + body;
 
-  const industry = extractField(combined, "業種");
-  const commercialFlow = extractField(combined, "商流");
-  const caseContent = extractField(combined, "案件内容");
-  const roleTask = extractField(combined, "役割／タスク") || extractField(combined, "役割/タスク") || extractField(combined, "タスク");
+  const industry = extractKakko(combined, "業種");
+  const commercialFlow = extractKakko(combined, "商流");
+  const caseContent = extractKakko(combined, "案件内容");
+  const roleTask = extractKakko(combined, "役割／タスク") || extractKakko(combined, "役割/タスク") || extractKakko(combined, "タスク");
 
   // 人材要件: MUST / NTH を分離
-  const reqBlock = extractField(combined, "人材要件");
-  let mustReq = "";
-  let nthReq = "";
+  const reqBlock = extractKakko(combined, "人材要件");
+  const { must, nth } = splitMustNth(reqBlock);
 
-  if (reqBlock) {
-    const mustNthSplit = reqBlock.split(/[（(]\s*(?:NTH|NICE\s*TO\s*HAVE|尚可)\s*[）)]/i);
-    if (mustNthSplit.length >= 2) {
-      // MUST部分（（MUST）の文字を除去）
-      mustReq = mustNthSplit[0].replace(/[（(]\s*MUST\s*[）)]/gi, "").trim();
-      nthReq = mustNthSplit[1].trim();
-    } else {
-      // MUSTとNTHの分離がうまくいかない場合
-      const mustMatch = reqBlock.match(/[（(]\s*MUST\s*[）)]([\s\S]*?)(?=[（(]\s*(?:NTH|NICE)|$)/i);
-      const nthMatch = reqBlock.match(/[（(]\s*(?:NTH|NICE\s*TO\s*HAVE|尚可)\s*[）)]([\s\S]*?)$/i);
-      mustReq = mustMatch ? mustMatch[1].trim() : reqBlock.replace(/[（(]\s*MUST\s*[）)]/gi, "").trim();
-      nthReq = nthMatch ? nthMatch[1].trim() : "";
-    }
-  }
+  const startDate = extractKakko(combined, "期間");
+  const fee = extractKakko(combined, "月額報酬") || extractKakko(combined, "報酬") || extractKakko(combined, "単価");
+  const occupancy = extractKakko(combined, "稼働率") || extractKakko(combined, "稼働");
+  const settlement = extractKakko(combined, "精算幅");
+  const headcount = extractKakko(combined, "募集人数");
+  const location = extractKakko(combined, "勤務地");
+  const workStyle = extractKakko(combined, "勤務形態");
+  const contractType = extractKakko(combined, "契約形態");
+  const interviews = extractKakko(combined, "面談回数") || extractKakko(combined, "面談");
+  const other = extractKakko(combined, "その他");
 
-  const startDate = extractField(combined, "期間");
-  const fee = extractField(combined, "月額報酬") || extractField(combined, "報酬") || extractField(combined, "単価");
-  const occupancy = extractField(combined, "稼働率") || extractField(combined, "稼働");
-  const settlement = extractField(combined, "精算幅");
-  const headcount = extractField(combined, "募集人数");
-  const location = extractField(combined, "勤務地");
-  const workStyle = extractField(combined, "勤務形態");
-  const contractType = extractField(combined, "契約形態");
-  const interviews = extractField(combined, "面談回数") || extractField(combined, "面談");
-  const other = extractField(combined, "その他");
-
-  // カテゴリ推定
   const category = guessCategory(title, caseContent, roleTask);
 
-  // description: 案件内容 + 役割/タスク を結合
   let description = "";
   if (caseContent) description += caseContent;
   if (roleTask) {
@@ -196,13 +160,9 @@ function parseSingleCase(header: string, body: string): ParsedCase | null {
     description += roleTask;
   }
 
-  // flow: 面談回数 + 契約形態
   let flow = "";
   if (interviews) flow += `面談${interviews}`;
   if (contractType) flow += flow ? ` / ${contractType}` : contractType;
-
-  // office_days: 勤務形態
-  const officeDays = workStyle || "";
 
   return {
     case_no: caseNo,
@@ -211,13 +171,13 @@ function parseSingleCase(header: string, body: string): ParsedCase | null {
     industry: industry || "",
     background: "",
     description,
-    must_req: mustReq,
-    nice_to_have: nthReq,
+    must_req: must,
+    nice_to_have: nth,
     start_date: startDate || "",
     fee: fee || "",
     occupancy: occupancy || "",
     location: location || "",
-    office_days: officeDays,
+    office_days: workStyle || "",
     flow,
     source_url: sourceUrl,
     _raw_title: rawTitle,
@@ -230,11 +190,143 @@ function parseSingleCase(header: string, body: string): ParsedCase | null {
   };
 }
 
+// ═══════════════════════════════════════════════
+// Format B: 半角角括弧 [フィールド名]値 形式
+// コロニー等のパートナー
+// ═══════════════════════════════════════════════
+
+function parseBracketFormat(emailBody: string): ParseResult {
+  const errors: string[] = [];
+
+  // [案件名] で分割して複数案件に対応
+  const parts = emailBody.split(/(?=\[案件名\])/);
+  const cases: ParsedCase[] = [];
+  let rawSections = 0;
+
+  for (const part of parts) {
+    if (!part.includes("[案件名]")) continue;
+    rawSections++;
+
+    try {
+      const parsed = parseBracketSingleCase(part);
+      if (parsed) cases.push(parsed);
+    } catch (e) {
+      errors.push(`案件 ${rawSections} のパースに失敗: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  return { cases, errors, rawSections };
+}
+
+/**
+ * 半角角括弧形式の1案件パース
+ */
+function parseBracketSingleCase(text: string): ParsedCase | null {
+  const title = extractBracket(text, "案件名");
+  if (!title) return null;
+
+  const rawTitle = title;
+
+  // タイトルから案件番号抽出
+  let caseNo = "";
+  let cleanTitle = title;
+  const noMatch = title.match(/^(\d+)[_＿](.+)$/);
+  if (noMatch) {
+    caseNo = noMatch[1];
+    cleanTitle = noMatch[2].trim();
+  }
+
+  const commercialFlow = extractBracket(text, "商流");
+  const industry = extractBracket(text, "業種");
+
+  // 単価: 数値のみの場合は「万円/月」を付加
+  let fee = extractBracket(text, "単価.*?") || extractBracket(text, "単価") || "";
+  if (fee && /^\d+$/.test(fee.trim())) {
+    fee = `${fee.trim()}万円/月`;
+  }
+
+  // 場所
+  const location = extractBracket(text, "作業場所") || extractBracket(text, "勤務地") || "";
+
+  // 期間: 契約開始日〜契約終了日 を結合
+  const startDateRaw = extractBracket(text, "契約開始日") || "";
+  const endDateRaw = extractBracket(text, "契約終了日") || "";
+  let startDate = startDateRaw;
+  if (startDateRaw && endDateRaw) {
+    startDate = `${startDateRaw}～${endDateRaw}`;
+  }
+
+  const extendable = extractBracket(text, "継続可能性") || "";
+  const occupancy = extractBracket(text, "稼働率.*?") || extractBracket(text, "稼働率") || "";
+  const headcount = extractBracket(text, "募集人数") || "";
+  const interviews = extractBracket(text, "面談回数") || "";
+
+  // 作業内容 → description
+  const description = extractBracket(text, "作業内容") || "";
+
+  // 必須/尚可スキル
+  const mustReq = extractBracket(text, "必須スキル") || "";
+  const nthReq = extractBracket(text, "尚可スキル") || "";
+
+  const other = extractBracket(text, "補足事項") || "";
+  const salesRep = extractBracket(text, "案件担当者") || "";
+  const caseStatus = extractBracket(text, "案件状況") || "";
+
+  // カテゴリ推定
+  const category = guessCategory(cleanTitle, description, "");
+
+  // flow
+  let flow = "";
+  if (interviews) flow += `面談${interviews}回`;
+  if (caseStatus) flow += flow ? ` / ${caseStatus}` : caseStatus;
+
+  // extendable を開始日に付加
+  if (extendable && extendable !== "-" && extendable !== "なし") {
+    if (startDate) {
+      startDate += `（継続${extendable}）`;
+    }
+  }
+
+  // 占有率: %を付加
+  let occupancyStr = occupancy;
+  if (occupancyStr && /^\d+$/.test(occupancyStr.trim())) {
+    occupancyStr = `${occupancyStr.trim()}%`;
+  }
+
+  return {
+    case_no: caseNo,
+    title: cleanTitle,
+    category,
+    industry: industry || "",
+    background: "",
+    description,
+    must_req: mustReq,
+    nice_to_have: nthReq,
+    start_date: startDate || "",
+    fee,
+    occupancy: occupancyStr,
+    location,
+    office_days: "",
+    flow,
+    source_url: "",
+    _raw_title: rawTitle,
+    _commercial_flow: commercialFlow || "",
+    _headcount: headcount || "",
+    _contract_type: "",
+    _settlement: "",
+    _other: other || "",
+    _sales_rep: salesRep,
+  };
+}
+
+// ═══════════════════════════════════════════════
+// 共通ユーティリティ
+// ═══════════════════════════════════════════════
+
 /**
  * 【フィールド名】の後に続くテキストを抽出
  */
-function extractField(text: string, fieldName: string): string {
-  // 【フィールド名】値 のパターン
+function extractKakko(text: string, fieldName: string): string {
   const pattern = new RegExp(
     `【${escapeRegex(fieldName)}】\\s*([\\s\\S]*?)(?=【[^】]+】|$)`,
     "i"
@@ -243,15 +335,51 @@ function extractField(text: string, fieldName: string): string {
   if (!match) return "";
 
   let value = match[1].trim();
-
-  // 次の*****区切り以降を除去
   const starIdx = value.indexOf("*****");
   if (starIdx >= 0) value = value.substring(0, starIdx).trim();
+  value = value.replace(/\n\s*$/, "").trim();
+  return value;
+}
 
+/**
+ * [フィールド名]の後に続くテキストを抽出（半角角括弧）
+ * 次の [フィールド] が現れるまで、または末尾まで
+ */
+function extractBracket(text: string, fieldName: string): string {
+  // [フィールド名]値 or [フィールド名]\n値 の両方に対応
+  const pattern = new RegExp(
+    `\\[${escapeRegex(fieldName)}\\]\\s*([\\s\\S]*?)(?=\\n\\[|$)`,
+    "i"
+  );
+  const match = text.match(pattern);
+  if (!match) return "";
+
+  let value = match[1].trim();
   // 末尾の空行を除去
   value = value.replace(/\n\s*$/, "").trim();
-
   return value;
+}
+
+/**
+ * 人材要件からMUSTとNTHを分離
+ */
+function splitMustNth(reqBlock: string): { must: string; nth: string } {
+  if (!reqBlock) return { must: "", nth: "" };
+
+  const mustNthSplit = reqBlock.split(/[（(]\s*(?:NTH|NICE\s*TO\s*HAVE|尚可)\s*[）)]/i);
+  if (mustNthSplit.length >= 2) {
+    return {
+      must: mustNthSplit[0].replace(/[（(]\s*MUST\s*[）)]/gi, "").trim(),
+      nth: mustNthSplit[1].trim(),
+    };
+  }
+
+  const mustMatch = reqBlock.match(/[（(]\s*MUST\s*[）)]([\s\S]*?)(?=[（(]\s*(?:NTH|NICE)|$)/i);
+  const nthMatch = reqBlock.match(/[（(]\s*(?:NTH|NICE\s*TO\s*HAVE|尚可)\s*[）)]([\s\S]*?)$/i);
+  return {
+    must: mustMatch ? mustMatch[1].trim() : reqBlock.replace(/[（(]\s*MUST\s*[）)]/gi, "").trim(),
+    nth: nthMatch ? nthMatch[1].trim() : "",
+  };
 }
 
 /**
@@ -265,6 +393,7 @@ function guessCategory(title: string, content: string, roleTask: string): string
     "クラウド", "saas", "api", "react", "typescript", "python",
     "terraform", "devops", "cicd", "ci/cd", "マイクロサービス",
     "セキュリティ", "ネットワーク", "db", "データベース",
+    "kafka", "cdc", "アーキテクチャ",
   ];
   const nonItKeywords = [
     "戦略", "経営", "m&a", "pmi", "組織", "人事", "マーケティング",
@@ -274,7 +403,6 @@ function guessCategory(title: string, content: string, roleTask: string): string
   const itScore = itKeywords.filter(k => combined.includes(k)).length;
   const nonItScore = nonItKeywords.filter(k => combined.includes(k)).length;
 
-  // PMO/DXは両方に該当しうる
   if (combined.includes("pmo") || combined.includes("dx")) {
     return itScore > nonItScore ? "IT" : "非IT";
   }
