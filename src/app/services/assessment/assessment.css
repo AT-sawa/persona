@@ -358,20 +358,123 @@
 .assessment-lp .cf-success p{font-size:14px;color:var(--sub);line-height:1.7}
 
 @media(max-width:768px){
-  .assessment-lp nav{padding:0 20px}
-  .assessment-lp .hero-inner{padding:0 24px}
-  .assessment-lp .hero-big{font-size:28px}
+  /* ── NAV ── */
+  .assessment-lp nav{padding:0 16px;height:50px}
+  .assessment-lp nav .cta{padding:6px 16px;font-size:11px}
+
+  /* ── HERO ── */
+  .assessment-lp .hero{min-height:auto;padding:72px 0 36px}
+  .assessment-lp .hero-inner{padding:0 20px}
+  .assessment-lp .hero-big{font-size:24px;letter-spacing:-0.5px;margin-bottom:28px}
   .assessment-lp .impact-top{grid-template-columns:1fr}
-  .assessment-lp .impact-arrow{height:40px;border:none;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-  .assessment-lp .hero-sub{flex-direction:column;gap:24px;align-items:flex-start}
+  .assessment-lp .impact-arrow{height:36px;border:none;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .assessment-lp .impact-before,.assessment-lp .impact-after{padding:24px 20px}
+  .assessment-lp .impact-task{font-size:16px}
+  .assessment-lp .impact-bottom{flex-direction:column;gap:10px;padding:16px 20px;text-align:center}
+  .assessment-lp .hero-sub{flex-direction:column;gap:20px;align-items:stretch}
+  .assessment-lp .hero-btns{display:flex;flex-direction:column;width:100%;gap:10px}
+  .assessment-lp .hero-btns .btn-p,.assessment-lp .hero-btns .btn-s{width:100%;text-align:center;justify-content:center;padding:14px 20px}
+
+  /* ── STAT STRIP ── */
   .assessment-lp .stat-strip-inner{grid-template-columns:repeat(2,1fr)}
-  .assessment-lp section{padding:64px 0}
-  .assessment-lp .wrap{padding:0 24px}
-  .assessment-lp .what-grid,.assessment-lp .ba-row{grid-template-columns:1fr}
-  .assessment-lp .pain-row,.assessment-lp .del-grid,.assessment-lp .n8n-grid,.assessment-lp .pr-grid{grid-template-columns:1fr}
-  .assessment-lp .roi-r{gap:24px}
-  .assessment-lp .cta-sec{padding:64px 24px}
-  .assessment-lp .cta-sec h2{font-size:22px}
-  .assessment-lp .cf-card{padding:28px 20px}
+  .assessment-lp .stat-item{padding:20px 12px}
+  .assessment-lp .stat-item .sv{font-size:22px}
+
+  /* ── SECTIONS COMMON ── */
+  .assessment-lp section{padding:56px 0}
+  .assessment-lp .wrap{padding:0 20px}
+  .assessment-lp .heading{font-size:22px;margin-bottom:10px}
+  .assessment-lp .subtext{font-size:13px;margin-bottom:32px}
+
+  /* ── PAIN ── */
+  .assessment-lp .pain-row{grid-template-columns:1fr}
+  .assessment-lp .pc{padding:32px 24px}
+  .assessment-lp .pc h3{font-size:16px}
+
+  /* ── WHAT WE DO ── */
+  .assessment-lp .what-grid{grid-template-columns:1fr}
+  .assessment-lp .what-img img{height:220px}
+
+  /* ── DELIVERABLES ── */
+  .assessment-lp .del-grid{grid-template-columns:1fr}
+
+  /* ── BA EXAMPLES ── */
+  .assessment-lp .ba-row{grid-template-columns:1fr}
+  .assessment-lp .ba-head{flex-direction:column;gap:4px}
+  .assessment-lp .ba-head h3{font-size:17px}
+
+  /* ── CONSULTANT SUPPORT (override inline 2-col grid) ── */
+  .assessment-lp div[style*="grid-template-columns:1fr 1fr"]{
+    grid-template-columns:1fr !important;
+    gap:28px !important;
+  }
+  .assessment-lp div[style*="padding:48px 40px"]{
+    padding:28px 20px !important;
+  }
+
+  /* ── AUTOMATION (n8n section) ── */
+  .assessment-lp .n8n-grid{grid-template-columns:1fr}
+  .assessment-lp .n8n-box{padding:24px 20px}
+  .assessment-lp .n8n-box h3{font-size:16px}
+
+  /* ── PRICING ── */
+  .assessment-lp .pr-grid{grid-template-columns:1fr}
+  .assessment-lp .pr-card.ft{margin-top:8px}
+  .assessment-lp .pr-pr{font-size:36px}
+
+  /* ── ROI ── */
+  .assessment-lp .roi{padding:32px 20px;margin-top:40px;border-radius:12px}
+  .assessment-lp .roi-r{flex-direction:column;gap:8px}
+  .assessment-lp .roi-r .ri{display:flex;align-items:baseline;gap:8px}
+  .assessment-lp .roi-r .ri .v{font-size:28px}
+  .assessment-lp .roi-r .ri .l{font-size:11px;margin-top:0}
+  .assessment-lp .roi-r .dv{font-size:18px;color:rgba(255,255,255,0.2)}
+
+  /* ── COMPARISON TABLE → Mobile Card Layout ── */
+  .assessment-lp .cmp{display:block;border:none;border-radius:0}
+  .assessment-lp .cmp thead{display:none}
+  .assessment-lp .cmp tbody{display:flex;flex-direction:column;gap:14px}
+  .assessment-lp .cmp tbody tr{
+    display:block;border:1px solid var(--line);
+    border-radius:12px;overflow:hidden;background:var(--paper);
+  }
+  .assessment-lp .cmp td{
+    display:block;width:auto !important;
+    border-bottom:1px solid var(--line);
+    padding:12px 16px;font-size:13px;line-height:1.6;
+  }
+  .assessment-lp .cmp td:first-child{
+    font-size:12px;font-weight:700;letter-spacing:0.5px;
+    background:var(--ink);color:var(--paper);padding:10px 16px;
+  }
+  .assessment-lp .cmp td:nth-child(2)::before{
+    content:'\5927\624B\30B3\30F3\30B5\30EB\30D5\30A1\30FC\30E0';
+    display:block;font-size:10px;font-weight:700;
+    color:var(--faint);letter-spacing:0.5px;margin-bottom:4px;
+  }
+  .assessment-lp .cmp td:nth-child(3)::before{
+    content:'AI\30C4\30FC\30EB\30D9\30F3\30C0\30FC';
+    display:block;font-size:10px;font-weight:700;
+    color:var(--faint);letter-spacing:0.5px;margin-bottom:4px;
+  }
+  .assessment-lp .cmp td:last-child{
+    background:var(--pop-soft);border-bottom:none;
+  }
+  .assessment-lp .cmp td:last-child::before{
+    content:'PERSONA';display:block;
+    font-size:10px;font-weight:700;
+    color:var(--pop);letter-spacing:0.5px;margin-bottom:4px;
+  }
+
+  /* ── CTA / CONTACT ── */
+  .assessment-lp .cta-sec{padding:56px 20px}
+  .assessment-lp .cta-sec h2{font-size:20px}
+  .assessment-lp .cf-card{padding:24px 18px}
   .assessment-lp .cf-grid{grid-template-columns:1fr;gap:14px}
+
+  /* ── FAQ ── */
+  .assessment-lp .faq-q{font-size:14px;padding:18px 0}
+
+  /* ── FOOTER ── */
+  .assessment-lp footer{padding:28px 20px}
 }
