@@ -3,6 +3,7 @@ import { Noto_Sans_JP, Noto_Serif_JP } from "next/font/google";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import FloatingCTA from "@/components/FloatingCTA";
 import PageTransition from "@/components/PageTransition";
+import { BASE_URL } from "@/lib/constants";
 import "./globals.css";
 
 const notoSansJP = Noto_Sans_JP({
@@ -20,7 +21,7 @@ const notoSerifJP = Noto_Serif_JP({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://persona-consultant.com"),
+  metadataBase: new URL(BASE_URL),
   title: {
     default: "フリーコンサル案件紹介サービスPERSONA（ペルソナ）",
     template: "%s | PERSONA（ペルソナ）",
@@ -98,8 +99,8 @@ export default function RootLayout({
               "@type": "Organization",
               name: "PERSONA（ペルソナ）",
               alternateName: ["PERSONA", "ペルソナ"],
-              url: "https://persona-consultant.com",
-              logo: "https://persona-consultant.com/images/persona_logo_hero.png",
+              url: BASE_URL,
+              logo: `${BASE_URL}/images/persona_logo_hero.png`,
               description:
                 "コンサルティングファーム出身者のためのフリーコンサル案件紹介プラットフォーム。提携エージェント30社以上、案件常時100件以上。McKinsey・BCG・Deloitte・PwC・Accenture等の出身者1,200名以上が登録。",
               foundingDate: "2026",
@@ -124,7 +125,7 @@ export default function RootLayout({
                 "@type": "ContactPoint",
                 contactType: "customer service",
                 availableLanguage: "Japanese",
-                url: "https://persona-consultant.com/for-enterprise#contact",
+                url: `${BASE_URL}/for-enterprise#contact`,
               },
             }),
           }}
@@ -142,7 +143,7 @@ export default function RootLayout({
               provider: {
                 "@type": "Organization",
                 name: "PERSONA（ペルソナ）",
-                url: "https://persona-consultant.com",
+                url: BASE_URL,
               },
               serviceType: "人材マッチング",
               areaServed: { "@type": "Country", name: "JP" },

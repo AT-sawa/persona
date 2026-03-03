@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./assessment.css";
 import AssessmentLP from "./AssessmentLP";
+import { BASE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "AI導入効果アセスメント | PERSONA",
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
     description:
       "業務プロセス分析×AI×ファーム出身コンサルの伴走で、導入効果を定量的にアセスメント",
     type: "website",
-    url: "https://persona-consultant.com/services/assessment/",
+    url: `${BASE_URL}/services/assessment/`,
   },
   twitter: {
     card: "summary_large_image",

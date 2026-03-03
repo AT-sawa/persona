@@ -1,6 +1,5 @@
 import { getAllPosts } from "@/lib/blog";
-
-const BASE_URL = "https://persona-consultant.com";
+import { BASE_URL } from "@/lib/constants";
 
 export async function GET() {
   const posts = getAllPosts();

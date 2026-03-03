@@ -10,6 +10,7 @@ import {
   CASE_CATEGORY_SLUGS,
   getCategoryBySlug,
 } from "@/lib/case-categories";
+import { BASE_URL } from "@/lib/constants";
 
 export const revalidate = 600;
 
@@ -89,7 +90,7 @@ export default async function CategoryArchivePage({ params }: Props) {
     itemListElement: cases.slice(0, 30).map((c, i) => ({
       "@type": "ListItem",
       position: i + 1,
-      url: `https://persona-consultant.com/cases/${c.id}`,
+      url: `${BASE_URL}/cases/${c.id}`,
       name: c.title,
     })),
   };
@@ -103,19 +104,19 @@ export default async function CategoryArchivePage({ params }: Props) {
         "@type": "ListItem",
         position: 1,
         name: "ホーム",
-        item: "https://persona-consultant.com",
+        item: BASE_URL,
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "案件一覧",
-        item: "https://persona-consultant.com/cases",
+        item: `${BASE_URL}/cases`,
       },
       {
         "@type": "ListItem",
         position: 3,
         name: `${cat.name}案件`,
-        item: `https://persona-consultant.com/cases/category/${slug}`,
+        item: `${BASE_URL}/cases/category/${slug}`,
       },
     ],
   };

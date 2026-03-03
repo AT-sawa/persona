@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { BASE_URL } from "@/lib/constants";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -80,25 +81,25 @@ export default async function BlogPostPage({ params }: Props) {
     datePublished: post.date,
     dateModified: post.date,
     ...(post.thumbnail
-      ? { image: `https://persona-consultant.com${post.thumbnail}` }
+      ? { image: `${BASE_URL}${post.thumbnail}` }
       : {}),
     author: {
       "@type": "Organization",
       name: "PERSONA（ペルソナ）",
-      url: "https://persona-consultant.com",
+      url: BASE_URL,
     },
     publisher: {
       "@type": "Organization",
       name: "PERSONA（ペルソナ）",
-      url: "https://persona-consultant.com",
+      url: BASE_URL,
       logo: {
         "@type": "ImageObject",
-        url: "https://persona-consultant.com/images/persona_logo_hero.png",
+        url: `${BASE_URL}/images/persona_logo_hero.png`,
       },
     },
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": `https://persona-consultant.com/blog/${slug}`,
+      "@id": `${BASE_URL}/blog/${slug}`,
     },
     keywords:
       post.keywords?.join(", ") || post.category || "フリーコンサル",
@@ -113,19 +114,19 @@ export default async function BlogPostPage({ params }: Props) {
         "@type": "ListItem",
         position: 1,
         name: "ホーム",
-        item: "https://persona-consultant.com",
+        item: BASE_URL,
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "ブログ",
-        item: "https://persona-consultant.com/blog",
+        item: `${BASE_URL}/blog`,
       },
       {
         "@type": "ListItem",
         position: 3,
         name: post.title,
-        item: `https://persona-consultant.com/blog/${slug}`,
+        item: `${BASE_URL}/blog/${slug}`,
       },
     ],
   };

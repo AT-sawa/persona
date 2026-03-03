@@ -5,6 +5,7 @@ import CaseFilters from "@/components/CaseFilters";
 import type { Case } from "@/lib/types";
 import Link from "next/link";
 import { CASE_CATEGORIES } from "@/lib/case-categories";
+import { BASE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "フリーコンサル案件一覧｜募集中・過去案件アーカイブ",
@@ -56,7 +57,7 @@ export default async function CasesPage() {
     itemListElement: cases.slice(0, 30).map((c, i) => ({
       "@type": "ListItem",
       position: i + 1,
-      url: `https://persona-consultant.com/cases/${c.id}`,
+      url: `${BASE_URL}/cases/${c.id}`,
       name: c.title,
     })),
   };

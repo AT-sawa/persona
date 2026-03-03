@@ -4,8 +4,7 @@ import Footer from "@/components/Footer";
 import Link from "next/link";
 import Image from "next/image";
 import { EXPERTISE_AREAS } from "@/lib/expertise-data";
-
-const BASE_URL = "https://persona-consultant.com";
+import { BASE_URL } from "@/lib/constants";
 
 export const revalidate = 3600;
 

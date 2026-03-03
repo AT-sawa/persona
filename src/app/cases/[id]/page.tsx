@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import EntryForm from "@/components/EntryForm";
 import type { Case } from "@/lib/types";
+import { BASE_URL } from "@/lib/constants";
 
 // Revalidate every 10 minutes
 export const revalidate = 600;
@@ -81,7 +82,7 @@ export default async function CaseDetailPage({ params }: Props) {
     hiringOrganization: {
       "@type": "Organization",
       name: "PERSONA（ペルソナ）",
-      sameAs: "https://persona-consultant.com",
+      sameAs: BASE_URL,
     },
     jobLocation: caseData.location
       ? {
@@ -128,19 +129,19 @@ export default async function CaseDetailPage({ params }: Props) {
         "@type": "ListItem",
         position: 1,
         name: "ホーム",
-        item: "https://persona-consultant.com",
+        item: BASE_URL,
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "案件一覧",
-        item: "https://persona-consultant.com/cases",
+        item: `${BASE_URL}/cases`,
       },
       {
         "@type": "ListItem",
         position: 3,
         name: caseData.title,
-        item: `https://persona-consultant.com/cases/${id}`,
+        item: `${BASE_URL}/cases/${id}`,
       },
     ],
   };

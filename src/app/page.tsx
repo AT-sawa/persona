@@ -1,5 +1,6 @@
 export const revalidate = 3600; // ISR: revalidate home page every hour
 
+import { BASE_URL, APP_URL } from "@/lib/constants";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import Ticker from "@/components/Ticker";
@@ -45,13 +46,13 @@ export default async function Home() {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: "PERSONA（ペルソナ）",
-    url: "https://persona-consultant.com",
+    url: BASE_URL,
     description:
       "コンサルティングファーム出身者のためのフリーコンサル案件紹介プラットフォーム。",
     publisher: {
       "@type": "Organization",
       name: "PERSONA（ペルソナ）",
-      url: "https://persona-consultant.com",
+      url: BASE_URL,
     },
   };
 
@@ -69,28 +70,28 @@ export default async function Home() {
         position: 1,
         name: "無料会員登録",
         text: "氏名・メールアドレス・パスワードを入力して会員登録を行います。登録は完全無料で、約1分で完了します。",
-        url: "https://app.persona-consultant.com/auth/register",
+        url: `${APP_URL}/auth/register`,
       },
       {
         "@type": "HowToStep",
         position: 2,
         name: "プロフィール・スキル設定",
         text: "コンサルティング経験・専門スキル・希望条件（報酬・稼働率・リモート可否）を登録します。職務経歴書（レジュメ）をアップロードすると、スキルが自動で読み取られます。",
-        url: "https://app.persona-consultant.com/onboarding",
+        url: `${APP_URL}/onboarding`,
       },
       {
         "@type": "HowToStep",
         position: 3,
         name: "AIマッチングで案件を探す",
         text: "AIがスキル・経験・希望条件をもとに最適な案件を自動マッチング。マッチ度が高い案件はメールでもお知らせします。戦略・DX・PMO・SAP等、月額100〜250万円の案件を常時100件以上掲載。",
-        url: "https://app.persona-consultant.com/dashboard/matching",
+        url: `${APP_URL}/dashboard/matching`,
       },
       {
         "@type": "HowToStep",
         position: 4,
         name: "案件にエントリー",
         text: "気になる案件にワンクリックでエントリー。コーディネーターが面談調整を行い、最短1週間での案件参画が可能です。",
-        url: "https://persona-consultant.com/cases",
+        url: `${BASE_URL}/cases`,
       },
     ],
   };

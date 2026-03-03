@@ -3,8 +3,7 @@ import { EXPERTISE_SLUGS } from "@/lib/expertise-data";
 import { INDUSTRY_SLUGS } from "@/lib/industry-data";
 import { CASE_STUDY_SLUGS } from "@/lib/case-studies-data";
 import { CASE_CATEGORY_SLUGS } from "@/lib/case-categories";
-
-const BASE_URL = "https://persona-consultant.com";
+import { BASE_URL } from "@/lib/constants";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Static pages
@@ -38,6 +37,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.6,
+    },
+    {
+      url: `${BASE_URL}/services/assessment`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.8,
     },
     {
       url: `${BASE_URL}/privacy`,

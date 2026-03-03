@@ -5,8 +5,7 @@ import Footer from "@/components/Footer";
 import Link from "next/link";
 import { EXPERTISE_AREAS, EXPERTISE_SLUGS } from "@/lib/expertise-data";
 import type { Case } from "@/lib/types";
-
-const BASE_URL = "https://persona-consultant.com";
+import { BASE_URL } from "@/lib/constants";
 
 export const revalidate = 3600;
 

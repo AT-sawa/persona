@@ -13,6 +13,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { calculateScore } from "@/lib/matching/calculateScore";
 import { Resend } from "resend";
 import type { Case, Profile, UserPreferences, UserExperience } from "@/lib/types";
+import { BASE_URL } from "@/lib/constants";
 
 export interface MatchingRunResult {
   processed: number;
@@ -198,14 +199,14 @@ export async function runMatching(
                   caseLines,
                   "",
                   "詳細はダッシュボードからご確認ください。",
-                  "https://persona-consultant.com/dashboard/matching",
+                  `${BASE_URL}/dashboard/matching`,
                   "",
                   "---",
                   "PERSONA - フリーコンサル案件紹介サービス",
                   "",
                   "このメールの配信を停止するには、ダッシュボードの",
                   "「設定」から通知設定を変更してください。",
-                  "https://persona-consultant.com/dashboard/preferences",
+                  `${BASE_URL}/dashboard/preferences`,
                 ].join("\n"),
               });
               result.emailsSent++;

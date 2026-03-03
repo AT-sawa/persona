@@ -4,8 +4,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
 import { CASE_STUDIES, CASE_STUDY_SLUGS } from "@/lib/case-studies-data";
-
-const BASE_URL = "https://persona-consultant.com";
+import { BASE_URL } from "@/lib/constants";
 
 export const revalidate = 3600;
 

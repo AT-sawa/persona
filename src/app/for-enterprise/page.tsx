@@ -4,6 +4,7 @@ import ContactForm from "@/components/ContactForm";
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
+import { BASE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "企業向けサービス | フリーコンサル人材のご紹介",
@@ -547,7 +548,7 @@ export default function ForEnterprisePage() {
             provider: {
               "@type": "Organization",
               name: "PERSONA（ペルソナ）",
-              url: "https://persona-consultant.com",
+              url: BASE_URL,
             },
             description:
               "コンサルファーム出身のフリーランスコンサルタントを企業プロジェクトにマッチング。戦略・DX推進・PMO・SAP導入支援に対応。",
