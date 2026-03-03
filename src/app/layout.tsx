@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "ja_JP",
     siteName: "PERSONA（ペルソナ）",
-    images: [{ url: "/opengraph-image.png", width: 1200, height: 630, alt: "PERSONA フリーコンサル案件紹介サービス" }],
+    // images は opengraph-image.tsx ファイルコンベンションで自動生成
   },
   twitter: {
     card: "summary_large_image",

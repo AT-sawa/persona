@@ -25,21 +25,14 @@ export const metadata: Metadata = {
     url: `${BASE_URL}/services/assessment`,
     locale: "ja_JP",
     siteName: "PERSONA（ペルソナ）",
-    images: [
-      {
-        url: "/opengraph-image.png",
-        width: 1200,
-        height: 630,
-        alt: "PERSONA AI導入効果アセスメント",
-      },
-    ],
+    // images は opengraph-image.tsx ファイルコンベンションで自動生成
   },
   twitter: {
     card: "summary_large_image",
     title: "AI導入効果アセスメント | PERSONA",
     description:
       "業務プロセス分析×AI×ファーム出身コンサルの伴走で、導入効果を定量的にアセスメント",
-    images: ["/opengraph-image.png"],
+    // images は opengraph-image.tsx ファイルコンベンションで自動生成
   },
   alternates: {
     canonical: `${BASE_URL}/services/assessment`,
