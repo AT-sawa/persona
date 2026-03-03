@@ -200,6 +200,13 @@ export default function AdminPage() {
             <span className="text-[13px] font-bold text-navy">CSV一括インポート</span>
           </Link>
           <Link
+            href="/dashboard/admin/cases/email"
+            className="p-4 border border-border text-center hover:bg-[#fafafa] transition-colors"
+          >
+            <span className="text-2xl block mb-1"><Icon name="mail" className="text-[24px]" /></span>
+            <span className="text-[13px] font-bold text-navy">メールから登録</span>
+          </Link>
+          <Link
             href="/dashboard/admin/entries"
             className="p-4 border border-border text-center hover:bg-[#fafafa] transition-colors"
           >
