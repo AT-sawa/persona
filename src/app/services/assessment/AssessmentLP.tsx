@@ -34,11 +34,11 @@ const htmlMain = `
         <div class="impact-arrow">→</div>
         <div class="impact-after">
           <div class="impact-label mono">AFTER</div>
-          <div class="impact-dept">AI-OCR + n8n 自動連携</div>
+          <div class="impact-dept">AI-OCR + ノーコード自動連携</div>
           <div class="impact-task">AIが読取→仕訳生成→会計ソフト連携</div>
-          <div class="impact-desc">sweeepでPDF自動読取→仕訳候補を生成→n8nでfreeeに自動登録。担当者は確認ボタンを押すだけ。</div>
+          <div class="impact-desc">sweeepでPDF自動読取→仕訳候補を生成→自動連携でfreeeに登録。担当者は確認ボタンを押すだけ。</div>
           <div class="impact-time inter">月10時間<span class="saved">（-80%）</span></div>
-          <div class="impact-tools">推奨: <strong>sweeep</strong> + <strong>n8n</strong> + <strong>freee</strong></div>
+          <div class="impact-tools">推奨: <strong>sweeep</strong> + <strong>自動化ツール</strong> + <strong>freee</strong></div>
         </div>
       </div>
       <div class="impact-bottom">
@@ -95,7 +95,7 @@ const htmlMain = `
         <ol class="step-list">
           <li><div class="sn inter">1</div><div><strong>経営層・現場にヒアリング</strong><br>社員一人ひとりに30-45分。「毎日何にどれだけ時間を使っているか」を把握します</div></li>
           <li><div class="sn inter">2</div><div><strong>業務を棚卸して、AI適用可能性を評価</strong><br>定型率・作業時間・繰り返し頻度から、削減ポテンシャルの大きい順にランキング</div></li>
-          <li><div class="sn inter">3</div><div><strong>ツール候補と想定削減効果をレポート</strong><br>各業務に対する推奨ツール・n8n自動化案を選定し、Before/After + 想定ROIを試算</div></li>
+          <li><div class="sn inter">3</div><div><strong>ツール候補と想定削減効果をレポート</strong><br>各業務に対する推奨ツール・自動化フロー案を選定し、Before/After + 想定ROIを試算</div></li>
           <li><div class="sn inter">4</div><div><strong>ロードマップと実装要件を納品</strong><br>「どの順に」「どんな体制で」進めるべきかを含めた診断レポートを経営層にプレゼン</div></li>
         </ol>
       </div>
@@ -114,7 +114,7 @@ const htmlMain = `
     <div class="del-grid">
       <div class="del-card"><div class="del-vis"><div class="dm-m"><div class="mt">業務棚卸シート</div><div class="mr"><div class="mc hd">部署</div><div class="mc hd">業務名</div><div class="mc hd">時間</div><div class="mc hd">定型率</div></div><div class="mr"><div class="mc">営業</div><div class="mc">提案書作成</div><div class="mc">24h</div><div class="mc">70%</div></div><div class="mr"><div class="mc">経理</div><div class="mc">請求書処理</div><div class="mc">50h</div><div class="mc">85%</div></div><div class="mr"><div class="mc">人事</div><div class="mc">書類選考</div><div class="mc">33h</div><div class="mc">75%</div></div></div></div><div class="del-bd"><h4>業務棚卸シート</h4><p>全対象者の業務一覧。所要時間・定型率・使用システムを一覧化</p></div></div>
       <div class="del-card"><div class="del-vis"><div class="dm-m"><div class="mt">業務フロー図（B/A）</div><div style="font-size:7px;color:var(--faint);margin:4px 0 2px">Before:</div><div class="mf"><div class="mn">受領</div><div class="ma">→</div><div class="mn">目視確認</div><div class="ma">→</div><div class="mn">手入力</div><div class="ma">→</div><div class="mn">承認</div></div><div style="font-size:7px;color:var(--faint);margin:6px 0 2px">After:</div><div class="mf"><div class="mn">受領</div><div class="ma">→</div><div class="mn hl">AI読取</div><div class="ma">→</div><div class="mn">確認</div><div class="ma">→</div><div class="mn">承認</div></div></div></div><div class="del-bd"><h4>業務フロー図</h4><p>現状→AI後のフローを図示。どの工程が変わるかを明示</p></div></div>
-      <div class="del-card"><div class="del-vis"><div class="dm-m"><div class="mt">施策一覧 + 効果試算</div><div class="mr"><div class="mc hd">施策</div><div class="mc hd">ツール</div><div class="mc hd">削減</div><div class="mc hd">年間</div></div><div class="mr"><div class="mc">請求書OCR</div><div class="mc">sweeep</div><div class="mc">40h</div><div class="mc">240万</div></div><div class="mr"><div class="mc">提案書AI</div><div class="mc">Copilot</div><div class="mc">18h</div><div class="mc">108万</div></div><div class="mr"><div class="mc">FAQ自動化</div><div class="mc">n8n+GPT</div><div class="mc">30h</div><div class="mc">180万</div></div></div></div><div class="del-bd"><h4>施策一覧 + ROI</h4><p>推奨ツール・削減時間・年間コスト効果を一覧化</p></div></div>
+      <div class="del-card"><div class="del-vis"><div class="dm-m"><div class="mt">施策一覧 + 効果試算</div><div class="mr"><div class="mc hd">施策</div><div class="mc hd">ツール</div><div class="mc hd">削減</div><div class="mc hd">年間</div></div><div class="mr"><div class="mc">請求書OCR</div><div class="mc">sweeep</div><div class="mc">40h</div><div class="mc">240万</div></div><div class="mr"><div class="mc">提案書AI</div><div class="mc">Copilot</div><div class="mc">18h</div><div class="mc">108万</div></div><div class="mr"><div class="mc">FAQ自動化</div><div class="mc">自動化+GPT</div><div class="mc">30h</div><div class="mc">180万</div></div></div></div><div class="del-bd"><h4>施策一覧 + ROI</h4><p>推奨ツール・削減時間・年間コスト効果を一覧化</p></div></div>
       <div class="del-card"><div class="del-vis"><div class="dm-m"><div class="mt">優先順位マトリクス</div><div style="position:relative;height:68px;margin-top:4px"><div style="position:absolute;left:0;top:0;font-size:6px;color:var(--faint)">効果 大 ↑</div><div style="position:absolute;right:0;bottom:0;font-size:6px;color:var(--faint)">難易度 高 →</div><div style="position:absolute;left:20%;top:15%;background:var(--pop);color:#fff;font-size:6px;padding:1px 5px;border-radius:2px">請求書OCR</div><div style="position:absolute;left:10%;top:40%;background:#666;color:#fff;font-size:6px;padding:1px 5px;border-radius:2px">FAQ自動化</div><div style="position:absolute;left:50%;top:25%;background:#999;color:#fff;font-size:6px;padding:1px 5px;border-radius:2px">契約書AI</div><div style="position:absolute;left:0;bottom:0;right:0;height:1px;background:var(--line)"></div><div style="position:absolute;left:0;top:0;bottom:0;width:1px;background:var(--line)"></div></div></div></div><div class="del-bd"><h4>優先順位マトリクス</h4><p>効果×難易度の2軸で全施策をマッピング</p></div></div>
       <div class="del-card"><div class="del-vis"><div class="dm-m"><div class="mt">導入ロードマップ</div><div class="mr"><div class="mc hd" style="flex:0.7">Phase</div><div class="mc hd">施策</div><div class="mc hd">体制</div></div><div class="mr"><div class="mc" style="flex:0.7;font-weight:700">1-3M</div><div class="mc">SaaS AI導入</div><div class="mc">週1-2日</div></div><div class="mr"><div class="mc" style="flex:0.7;font-weight:700">4-6M</div><div class="mc">部署横断展開</div><div class="mc">週2-3日</div></div><div class="mr"><div class="mc" style="flex:0.7;font-weight:700">7-12M</div><div class="mc">基盤構築</div><div class="mc">専任体制</div></div></div></div><div class="del-bd"><h4>導入ロードマップ</h4><p>3/6/12ヶ月の段階的計画。施策・体制・期待効果</p></div></div>
       <div class="del-card"><div class="del-vis"><div class="dm-m"><div class="mt">実装体制・人材要件書</div><div style="font-size:7px;line-height:1.7;margin-top:4px"><div><strong>Phase 1 推奨</strong></div><div>役割: DX/業務改革</div><div>クラス: マネージャー</div><div>稼働: 週2日×3ヶ月</div><div style="margin-top:4px;padding:2px 6px;background:var(--surface);border-radius:2px">→ PERSONAにてご紹介</div></div></div></div><div class="del-bd"><h4>実装体制・人材要件書</h4><p>必要スキル・稼働率を明記。PERSONA人材に直結</p></div></div>
@@ -130,7 +130,7 @@ const htmlMain = `
     <div class="subtext">請求書処理だけではありません。営業・全社共通業務にも同じ診断を行い、改善余地をレポートします。</div>
     <div class="ba-more">
       <div class="ba-item"><div class="ba-head"><div class="case mono">CASE 02 — 営業部</div><h3>提案書作成</h3></div><div class="ba-row"><div class="ba-c bf"><div class="bl mono">BEFORE</div>過去の提案書をファイルサーバーから手動検索。PowerPointをほぼゼロから作成し、上長レビュー後に修正を繰り返す。<div class="ba-t">1件あたり8時間</div></div><div class="ba-c af"><div class="bl mono">AFTER</div>AIが過去提案書・事例DBから類似案件を自動抽出しドラフト生成。担当者は顧客固有の部分のみ編集。<div class="ba-t">1件あたり2時間</div><div class="ba-tool">推奨: <strong>Microsoft Copilot</strong> + 社内ナレッジDB</div></div></div></div>
-      <div class="ba-item"><div class="ba-head"><div class="case mono">CASE 03 — 全社共通</div><h3>社内問合せ対応</h3></div><div class="ba-row"><div class="ba-c bf"><div class="bl mono">BEFORE</div>総務・IT・経理への問合せがSlack/メールで飛び、同じ質問に何度も回答。担当者の本業が圧迫される。<div class="ba-t">各部署計 月40時間</div></div><div class="ba-c af"><div class="bl mono">AFTER</div>n8nでSlack質問を検知→社内ドキュメント検索→AIが回答生成→自動返信。担当者は例外対応のみ。<div class="ba-t">月10時間</div><div class="ba-tool">推奨: <strong>n8n</strong> + <strong>Claude API</strong></div></div></div></div>
+      <div class="ba-item"><div class="ba-head"><div class="case mono">CASE 03 — 全社共通</div><h3>社内問合せ対応</h3></div><div class="ba-row"><div class="ba-c bf"><div class="bl mono">BEFORE</div>総務・IT・経理への問合せがSlack/メールで飛び、同じ質問に何度も回答。担当者の本業が圧迫される。<div class="ba-t">各部署計 月40時間</div></div><div class="ba-c af"><div class="bl mono">AFTER</div>自動化ツールでSlack質問を検知→社内ドキュメント検索→AIが回答生成→自動返信。担当者は例外対応のみ。<div class="ba-t">月10時間</div><div class="ba-tool">推奨: <strong>ノーコード自動化</strong> + <strong>Claude API</strong></div></div></div></div>
     </div>
   </div>
 </section>
@@ -197,7 +197,7 @@ const htmlMain = `
   </div>
 </section>
 
-<!-- n8n -->
+<!-- AUTOMATION -->
 <section class="n8n-sec">
   <div class="wrap">
     <div class="centered">
@@ -207,7 +207,7 @@ const htmlMain = `
     </div>
     <div class="n8n-box">
       <h3>診断レポートに記載される自動化提案の例</h3>
-      <p>ヒアリングで判明した定型的なつなぎ作業に対し、n8n等のノーコードツールを活用した具体的なフローを提案します。</p>
+      <p>ヒアリングで判明した定型的なつなぎ作業に対し、ノーコードツールを活用した具体的な自動化フローを提案します。</p>
       <div class="n8n-grid">
         <div class="n8n-i"><h4>請求書自動処理</h4><p>メール受信→PDF抽出→AI読取→仕訳→会計ソフト</p><div class="code">Email → PDF → GPT-4o → freee</div></div>
         <div class="n8n-i"><h4>議事録自動生成</h4><p>会議録画→文字起こし→AI要約→Slack通知</p><div class="code">Webhook → Whisper → Claude → Slack</div></div>
@@ -229,9 +229,9 @@ const htmlMain = `
       <div class="subtext">コンサルタント単価 250万円/人月。対象規模に応じた3プラン。</div>
     </div>
     <div class="pr-grid">
-      <div class="pr-card"><div class="pr-plan mono">LIGHT</div><div class="pr-nm">1部署診断</div><div class="pr-pr inter">125<small>万円</small></div><div class="pr-meta">0.5人月 / 約2週間 / 5-10名</div><ul class="pr-ft"><li>対象1部署の業務棚卸</li><li>Before/After一覧</li><li>推奨ツール + n8n提案</li><li>削減効果試算</li><li>簡易ロードマップ</li></ul><a href="#contact" class="pr-cta">お問い合わせ</a></div>
-      <div class="pr-card ft"><div class="pr-plan mono">STANDARD</div><div class="pr-nm">3-5部署診断</div><div class="pr-pr inter">375<small>万円</small></div><div class="pr-meta">1.5人月 / 約1-1.5ヶ月 / 15-30名</div><ul class="pr-ft"><li>主要部署横断の業務棚卸</li><li>部署別 Before/After + フロー図</li><li>推奨ツール + n8n提案</li><li>全社削減効果 + ROI</li><li>優先順位マトリクス</li><li>12ヶ月ロードマップ</li><li>経営層向けプレゼン</li><li>実装体制・人材要件書</li></ul><a href="#contact" class="pr-cta">お問い合わせ</a></div>
-      <div class="pr-card"><div class="pr-plan mono">PREMIUM</div><div class="pr-nm">全社診断 + PoC</div><div class="pr-pr inter">750<small>万円〜</small></div><div class="pr-meta">3人月〜 / 約2-3ヶ月 / 30-60名</div><ul class="pr-ft"><li>Standardの全納品物</li><li>Quick Win施策1件のPoC</li><li>n8n自動化フロー1件構築</li><li>PoC効果測定レポート</li><li>全社展開計画</li><li>PERSONA人材による実装支援</li></ul><a href="#contact" class="pr-cta">お問い合わせ</a></div>
+      <div class="pr-card"><div class="pr-plan mono">LIGHT</div><div class="pr-nm">1部署診断</div><div class="pr-pr inter">125<small>万円</small></div><div class="pr-meta">0.5人月 / 約2週間 / 5-10名</div><ul class="pr-ft"><li>対象1部署の業務棚卸</li><li>Before/After一覧</li><li>推奨ツール + 自動化提案</li><li>削減効果試算</li><li>簡易ロードマップ</li></ul><a href="#contact" class="pr-cta">お問い合わせ</a></div>
+      <div class="pr-card ft"><div class="pr-plan mono">STANDARD</div><div class="pr-nm">3-5部署診断</div><div class="pr-pr inter">375<small>万円</small></div><div class="pr-meta">1.5人月 / 約1-1.5ヶ月 / 15-30名</div><ul class="pr-ft"><li>主要部署横断の業務棚卸</li><li>部署別 Before/After + フロー図</li><li>推奨ツール + 自動化提案</li><li>全社削減効果 + ROI</li><li>優先順位マトリクス</li><li>12ヶ月ロードマップ</li><li>経営層向けプレゼン</li><li>実装体制・人材要件書</li></ul><a href="#contact" class="pr-cta">お問い合わせ</a></div>
+      <div class="pr-card"><div class="pr-plan mono">PREMIUM</div><div class="pr-nm">全社診断 + PoC</div><div class="pr-pr inter">750<small>万円〜</small></div><div class="pr-meta">3人月〜 / 約2-3ヶ月 / 30-60名</div><ul class="pr-ft"><li>Standardの全納品物</li><li>Quick Win施策1件のPoC</li><li>業務自動化フロー1件構築</li><li>PoC効果測定レポート</li><li>全社展開計画</li><li>PERSONA人材による実装支援</li></ul><a href="#contact" class="pr-cta">お問い合わせ</a></div>
     </div>
     <div class="roi">
       <h3 class="mono">INVESTMENT RETURN — STANDARD</h3>
@@ -260,7 +260,7 @@ const htmlMain = `
         <tr><td>価格帯</td><td>数千万円〜</td><td>無料（自社ツール提案目的）</td><td><span class="tg a">125-750万円</span></td></tr>
         <tr><td>中立性</td><td><span class="tg b">高い</span></td><td><span class="tg c">低い</span>（自社製品優先）</td><td><span class="tg a">高い</span> ベンダーニュートラル</td></tr>
         <tr><td>具体性</td><td><span class="tg b">戦略提言中心</span></td><td><span class="tg c">自社ツール範囲</span></td><td><span class="tg a">Before/After</span> + 定量試算</td></tr>
-        <tr><td>自動化</td><td>AI導入に限定</td><td>自社AIに限定</td><td><span class="tg a">AI + n8n</span> 業務フロー全体</td></tr>
+        <tr><td>自動化</td><td>AI導入に限定</td><td>自社AIに限定</td><td><span class="tg a">AI + 自動化</span> 業務フロー全体</td></tr>
         <tr><td>実装支援</td><td>別途大型契約が必要</td><td>自社ツール導入のみ</td><td><span class="tg a">PERSONA人材</span> 週1日〜</td></tr>
         <tr><td>業務理解</td><td><span class="tg b">高い</span></td><td><span class="tg c">低い</span></td><td><span class="tg a">高い</span> ファーム出身者がレビュー</td></tr>
       </tbody>
