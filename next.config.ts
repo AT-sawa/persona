@@ -8,6 +8,7 @@ const ContentSecurityPolicy = [
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: blob: https://persona-consultant.com https://*.supabase.co",
   "connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://www.googletagmanager.com",
+  "frame-src 'self' https://*.supabase.co",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

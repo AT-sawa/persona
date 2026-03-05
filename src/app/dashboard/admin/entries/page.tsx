@@ -149,28 +149,44 @@ function ResumePanel({
 }) {
   const [url, setUrl] = useState<string | null>(null);
   const [filename, setFilename] = useState("");
+  const [mimeType, setMimeType] = useState("");
+  const [fileSize, setFileSize] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [iframeFailed, setIframeFailed] = useState(false);
 
   useEffect(() => {
     async function load() {
       try {
         const res = await fetch(`/api/admin/resumes/${resumeId}`);
         if (!res.ok) {
-          setError("レジュメの取得に失敗しました");
+          const errData = await res.json().catch(() => ({}));
+          setError(errData.error || `レジュメの取得に失敗しました (${res.status})`);
           return;
         }
         const data = await res.json();
         setUrl(data.url);
         setFilename(data.filename || "resume.pdf");
+        setMimeType(data.mime_type || "");
+        setFileSize(data.file_size || null);
       } catch {
-        setError("エラーが発生しました");
+        setError("ネットワークエラーが発生しました");
       } finally {
         setLoading(false);
       }
     }
     load();
   }, [resumeId]);
+
+  const isPdf = mimeType === "application/pdf" || filename.toLowerCase().endsWith(".pdf");
+  const isImage = mimeType?.startsWith("image/");
+  const canPreview = isPdf || isImage;
+
+  function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
 
   return (
     <>
@@ -188,18 +204,33 @@ function ResumePanel({
             <span className="text-[14px] font-bold text-navy truncate">
               {filename || "レジュメ"}
             </span>
+            {fileSize && (
+              <span className="text-[11px] text-[#999] shrink-0">
+                ({formatFileSize(fileSize)})
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {url && (
-              <a
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-bold text-blue border border-blue rounded hover:bg-blue/5 transition-colors"
-              >
-                <Icon name="open_in_new" className="text-[16px]" />
-                新規タブで開く
-              </a>
+              <>
+                <a
+                  href={url}
+                  download={filename}
+                  className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-bold text-[#555] border border-border rounded hover:bg-[#f5f5f5] transition-colors"
+                >
+                  <Icon name="download" className="text-[16px]" />
+                  DL
+                </a>
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-bold text-blue border border-blue rounded hover:bg-blue/5 transition-colors"
+                >
+                  <Icon name="open_in_new" className="text-[16px]" />
+                  新規タブ
+                </a>
+              </>
             )}
             <button
               onClick={onClose}
@@ -210,7 +241,7 @@ function ResumePanel({
           </div>
         </div>
         {/* Content */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden bg-[#f5f5f5]">
           {loading && (
             <div className="flex items-center justify-center h-full">
               <div className="text-[#888] text-sm flex items-center gap-2">
@@ -224,15 +255,73 @@ function ResumePanel({
           )}
           {error && (
             <div className="flex items-center justify-center h-full">
-              <p className="text-[#E15454] text-sm">{error}</p>
+              <div className="text-center">
+                <Icon name="error" className="text-[32px] text-[#E15454] mb-2" />
+                <p className="text-[#E15454] text-sm">{error}</p>
+              </div>
             </div>
           )}
-          {url && (
-            <iframe
-              src={url}
-              className="w-full h-full border-none"
-              title="Resume PDF"
-            />
+          {url && !error && !loading && (
+            <>
+              {/* PDF: try iframe, show fallback if it fails */}
+              {isPdf && !iframeFailed && (
+                <iframe
+                  src={`${url}#toolbar=1&navpanes=0`}
+                  className="w-full h-full border-none bg-white"
+                  title="Resume PDF"
+                  onError={() => setIframeFailed(true)}
+                />
+              )}
+              {/* Image: show directly */}
+              {isImage && (
+                <div className="flex items-center justify-center h-full p-4 overflow-auto">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={url}
+                    alt={filename}
+                    className="max-w-full max-h-full object-contain rounded shadow"
+                  />
+                </div>
+              )}
+              {/* Fallback for PDF iframe failure or non-previewable files */}
+              {(iframeFailed || !canPreview) && (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center bg-white p-8 rounded-xl shadow-sm max-w-sm">
+                    <Icon name="description" className="text-[48px] text-navy/40 mb-3" />
+                    <p className="text-[14px] font-bold text-navy mb-1">{filename}</p>
+                    {fileSize && (
+                      <p className="text-[12px] text-[#999] mb-4">
+                        {formatFileSize(fileSize)}
+                      </p>
+                    )}
+                    <p className="text-[12px] text-[#888] mb-4">
+                      {iframeFailed
+                        ? "ブラウザでのプレビューに対応していません"
+                        : "このファイル形式はプレビューできません"}
+                    </p>
+                    <div className="flex gap-2 justify-center">
+                      <a
+                        href={url}
+                        download={filename}
+                        className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-bold text-white bg-navy rounded-lg hover:bg-navy/90 transition-colors"
+                      >
+                        <Icon name="download" className="text-[18px]" />
+                        ダウンロード
+                      </a>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-bold text-blue border border-blue rounded-lg hover:bg-blue/5 transition-colors"
+                      >
+                        <Icon name="open_in_new" className="text-[18px]" />
+                        新規タブで開く
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
