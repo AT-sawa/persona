@@ -7,10 +7,10 @@ import { Resend } from "resend";
  * メール転送 Webhook — 案件メールを自動パース・登録
  *
  * 対応する転送サービス:
- * - Cloudflare Email Workers (POST with text body)
- * - Zapier / Make (POST with JSON {text, from, subject})
- * - Resend Inbound (POST with JSON {from, subject, text})
- * - 汎用 (POST with raw text or JSON)
+ * 1. Resend Inbound (推奨) — email.received webhook → Resend APIでbody取得
+ * 2. Zapier / Make — POST with JSON {text, from, subject}
+ * 3. Cloudflare Email Workers — POST with text body
+ * 4. 汎用 — POST with raw text or JSON
  *
  * 認証: EMAIL_INTAKE_SECRET を x-intake-key ヘッダーまたは ?key= で検証
  */
@@ -18,6 +18,68 @@ import { Resend } from "resend";
 const INTAKE_SECRET = process.env.EMAIL_INTAKE_SECRET || "";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "";
 const FROM_EMAIL = process.env.FROM_EMAIL || "noreply@persona-consultant.com";
+
+/**
+ * Resend Inbound のイベント形式を検出
+ */
+function isResendInboundEvent(
+  body: Record<string, unknown>
+): body is {
+  type: string;
+  created_at: string;
+  data: {
+    email_id: string;
+    from: string;
+    to: string[];
+    subject: string;
+  };
+} {
+  return (
+    typeof body.type === "string" &&
+    body.type === "email.received" &&
+    typeof body.data === "object" &&
+    body.data !== null &&
+    "email_id" in (body.data as Record<string, unknown>)
+  );
+}
+
+/**
+ * Resend API でメール本文を取得
+ */
+async function fetchResendEmailBody(
+  emailId: string
+): Promise<{ text: string; from: string; subject: string } | null> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const res = await fetch(`https://api.resend.com/emails/${emailId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (!res.ok) {
+      console.error(
+        `Failed to fetch Resend email ${emailId}: ${res.status}`
+      );
+      return null;
+    }
+    const data = await res.json();
+
+    // テキスト本文を優先、なければHTMLからテキスト抽出
+    let text = data.text || "";
+    if (!text && data.html) {
+      text = data.html.replace(/<[^>]+>/g, "\n").replace(/\n{3,}/g, "\n\n");
+    }
+
+    return {
+      text,
+      from: data.from || "",
+      subject: data.subject || "",
+    };
+  } catch (err) {
+    console.error("Error fetching Resend email:", err);
+    return null;
+  }
+}
 
 export async function POST(request: NextRequest) {
   // ── 認証 ──
@@ -44,19 +106,46 @@ export async function POST(request: NextRequest) {
 
     if (contentType.includes("application/json")) {
       const body = await request.json();
-      // 各種フォーマット対応
-      emailText = body.text || body.body || body.plain || body["stripped-text"] || "";
-      emailFrom = body.from || body.sender || body.From || "";
-      emailSubject = body.subject || body.Subject || "";
 
-      // HTML only の場合、htmlからテキスト抽出
-      if (!emailText && body.html) {
-        emailText = body.html.replace(/<[^>]+>/g, "\n").replace(/\n{3,}/g, "\n\n");
+      // ── Pattern 1: Resend Inbound webhook ──
+      if (isResendInboundEvent(body)) {
+        const emailData = await fetchResendEmailBody(body.data.email_id);
+        if (!emailData || !emailData.text) {
+          await notifyAdmin(
+            "⚠️ 案件メール転送: 本文取得失敗",
+            `Resend email_id: ${body.data.email_id}\nFrom: ${body.data.from}\nSubject: ${body.data.subject}\n\nResend APIからメール本文を取得できませんでした。`
+          );
+          return NextResponse.json({
+            imported: 0,
+            message: "Could not fetch email body from Resend",
+          });
+        }
+        emailText = emailData.text;
+        emailFrom = emailData.from;
+        emailSubject = emailData.subject;
+      } else {
+        // ── Pattern 2: Direct JSON (Zapier / Make / etc.) ──
+        emailText =
+          body.text ||
+          body.body ||
+          body.plain ||
+          body["stripped-text"] ||
+          "";
+        emailFrom = body.from || body.sender || body.From || "";
+        emailSubject = body.subject || body.Subject || "";
+
+        // HTML only の場合、htmlからテキスト抽出
+        if (!emailText && body.html) {
+          emailText = body.html
+            .replace(/<[^>]+>/g, "\n")
+            .replace(/\n{3,}/g, "\n\n");
+        }
       }
     } else if (
       contentType.includes("text/plain") ||
       contentType.includes("multipart/form-data")
     ) {
+      // ── Pattern 3: Raw text ──
       emailText = await request.text();
     } else {
       // フォールバック: テキストとして読む
@@ -77,7 +166,7 @@ export async function POST(request: NextRequest) {
       // パースできなかった場合、管理者に通知
       await notifyAdmin(
         "⚠️ 案件メール転送: パース失敗",
-        `案件を抽出できませんでした。\n\nFrom: ${emailFrom}\nSubject: ${emailSubject}\n\n--- メール本文（先頭500文字） ---\n${emailText.substring(0, 500)}`,
+        `案件を抽出できませんでした。\n\nFrom: ${emailFrom}\nSubject: ${emailSubject}\n\n--- メール本文（先頭500文字） ---\n${emailText.substring(0, 500)}`
       );
       return NextResponse.json({
         imported: 0,
@@ -166,7 +255,7 @@ export async function POST(request: NextRequest) {
         result.errors.length > 0
           ? `\n\n--- パースエラー ---\n${result.errors.join("\n")}`
           : ""
-      }`,
+      }`
     );
 
     return NextResponse.json({
