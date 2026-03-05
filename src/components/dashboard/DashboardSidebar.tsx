@@ -49,6 +49,7 @@ export default function DashboardSidebar() {
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard";
     if (href === "/dashboard/admin") return pathname === "/dashboard/admin";
+    if (href === "/dashboard/profile") return pathname === "/dashboard/profile";
     return pathname.startsWith(href);
   }
 
@@ -56,7 +57,7 @@ export default function DashboardSidebar() {
     <>
       {/* Desktop sidebar */}
       <aside className="hidden lg:block w-[240px] shrink-0">
-        <nav className="sticky top-[84px] flex flex-col gap-0.5 bg-white rounded-2xl border border-border/60 p-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+        <nav className="sticky top-[84px] max-h-[calc(100vh-96px)] overflow-y-auto flex flex-col gap-0.5 bg-white rounded-2xl border border-border/60 p-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.href}

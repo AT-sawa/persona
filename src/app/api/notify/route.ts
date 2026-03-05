@@ -60,12 +60,14 @@ export async function POST(req: NextRequest) {
         break;
 
       case "case_entry":
-        subject = `【PERSONA】案件エントリー: ${data.email}`;
+        subject = `【PERSONA】案件エントリー: ${data.full_name || data.email}`;
         body = [
           "案件へのエントリーがありました。",
           "",
-          `案件ID: ${data.case_id || "—"}`,
+          `氏名: ${data.full_name || "—"}`,
           `メール: ${data.email || "—"}`,
+          `在籍/出身ファーム: ${data.firm || "—"}`,
+          `案件ID: ${data.case_id || "—"}`,
           `メッセージ: ${data.message || "—"}`,
           "",
           "管理画面で詳細を確認してください。",

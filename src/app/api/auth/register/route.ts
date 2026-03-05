@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Resend } from "resend";
 import { createServiceClient } from "@/lib/supabase/service";
-import { sendNotification } from "@/lib/notify";
 import { logAudit } from "@/lib/audit";
 import { isValidEmail, sanitizeText, truncate } from "@/lib/validation";
 import { runMatching } from "@/lib/matching/runMatching";
+import { buildWelcomeEmail } from "@/lib/emails/welcome";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, fullName, phone } = body;
+    const { email, password, fullName, phone, firm } = body;
 
     if (!email || !password || !fullName) {
       return NextResponse.json(
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
     const sanitizedFullName = truncate(sanitizeText(fullName), 100);
     const sanitizedEmail = truncate(sanitizeText(email), 254);
     const sanitizedPhone = phone ? truncate(sanitizeText(phone), 20) : null;
+    const sanitizedFirm = firm ? truncate(sanitizeText(firm), 200) : null;
 
     if (!sanitizedFullName) {
       return NextResponse.json(
@@ -93,6 +95,7 @@ export async function POST(request: NextRequest) {
       full_name: sanitizedFullName,
       email: sanitizedEmail,
       phone: sanitizedPhone,
+      background: sanitizedFirm,
     });
 
     if (profileError) {
@@ -116,15 +119,61 @@ export async function POST(request: NextRequest) {
       console.error("Audit log error:", auditErr);
     }
 
-    // Send notification to admin
+    // Send welcome email to user
     try {
-      await sendNotification("consultant_lead", {
-        full_name: sanitizedFullName,
-        email: sanitizedEmail,
-        phone: sanitizedPhone || "",
-      });
+      const resendKey = process.env.RESEND_API_KEY;
+      if (resendKey) {
+        const resend = new Resend(resendKey);
+        const fromEmail =
+          process.env.FROM_EMAIL || "noreply@persona-consultant.com";
+        const { subject, html } = buildWelcomeEmail(sanitizedFullName);
+        await resend.emails.send({
+          from: `PERSONA <${fromEmail}>`,
+          to: sanitizedEmail,
+          subject,
+          html,
+        });
+      } else {
+        console.log("[register] Welcome email skipped (no RESEND_API_KEY)");
+      }
+    } catch (welcomeErr) {
+      console.error("Welcome email error:", welcomeErr);
+      // Don't fail registration if welcome email fails
+    }
+
+    // Send notification to admin (direct Resend call — sendNotification uses
+    // relative fetch which doesn't work from server-side API routes)
+    try {
+      const resendKey = process.env.RESEND_API_KEY;
+      if (resendKey) {
+        const adminResend = new Resend(resendKey);
+        const fromEmail =
+          process.env.FROM_EMAIL || "noreply@persona-consultant.com";
+        const adminEmail =
+          process.env.ADMIN_EMAIL || "admin@persona-consultant.com";
+        const adminSubject = `【PERSONA】新規コンサルタント登録: ${sanitizedFullName}`;
+        const adminBody = [
+          "新規コンサルタント登録がありました。",
+          "",
+          `氏名: ${sanitizedFullName}`,
+          `メール: ${sanitizedEmail}`,
+          `電話: ${sanitizedPhone || "—"}`,
+          `在籍/出身ファーム: ${sanitizedFirm || "—"}`,
+          "",
+          "管理画面で詳細を確認してください。",
+          "https://app.persona-consultant.com/dashboard/admin/users",
+        ].join("\n");
+        await adminResend.emails.send({
+          from: `PERSONA通知 <${fromEmail}>`,
+          to: adminEmail,
+          subject: adminSubject,
+          text: adminBody,
+        });
+      } else {
+        console.log("[register] Admin notification skipped (no RESEND_API_KEY)");
+      }
     } catch (notifyErr) {
-      console.error("Notification error:", notifyErr);
+      console.error("Admin notification error:", notifyErr);
     }
 
     // Run initial matching for the new user (immediate, no debounce)

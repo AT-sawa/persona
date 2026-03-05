@@ -24,7 +24,11 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-[200] bg-white border-b border-border shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
       <div className="max-w-[1160px] mx-auto flex items-center px-6 h-[60px] gap-6">
-        <Link href={isLoggedIn ? "/dashboard" : "/"} className="shrink-0">
+        <Link
+          href={isLoggedIn ? "/dashboard" : "/"}
+          className="shrink-0"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        >
           <Image
             src="/images/persona_logo.png"
             alt="PERSONA フリーコンサルクラウド"
@@ -132,12 +136,20 @@ export default function Header() {
                   </Link>
                 </>
               ) : (
-                <Link
-                  href={isHome ? "#register" : "/auth/register"}
-                  className="border border-blue text-blue px-[18px] py-2 text-[13px] font-bold transition-colors hover:bg-blue hover:text-white"
-                >
-                  無料登録
-                </Link>
+                <>
+                  <Link
+                    href="/auth/login"
+                    className="text-[13px] font-medium text-text px-3.5 py-1.5 transition-colors hover:text-blue"
+                  >
+                    ログイン
+                  </Link>
+                  <Link
+                    href="/auth/register"
+                    className="border border-blue text-blue px-[18px] py-2 text-[13px] font-bold transition-colors hover:bg-blue hover:text-white"
+                  >
+                    無料登録
+                  </Link>
+                </>
               )}
             </>
           )}
@@ -291,13 +303,22 @@ export default function Header() {
                     マイページ
                   </Link>
                 ) : (
-                  <Link
-                    href={isHome ? "#register" : "/auth/register"}
-                    onClick={() => setOpen(false)}
-                    className="block text-center py-3 bg-blue text-white text-[14px] font-bold transition-colors hover:bg-blue-dark"
-                  >
-                    無料登録
-                  </Link>
+                  <div className="flex flex-col gap-2">
+                    <Link
+                      href="/auth/register"
+                      onClick={() => setOpen(false)}
+                      className="block text-center py-3 bg-blue text-white text-[14px] font-bold transition-colors hover:bg-blue-dark"
+                    >
+                      無料登録
+                    </Link>
+                    <Link
+                      href="/auth/login"
+                      onClick={() => setOpen(false)}
+                      className="block text-center py-3 border border-border text-[14px] font-medium text-text transition-colors hover:bg-[#f7faff]"
+                    >
+                      ログイン
+                    </Link>
+                  </div>
                 )}
               </div>
             </>

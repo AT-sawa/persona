@@ -46,9 +46,17 @@ export default function EntryForm({ caseId }: EntryFormProps) {
       setError("エントリーの送信に失敗しました。もう一度お試しください。");
       return;
     }
+    // Fetch profile for richer admin notification
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name, background")
+      .eq("id", user.id)
+      .single();
     sendNotification("case_entry", {
       case_id: caseId,
       email: supabaseUser.data.user?.email || undefined,
+      full_name: profile?.full_name || undefined,
+      firm: profile?.background || undefined,
       message,
     });
     setSubmitted(true);

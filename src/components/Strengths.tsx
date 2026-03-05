@@ -62,12 +62,12 @@ export default function Strengths() {
                   {item.text}
                 </p>
               </div>
-              <div className="relative aspect-[16/10] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
+              <div className="relative aspect-[16/10] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.08)] mt-4 lg:mt-0">
                 <Image
                   src={item.img}
                   alt={item.imgAlt}
                   fill
-                  className="object-cover"
+                  className={item.img.endsWith(".png") ? "object-contain" : "object-cover"}
                   sizes="(max-width: 1024px) 100vw, 380px"
                 />
               </div>

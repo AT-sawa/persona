@@ -230,7 +230,10 @@ export default function CaseFilters({
           className="flex items-center justify-center gap-1 mt-12 mb-4"
         >
           <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            onClick={() => {
+              setPage((p) => Math.max(1, p - 1));
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
             disabled={currentPage <= 1}
             className="w-9 h-9 flex items-center justify-center text-[13px] text-navy hover:bg-[#f2f2f7] disabled:opacity-20 disabled:cursor-not-allowed transition-colors rounded-full"
           >
@@ -252,7 +255,10 @@ export default function CaseFilters({
             return (
               <button
                 key={p}
-                onClick={() => setPage(p)}
+                onClick={() => {
+                  setPage(p);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
                 className={`w-9 h-9 text-[13px] rounded-full transition-all ${
                   p === currentPage
                     ? "bg-navy text-white font-semibold"
@@ -264,7 +270,10 @@ export default function CaseFilters({
             );
           })}
           <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            onClick={() => {
+              setPage((p) => Math.min(totalPages, p + 1));
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
             disabled={currentPage >= totalPages}
             className="w-9 h-9 flex items-center justify-center text-[13px] text-navy hover:bg-[#f2f2f7] disabled:opacity-20 disabled:cursor-not-allowed transition-colors rounded-full"
           >

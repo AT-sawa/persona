@@ -65,7 +65,7 @@ export default function Story() {
               ))}
             </div>
           </div>
-          <div className="relative">
+          <div className="relative pb-6 pr-0 lg:pr-0 overflow-hidden">
             <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.3)]">
               <Image
                 src="/images/freelance_cafe.jpg"
@@ -78,7 +78,7 @@ export default function Story() {
               <div className="absolute inset-0 bg-gradient-to-t from-navy/40 via-transparent to-transparent" />
             </div>
             {/* Second image overlaid */}
-            <div className="absolute -bottom-6 -right-4 w-[55%] aspect-[16/10] rounded-xl overflow-hidden shadow-[0_6px_24px_rgba(0,0,0,0.25)] border-2 border-navy">
+            <div className="absolute -bottom-0 right-0 w-[55%] aspect-[16/10] rounded-xl overflow-hidden shadow-[0_6px_24px_rgba(0,0,0,0.25)] border-2 border-navy">
               <Image
                 src="/images/urban_professional.jpg"
                 alt="自分のペースで活躍するプロフェッショナル"

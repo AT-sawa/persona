@@ -13,6 +13,7 @@ export default function RegisterPage() {
     fullName: "",
     email: "",
     phone: "",
+    firm: "",
     password: "",
   });
   const [agreed, setAgreed] = useState(false);
@@ -44,6 +45,7 @@ export default function RegisterPage() {
           password: formData.password,
           fullName: formData.fullName,
           phone: formData.phone,
+          firm: formData.firm,
         }),
       });
 
@@ -106,6 +108,12 @@ export default function RegisterPage() {
                   placeholder: "090-0000-0000",
                 },
                 {
+                  key: "firm",
+                  label: "在籍/出身ファーム",
+                  type: "text",
+                  placeholder: "例: マッキンゼー、BCG、デロイト",
+                },
+                {
                   key: "password",
                   label: "パスワード",
                   type: "password",
@@ -121,7 +129,7 @@ export default function RegisterPage() {
                     value={formData[field.key as keyof typeof formData]}
                     onChange={(e) => update(field.key, e.target.value)}
                     placeholder={field.placeholder}
-                    required={field.key !== "phone"}
+                    required={field.key !== "phone" && field.key !== "firm"}
                     className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
                   />
                 </div>
