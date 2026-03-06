@@ -1,6 +1,7 @@
 export const revalidate = 3600; // ISR: revalidate home page every hour
 
 import { BASE_URL, APP_URL } from "@/lib/constants";
+import type { Case } from "@/lib/types";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import Ticker from "@/components/Ticker";
@@ -28,11 +29,11 @@ async function getCases() {
     const supabase = await createClient();
     const { data } = await supabase
       .from("cases")
-      .select("*")
+      .select("id, case_no, title, category, background, description, industry, start_date, extendable, occupancy, fee, office_days, location, must_req, nice_to_have, flow, status, published_at, created_at, is_active, source, source_url, synced_at, title_normalized, source_hash")
       .eq("is_active", true)
       .order("published_at", { ascending: false })
       .limit(6);
-    return data ?? [];
+    return (data as Case[]) ?? [];
   } catch {
     return [];
   }

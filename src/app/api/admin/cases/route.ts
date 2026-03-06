@@ -54,6 +54,8 @@ export async function POST(request: NextRequest) {
       must_req: c.must_req || c["必須要件"] || c["必須スキル"] || null,
       nice_to_have: c.nice_to_have || c["歓迎要件"] || c["歓迎スキル"] || null,
       flow: c.flow || c["選考フロー"] || c["フロー"] || null,
+      client_company: c.client_company || c["元請け"] || c["元請"] || c["クライアント"] || null,
+      commercial_flow: c.commercial_flow || c["商流"] || null,
       status: "active",
       is_active: true,
     }));

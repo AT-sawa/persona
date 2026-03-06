@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "ダッシュボード", icon: "dashboard" },
@@ -31,25 +29,8 @@ const ADMIN_ITEMS = [
   { href: "/dashboard/admin/perks", label: "特典管理", icon: "loyalty" },
 ];
 
-export default function DashboardSidebar() {
+export default function DashboardSidebar({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        supabase
-          .from("profiles")
-          .select("is_admin")
-          .eq("id", user.id)
-          .single()
-          .then(({ data }) => {
-            setIsAdmin(data?.is_admin ?? false);
-          });
-      }
-    });
-  }, []);
 
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard";

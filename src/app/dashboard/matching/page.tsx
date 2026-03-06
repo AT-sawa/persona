@@ -7,7 +7,8 @@ import { createClient } from "@/lib/supabase/client";
 import { analytics } from "@/lib/analytics";
 import type { MatchingResult, Case } from "@/lib/types";
 
-type MatchWithCase = MatchingResult & { cases: Case };
+type CaseSummary = Pick<Case, "id" | "title" | "fee" | "location" | "occupancy" | "category">;
+type MatchWithCase = MatchingResult & { cases: CaseSummary };
 
 /** Check how complete the user's profile is for matching purposes */
 async function checkProfileCompleteness(): Promise<{
@@ -70,10 +71,11 @@ export default function MatchingPage() {
     }
     const { data } = await supabase
       .from("matching_results")
-      .select("*, cases(*)")
+      .select("id, case_id, user_id, score, factors, is_notified, semantic_score, llm_reasoning, matched_at, cases(id, title, fee, location, occupancy, category)")
       .eq("user_id", user.id)
       .order("score", { ascending: false });
-    setMatches((data as MatchWithCase[]) ?? []);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setMatches((data as any as MatchWithCase[]) ?? []);
     if (data && data.length > 0) {
       setLastRun(data[0].matched_at);
     }

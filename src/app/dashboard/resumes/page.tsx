@@ -49,7 +49,7 @@ export default function ResumesPage() {
     }
     const { data } = await supabase
       .from("resumes")
-      .select("*")
+      .select("id, user_id, filename, file_path, file_size, mime_type, is_primary, uploaded_at")
       .eq("user_id", user.id)
       .order("uploaded_at", { ascending: false });
     setResumes(data ?? []);

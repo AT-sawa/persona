@@ -7,14 +7,17 @@ import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import NotificationBell from "@/components/NotificationBell";
 
-export default function Header() {
+export default function Header({ isLoggedIn: isLoggedInProp }: { isLoggedIn?: boolean } = {}) {
   const [open, setOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(isLoggedInProp ?? false);
   const pathname = usePathname();
   const isHome = pathname === "/";
   const isDashboard = pathname.startsWith("/dashboard");
 
   useEffect(() => {
+    // Skip client-side auth check when server already provided login state (e.g. dashboard)
+    if (isLoggedInProp !== undefined) return;
+
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       setIsLoggedIn(!!user);
@@ -26,7 +29,7 @@ export default function Header() {
       setIsLoggedIn(!!session?.user);
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [isLoggedInProp]);
 
   return (
     <header className="sticky top-0 z-[200] bg-white border-b border-border shadow-[0_1px_4px_rgba(0,0,0,0.06)]">

@@ -11,6 +11,9 @@ export const metadata: Metadata = {
   title: "フリーコンサル案件一覧｜募集中・過去案件アーカイブ",
   description:
     "戦略・DX・PMO・SAP等のフリーコンサル案件を常時掲載。高単価（100〜250万円/月）案件をフリーワード・カテゴリ・ステータスで検索できます。過去案件も含めた実績アーカイブ。",
+  alternates: {
+    canonical: "/cases",
+  },
   openGraph: {
     title: "フリーコンサル案件一覧 | PERSONA",
     description:
@@ -34,7 +37,7 @@ async function getCases(): Promise<Case[]> {
     // Fetch all cases (active + closed) for SEO coverage
     const { data } = await supabase
       .from("cases")
-      .select("*")
+      .select("id, case_no, title, category, background, description, industry, start_date, extendable, occupancy, fee, office_days, location, must_req, nice_to_have, flow, status, published_at, created_at, is_active, source, source_url, synced_at, title_normalized, source_hash")
       .order("is_active", { ascending: false })
       .order("published_at", { ascending: false });
     return (data as Case[]) ?? [];

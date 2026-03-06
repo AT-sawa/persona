@@ -57,27 +57,27 @@ export default function AppCaseDetailPage() {
     }
 
     const [caseRes, matchRes, resumeRes, entryRes] = await Promise.all([
-      supabase.from("cases").select("*").eq("id", caseId).single(),
+      supabase.from("cases").select("id, case_no, title, category, background, description, industry, start_date, extendable, occupancy, fee, office_days, location, must_req, nice_to_have, flow, status, published_at, created_at, is_active, source, source_url, synced_at, title_normalized, source_hash").eq("id", caseId).single(),
       supabase
         .from("matching_results")
-        .select("*")
+        .select("id, case_id, user_id, score, factors, is_notified, semantic_score, llm_reasoning, matched_at")
         .eq("case_id", caseId)
         .eq("user_id", user.id)
         .single(),
       supabase
         .from("resumes")
-        .select("*")
+        .select("id, user_id, filename, file_path, file_size, mime_type, is_primary, uploaded_at")
         .eq("user_id", user.id)
         .order("is_primary", { ascending: false }),
       supabase
         .from("entries")
-        .select("*")
+        .select("id, case_id, user_id, status, message, resume_id, created_at, updated_at")
         .eq("case_id", caseId)
         .eq("user_id", user.id)
         .single(),
     ]);
 
-    setCaseData(caseRes.data);
+    setCaseData(caseRes.data ? { ...caseRes.data, client_company: null, commercial_flow: null, email_intake_id: null } as Case : null);
     setMatchResult(matchRes.data);
     setResumes(resumeRes.data ?? []);
     setExistingEntry(entryRes.data);
@@ -99,11 +99,19 @@ export default function AppCaseDetailPage() {
       .single();
     if (profileData?.is_admin) {
       setIsAdmin(true);
-      // Fetch similar cases
+      // Fetch admin-only fields (client_company, commercial_flow) + similar cases
       try {
-        const simRes = await fetch(
-          `/api/admin/similar-cases?caseId=${caseId}`
-        );
+        const [ccRes, simRes] = await Promise.all([
+          supabase.from("cases").select("client_company, commercial_flow").eq("id", caseId).single(),
+          fetch(`/api/admin/similar-cases?caseId=${caseId}`),
+        ]);
+        if (ccRes.data) {
+          setCaseData((prev) => prev ? {
+            ...prev,
+            client_company: ccRes.data!.client_company || null,
+            commercial_flow: ccRes.data!.commercial_flow || null,
+          } : prev);
+        }
         if (simRes.ok) {
           const simData = await simRes.json();
           setSimilarCases(simData.similar || []);
@@ -219,6 +227,19 @@ export default function AppCaseDetailPage() {
         <h1 className="text-[18px] font-black text-navy mb-4">
           {caseData.title}
         </h1>
+
+        {/* Admin-only: show client company & commercial flow */}
+        {isAdmin && (caseData.client_company || caseData.commercial_flow) && (
+          <div className="mb-4 p-3 bg-[#fef2f2] border border-[#E15454]/20 rounded-lg flex items-center gap-3 flex-wrap">
+            <span className="text-[10px] font-bold text-[#E15454] tracking-wider uppercase">ADMIN</span>
+            {caseData.client_company && (
+              <span className="text-[13px] font-bold text-navy">元請け: {caseData.client_company}</span>
+            )}
+            {caseData.commercial_flow && (
+              <span className="text-[13px] font-bold text-navy">商流: {caseData.commercial_flow}</span>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-[13px] mb-6">
           {[

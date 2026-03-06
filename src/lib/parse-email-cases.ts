@@ -21,6 +21,8 @@ export interface ParsedCase {
   location: string;
   office_days: string;
   flow: string;
+  client_company: string;
+  commercial_flow: string;
   source_url: string;
   // メタ情報（表示用）
   _raw_title: string;
@@ -179,6 +181,8 @@ function parseXienzSingleCase(header: string, body: string): ParsedCase | null {
     location: location || "",
     office_days: workStyle || "",
     flow,
+    client_company: "",
+    commercial_flow: commercialFlow || "",
     source_url: sourceUrl,
     _raw_title: rawTitle,
     _commercial_flow: commercialFlow || "",
@@ -308,6 +312,8 @@ function parseBracketSingleCase(text: string): ParsedCase | null {
     location,
     office_days: "",
     flow,
+    client_company: "",
+    commercial_flow: commercialFlow || "",
     source_url: "",
     _raw_title: rawTitle,
     _commercial_flow: commercialFlow || "",

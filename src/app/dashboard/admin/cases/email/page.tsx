@@ -109,6 +109,8 @@ export default function AdminCaseEmailPage() {
       must_req: c.must_req,
       nice_to_have: c.nice_to_have,
       flow: c.flow,
+      client_company: c.client_company,
+      commercial_flow: c.commercial_flow,
     });
   }
 
@@ -131,6 +133,8 @@ export default function AdminCaseEmailPage() {
       must_req: editForm.must_req || "",
       nice_to_have: editForm.nice_to_have || "",
       flow: editForm.flow || "",
+      client_company: editForm.client_company || "",
+      commercial_flow: editForm.commercial_flow || "",
     };
     setParseResult({ ...parseResult, cases: updated });
     setEditingIdx(null);
@@ -164,6 +168,8 @@ export default function AdminCaseEmailPage() {
         location: c.location || null,
         office_days: c.office_days || null,
         flow: c.flow || null,
+        client_company: c.client_company || null,
+        commercial_flow: c.commercial_flow || null,
         source: "email",
         source_url: c.source_url || null,
       }));
@@ -209,6 +215,8 @@ export default function AdminCaseEmailPage() {
     must_req: "必須要件",
     nice_to_have: "歓迎要件",
     flow: "選考フロー",
+    client_company: "元請け",
+    commercial_flow: "商流",
   };
 
   return (

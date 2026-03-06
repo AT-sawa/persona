@@ -14,7 +14,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from("favorites")
-      .select("*, cases(*)")
+      .select("*, cases(id, case_no, title, category, background, description, industry, start_date, extendable, occupancy, fee, office_days, location, must_req, nice_to_have, flow, status, published_at, created_at, is_active, source, source_url, synced_at, title_normalized, source_hash)")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 

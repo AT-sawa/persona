@@ -23,7 +23,7 @@ export default function ProfilePage() {
       }
       const { data } = await supabase
         .from("profiles")
-        .select("*")
+        .select("id, full_name, email, phone, background, skills, avatar_url, bio, years_experience, hourly_rate_min, hourly_rate_max, linkedin_url, available_from, prefecture, remote_preference, profile_complete, is_admin, is_looking, created_at, updated_at")
         .eq("id", user.id)
         .single();
       setProfile(data);

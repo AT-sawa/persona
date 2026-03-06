@@ -46,7 +46,7 @@ export default function PreferencesPage() {
     setUserId(user.id);
     const { data } = await supabase
       .from("user_preferences")
-      .select("*")
+      .select("id, user_id, desired_rate_min, desired_rate_max, desired_industries, desired_categories, desired_roles, preferred_locations, remote_preference, min_occupancy, max_occupancy, available_from, notes")
       .eq("user_id", user.id)
       .single();
     if (data) {

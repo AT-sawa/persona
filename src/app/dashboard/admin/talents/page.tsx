@@ -82,11 +82,11 @@ export default function AdminTalentsPage() {
     const [talentsRes, sourcesRes] = await Promise.all([
       supabase
         .from("external_talents")
-        .select("*")
+        .select("id, source_name, source_row_key, name, availability_date, project_type, personnel_info, resume_url, position, age_range, work_style, fee_min, fee_max, introduction, distribution, raw_data, is_active, first_synced_at, last_synced_at")
         .order("last_synced_at", { ascending: false }),
       supabase
         .from("partner_sheet_sources")
-        .select("*")
+        .select("id, name, sheet_url, source_type, sync_enabled, last_synced_at, last_sync_result")
         .order("name"),
     ]);
 

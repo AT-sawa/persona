@@ -21,6 +21,8 @@ const INITIAL_FORM = {
   must_req: "",
   nice_to_have: "",
   flow: "",
+  client_company: "",
+  commercial_flow: "",
   is_active: true,
 };
 
@@ -86,6 +88,8 @@ export default function AdminNewCasePage() {
         must_req: form.must_req || null,
         nice_to_have: form.nice_to_have || null,
         flow: form.flow || null,
+        client_company: form.client_company || null,
+        commercial_flow: form.commercial_flow || null,
         is_active: form.is_active,
         status: "active",
       });
@@ -155,6 +159,30 @@ export default function AdminNewCasePage() {
                 value={form.case_no}
                 onChange={(e) => update("case_no", e.target.value)}
                 placeholder="例: P-2026-001"
+                className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-[#888] mb-1">
+                元請け <span className="text-[10px] text-[#aaa] font-normal">※ユーザーには非公開</span>
+              </label>
+              <input
+                type="text"
+                value={form.client_company}
+                onChange={(e) => update("client_company", e.target.value)}
+                placeholder="例: 株式会社○○"
+                className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-[#888] mb-1">
+                商流 <span className="text-[10px] text-[#aaa] font-normal">※ユーザーには非公開</span>
+              </label>
+              <input
+                type="text"
+                value={form.commercial_flow}
+                onChange={(e) => update("commercial_flow", e.target.value)}
+                placeholder="例: エンド直 / 2次請け"
                 className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
               />
             </div>

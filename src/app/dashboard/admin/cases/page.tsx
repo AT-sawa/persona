@@ -86,7 +86,7 @@ export default function AdminCasesPage() {
       // Admin can see all cases (active + inactive)
       const { data } = await supabase
         .from("cases")
-        .select("*")
+        .select("id, case_no, title, category, background, description, industry, start_date, extendable, occupancy, fee, office_days, location, must_req, nice_to_have, flow, status, published_at, created_at, is_active, client_company, commercial_flow, source, source_url, synced_at, title_normalized, source_hash, email_intake_id")
         .order("created_at", { ascending: false });
       setCases(data ?? []);
 
@@ -163,6 +163,12 @@ export default function AdminCasesPage() {
             className="px-4 py-2 border border-[#E15454] text-[#E15454] text-[13px] font-bold hover:bg-[#fef2f2] transition-colors"
           >
             外部同期
+          </Link>
+          <Link
+            href="/dashboard/admin/cases/emails"
+            className="px-4 py-2 border border-[#E15454] text-[#E15454] text-[13px] font-bold hover:bg-[#fef2f2] transition-colors"
+          >
+            受信ログ
           </Link>
           <Link
             href="/dashboard/admin/cases/email"
@@ -280,6 +286,16 @@ export default function AdminCasesPage() {
 
                       {/* Row 4: meta */}
                       <div className="ml-7 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#aaa]">
+                        {c.client_company && (
+                          <span className="text-navy font-bold">
+                            元請: {c.client_company}
+                          </span>
+                        )}
+                        {c.commercial_flow && (
+                          <span className="text-navy font-bold">
+                            商流: {c.commercial_flow}
+                          </span>
+                        )}
                         {c.created_at && (
                           <span>
                             作成:{" "}
@@ -327,6 +343,16 @@ export default function AdminCasesPage() {
                           <InfoRow
                             label="案件名"
                             value={c.title}
+                            highlight
+                          />
+                          <InfoRow
+                            label="元請け"
+                            value={c.client_company}
+                            highlight
+                          />
+                          <InfoRow
+                            label="商流"
+                            value={c.commercial_flow}
                             highlight
                           />
                           <InfoRow label="カテゴリ" value={c.category} />

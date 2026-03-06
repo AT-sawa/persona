@@ -72,7 +72,7 @@ export default function AppCasesPage() {
     const [casesRes, matchRes] = await Promise.all([
       supabase
         .from("cases")
-        .select("*")
+        .select("id, title, fee, location, occupancy, category, industry, is_active, status, description, must_req, published_at")
         .eq("is_active", true)
         .order("published_at", { ascending: false }),
       supabase

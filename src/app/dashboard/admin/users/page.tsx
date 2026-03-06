@@ -41,7 +41,7 @@ export default function AdminUsersPage() {
 
       const { data } = await supabase
         .from("profiles")
-        .select("*")
+        .select("id, full_name, email, phone, background, skills, avatar_url, bio, years_experience, hourly_rate_min, hourly_rate_max, linkedin_url, available_from, prefecture, remote_preference, profile_complete, is_admin, is_looking, created_at, updated_at")
         .order("created_at", { ascending: false });
       setUsers(data ?? []);
       setLoading(false);

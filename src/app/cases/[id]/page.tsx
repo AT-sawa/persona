@@ -27,7 +27,7 @@ async function getCase(id: string): Promise<Case | null> {
     // Fetch all cases (active + closed) for SEO
     const { data } = await supabase
       .from("cases")
-      .select("*")
+      .select("id, case_no, title, category, background, description, industry, start_date, extendable, occupancy, fee, office_days, location, must_req, nice_to_have, flow, status, published_at, created_at, is_active, source, source_url, synced_at, title_normalized, source_hash")
       .eq("id", id)
       .single();
     return data as Case | null;
@@ -156,7 +156,7 @@ export default async function CaseDetailPage({ params }: Props) {
     { label: "延長可能性", value: caseData.extendable },
     { label: "出社頻度", value: caseData.office_days },
     { label: "場所", value: caseData.location },
-    { label: "商流", value: caseData.flow },
+    { label: "選考フロー", value: caseData.flow },
   ];
 
   const sections = [

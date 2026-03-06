@@ -42,7 +42,7 @@ export default function ExperiencePage() {
     setUserId(user.id);
     const { data } = await supabase
       .from("user_experiences")
-      .select("*")
+      .select("id, user_id, company_name, role, industry, start_date, end_date, is_current, description, skills_used, sort_order, created_at, updated_at")
       .eq("user_id", user.id)
       .order("start_date", { ascending: false });
     setExperiences(data ?? []);
