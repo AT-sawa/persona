@@ -135,3 +135,55 @@ export interface Notification {
   is_read: boolean;
   created_at: string | null;
 }
+
+export interface PerkCategory {
+  id: string;
+  name: string;
+  name_en: string | null;
+  slug: string;
+  icon: string | null;
+  sort_order: number;
+  is_active: boolean;
+}
+
+export interface Perk {
+  id: string;
+  category_id: string;
+  title: string;
+  provider: string | null;
+  description: string | null;
+  benefit_summary: string | null;
+  details: string | null;
+  how_to_use: string | null;
+  external_url: string | null;
+  image_url: string | null;
+  tier: "standard" | "gold" | "platinum";
+  is_active: boolean;
+  is_featured: boolean;
+  sort_order: number;
+  valid_from: string | null;
+  valid_until: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  perk_categories?: PerkCategory;
+}
+
+export interface SeoKeyword {
+  id: string;
+  keyword: string;
+  target_url: string | null;
+  is_primary: boolean;
+  created_at: string | null;
+}
+
+export interface SeoSnapshot {
+  id: string;
+  keyword_id: string;
+  position: number | null;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  snapshot_date: string;
+  source: string;
+  created_at: string | null;
+}

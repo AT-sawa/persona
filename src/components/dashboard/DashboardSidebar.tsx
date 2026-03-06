@@ -15,7 +15,9 @@ const NAV_ITEMS = [
   { href: "/dashboard/favorites", label: "お気に入り", icon: "bookmark" },
   { href: "/dashboard/matching", label: "マッチング", icon: "auto_awesome" },
   { href: "/dashboard/entries", label: "エントリー", icon: "send" },
+  { href: "/dashboard/case-studies", label: "事例投稿", icon: "edit_note" },
   { href: "/dashboard/notifications", label: "通知", icon: "notifications" },
+  { href: "/dashboard/perks", label: "特典", icon: "redeem" },
 ];
 
 const ADMIN_ITEMS = [
@@ -23,7 +25,10 @@ const ADMIN_ITEMS = [
   { href: "/dashboard/admin/users", label: "ユーザー管理", icon: "group" },
   { href: "/dashboard/admin/cases", label: "案件管理", icon: "folder_open" },
   { href: "/dashboard/admin/entries", label: "エントリー管理", icon: "assignment" },
+  { href: "/dashboard/admin/case-studies", label: "事例管理", icon: "rate_review" },
   { href: "/dashboard/admin/analytics", label: "アナリティクス", icon: "analytics" },
+  { href: "/dashboard/admin/seo", label: "SEO", icon: "monitoring" },
+  { href: "/dashboard/admin/perks", label: "特典管理", icon: "loyalty" },
 ];
 
 export default function DashboardSidebar() {
