@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { logAudit } from "@/lib/audit";
+import { generateEmbedding, buildCaseEmbeddingText } from "@/lib/embedding";
+import type { Case } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
   try {
@@ -114,7 +117,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from("cases")
       .insert(newCases)
-      .select("id");
+      .select("*");
 
     if (error) {
       console.error("Case import error:", error);
@@ -122,6 +125,26 @@ export async function POST(request: NextRequest) {
         { error: "インポートに失敗しました" },
         { status: 500 }
       );
+    }
+
+    // Generate embeddings for newly inserted cases (best effort)
+    if (data && data.length > 0) {
+      const svc = createServiceClient();
+      for (const c of data as Case[]) {
+        try {
+          const text = buildCaseEmbeddingText(c);
+          if (!text.trim()) continue;
+          const embedding = await generateEmbedding(text);
+          if (embedding) {
+            await svc
+              .from("cases")
+              .update({ embedding: JSON.stringify(embedding) })
+              .eq("id", c.id);
+          }
+        } catch {
+          // Best effort — hourly cron will catch any missed cases
+        }
+      }
     }
 
     await logAudit({

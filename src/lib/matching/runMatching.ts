@@ -414,6 +414,7 @@ async function runSemanticMatching(
             caseData: caseMap.get(s.case_id)!,
             profile,
             experiences,
+            preferences,
           }));
           llmResults = await batchAnalyzeMatches(matchInputs, 5);
         }

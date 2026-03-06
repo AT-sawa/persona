@@ -15,6 +15,10 @@
     {
       "path": "/api/cron/seo-sync",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/embed-cases",
+      "schedule": "0 * * * *"
     }
   ]
 }

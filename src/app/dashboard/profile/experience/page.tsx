@@ -121,6 +121,9 @@ export default function ExperiencePage() {
       setEditing(null);
       setForm(EMPTY_FORM);
       await fetchExperiences();
+
+      // Trigger embedding regeneration + matching recalculation
+      fetch("/api/matching/trigger", { method: "POST" }).catch(() => {});
     } catch {
       setError("保存に失敗しました。もう一度お試しください。");
     } finally {
@@ -133,6 +136,9 @@ export default function ExperiencePage() {
     const supabase = createClient();
     await supabase.from("user_experiences").delete().eq("id", id);
     await fetchExperiences();
+
+    // Trigger embedding regeneration + matching recalculation
+    fetch("/api/matching/trigger", { method: "POST" }).catch(() => {});
   }
 
   function updateSkills(value: string) {

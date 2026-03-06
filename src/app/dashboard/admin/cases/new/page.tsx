@@ -91,6 +91,10 @@ export default function AdminNewCasePage() {
       });
 
       if (insertError) throw insertError;
+
+      // Trigger embedding generation for the new case
+      fetch("/api/admin/embeddings", { method: "POST" }).catch(() => {});
+
       router.push("/dashboard/admin/cases");
     } catch {
       setError("保存に失敗しました。もう一度お試しください。");

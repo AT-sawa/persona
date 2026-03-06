@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { parseEmailCases } from "@/lib/parse-email-cases";
 import { Resend } from "resend";
+import { generateEmbedding, buildCaseEmbeddingText } from "@/lib/embedding";
+import type { Case } from "@/lib/types";
 
 /**
  * メール転送 Webhook — 案件メールを自動パース・登録
@@ -235,8 +237,27 @@ export async function POST(request: NextRequest) {
       const { data } = await supabase
         .from("cases")
         .insert(newCases)
-        .select("id");
+        .select("*");
       imported = data?.length ?? 0;
+
+      // Generate embeddings for newly inserted cases (best effort)
+      if (data && data.length > 0) {
+        for (const c of data as Case[]) {
+          try {
+            const text = buildCaseEmbeddingText(c);
+            if (!text.trim()) continue;
+            const embedding = await generateEmbedding(text);
+            if (embedding) {
+              await supabase
+                .from("cases")
+                .update({ embedding: JSON.stringify(embedding) })
+                .eq("id", c.id);
+            }
+          } catch {
+            // Best effort — hourly cron will catch any missed cases
+          }
+        }
+      }
     }
 
     // ── 管理者に結果通知 ──

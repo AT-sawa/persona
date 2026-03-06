@@ -83,6 +83,9 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
 
       if (updateError) throw updateError;
       setSaved(true);
+
+      // Trigger embedding regeneration + matching recalculation
+      fetch("/api/matching/trigger", { method: "POST" }).catch(() => {});
     } catch {
       setError("保存に失敗しました。もう一度お試しください。");
     } finally {
