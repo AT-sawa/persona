@@ -371,6 +371,7 @@ export async function POST(request: NextRequest) {
       fee: c.fee || null,
       occupancy: c.occupancy || null,
       location: c.location || null,
+      work_style: c.work_style || null,
       office_days: c.office_days || null,
       must_req: c.must_req || null,
       nice_to_have: c.nice_to_have || null,

@@ -19,6 +19,7 @@ export interface ParsedCase {
   fee: string;
   occupancy: string;
   location: string;
+  work_style: string;
   office_days: string;
   flow: string;
   client_company: string;
@@ -179,6 +180,7 @@ function parseXienzSingleCase(header: string, body: string): ParsedCase | null {
     fee: fee || "",
     occupancy: occupancy || "",
     location: location || "",
+    work_style: inferWorkStyle(workStyle || location || ""),
     office_days: workStyle || "",
     flow,
     client_company: "",
@@ -310,6 +312,7 @@ function parseBracketSingleCase(text: string): ParsedCase | null {
     fee,
     occupancy: occupancyStr,
     location,
+    work_style: inferWorkStyle(location || ""),
     office_days: "",
     flow,
     client_company: "",
@@ -418,4 +421,17 @@ function guessCategory(title: string, content: string, roleTask: string): string
 
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\\/]/g, "\\$&");
+}
+
+/**
+ * 勤務形態テキストから構造化された work_style 値を推定
+ */
+export function inferWorkStyle(text: string): string {
+  if (!text) return "";
+  const t = text.toLowerCase();
+  if (t.includes("フルリモート") || t === "リモート" || t.includes("完全リモート") || t.includes("在宅")) return "フルリモート";
+  if (t.includes("ミーティング") || t.includes("mtg") || t.includes("会議のみ")) return "ミーティング出社";
+  if (t.includes("常駐") || t.includes("フル出社") || t.includes("毎日出社") || t.includes("週5")) return "常駐";
+  if (t.includes("一部リモート") || t.includes("ハイブリッド") || /週\d日.*出社/.test(t) || t.includes("リモート")) return "一部リモート";
+  return "";
 }

@@ -57,7 +57,7 @@ export default function AppCaseDetailPage() {
     }
 
     const [caseRes, matchRes, resumeRes, entryRes] = await Promise.all([
-      supabase.from("cases").select("id, case_no, title, category, background, description, industry, start_date, extendable, occupancy, fee, office_days, location, must_req, nice_to_have, flow, status, published_at, created_at, is_active, source, source_url, synced_at, title_normalized, source_hash").eq("id", caseId).single(),
+      supabase.from("cases").select("id, case_no, title, category, background, description, industry, start_date, extendable, occupancy, fee, work_style, office_days, location, must_req, nice_to_have, flow, status, published_at, created_at, is_active, source, source_url, synced_at, title_normalized, source_hash").eq("id", caseId).single(),
       supabase
         .from("matching_results")
         .select("id, case_id, user_id, score, factors, is_notified, semantic_score, llm_reasoning, matched_at")
@@ -246,6 +246,7 @@ export default function AppCaseDetailPage() {
             { label: "報酬", value: caseData.fee },
             { label: "稼働率", value: caseData.occupancy },
             { label: "勤務地", value: caseData.location },
+            { label: "勤務形態", value: caseData.work_style },
             { label: "出社日数", value: caseData.office_days },
             { label: "業界", value: caseData.industry },
             { label: "開始日", value: caseData.start_date },

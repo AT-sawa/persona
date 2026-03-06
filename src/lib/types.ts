@@ -11,6 +11,8 @@ export interface Case {
   occupancy: string | null;
   fee: string | null;
   office_days: string | null;
+  // Work style (フルリモート | 一部リモート | 常駐 | ミーティング出社)
+  work_style: string | null;
   location: string | null;
   must_req: string | null;
   nice_to_have: string | null;

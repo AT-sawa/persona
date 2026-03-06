@@ -126,14 +126,25 @@ export function calculateScore(
 
   if (userRemote || userLocations.length > 0) {
     factors.location.active = true;
-    if (caseData.location) {
-      const caseIsRemote =
-        caseData.office_days?.includes("フルリモート") ||
-        caseData.location?.includes("リモート");
+    if (caseData.location || caseData.work_style) {
+      // Prefer structured work_style, fall back to keyword matching
+      const ws = caseData.work_style;
+      const caseIsRemote = ws === "フルリモート" ||
+        ws === "ミーティング出社" ||
+        (!ws && (caseData.office_days?.includes("フルリモート") || caseData.location?.includes("リモート")));
+      const caseIsHybrid = ws === "一部リモート" ||
+        (!ws && caseData.office_days?.includes("一部リモート"));
+      const caseIsOnsite = ws === "常駐";
 
       if (caseIsRemote && (userRemote === "remote_only" || userRemote === "any")) {
         factors.location.score = WEIGHTS.location;
         factors.location.details = "リモートマッチ";
+      } else if (caseIsHybrid && (userRemote === "hybrid" || userRemote === "any")) {
+        factors.location.score = WEIGHTS.location;
+        factors.location.details = "ハイブリッドマッチ";
+      } else if (caseIsOnsite && (userRemote === "onsite" || userRemote === "any")) {
+        factors.location.score = WEIGHTS.location;
+        factors.location.details = "常駐マッチ";
       } else if (userLocations.length > 0) {
         const locationMatch = userLocations.some((loc) =>
           caseData.location?.includes(loc)

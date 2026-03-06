@@ -86,7 +86,7 @@ export default function AdminCasesPage() {
       // Admin can see all cases (active + inactive)
       const { data } = await supabase
         .from("cases")
-        .select("id, case_no, title, category, background, description, industry, start_date, extendable, occupancy, fee, office_days, location, must_req, nice_to_have, flow, status, published_at, created_at, is_active, client_company, commercial_flow, source, source_url, synced_at, title_normalized, source_hash, email_intake_id")
+        .select("id, case_no, title, category, background, description, industry, start_date, extendable, occupancy, fee, work_style, office_days, location, must_req, nice_to_have, flow, status, published_at, created_at, is_active, client_company, commercial_flow, source, source_url, synced_at, title_normalized, source_hash, email_intake_id")
         .order("created_at", { ascending: false });
       setCases(data ?? []);
 
@@ -174,7 +174,7 @@ export default function AdminCasesPage() {
             href="/dashboard/admin/cases/email"
             className="px-4 py-2 border border-[#E15454] text-[#E15454] text-[13px] font-bold hover:bg-[#fef2f2] transition-colors"
           >
-            メールから登録
+            テキスト登録
           </Link>
           <Link
             href="/dashboard/admin/cases/import"
@@ -280,6 +280,7 @@ export default function AdminCasesPage() {
                           <Tag color="green">開始: {c.start_date}</Tag>
                         )}
                         {c.location && <Tag>{c.location}</Tag>}
+                        {c.work_style && <Tag color="green">{c.work_style}</Tag>}
                         {c.office_days && <Tag>{c.office_days}</Tag>}
                         {c.industry && <Tag>{c.industry}</Tag>}
                       </div>
@@ -373,6 +374,11 @@ export default function AdminCasesPage() {
                             highlight
                           />
                           <InfoRow label="勤務地" value={c.location} />
+                          <InfoRow
+                            label="勤務形態"
+                            value={c.work_style}
+                            highlight
+                          />
                           <InfoRow
                             label="出社日数"
                             value={c.office_days}

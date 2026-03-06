@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
       extendable: c.extendable || c["延長"] || null,
       occupancy: c.occupancy || c["稼働率"] || c["稼働"] || null,
       fee: c.fee || c["報酬"] || c["単価"] || null,
+      work_style: c.work_style || c["勤務形態"] || null,
       office_days: c.office_days || c["出社"] || c["出社日数"] || null,
       location: c.location || c["勤務地"] || c["場所"] || null,
       must_req: c.must_req || c["必須要件"] || c["必須スキル"] || null,

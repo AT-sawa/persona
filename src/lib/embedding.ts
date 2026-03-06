@@ -65,6 +65,9 @@ export function buildCaseEmbeddingText(c: Case): string {
   if (c.location) {
     parts.push(`勤務地: ${c.location}`);
   }
+  if (c.work_style) {
+    parts.push(`勤務形態: ${c.work_style}`);
+  }
   if (c.office_days) {
     parts.push(`出社頻度: ${c.office_days}`);
   }

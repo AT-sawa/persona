@@ -4,16 +4,21 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { parseEmailCases, type ParsedCase, type ParseResult } from "@/lib/parse-email-cases";
+import { parseEmailCases, type ParseResult } from "@/lib/parse-email-cases";
+import { WORK_STYLE_OPTIONS } from "@/lib/constants";
 
 function Icon({ name, className = "" }: { name: string; className?: string }) {
   return <span className={`material-symbols-rounded ${className}`}>{name}</span>;
 }
 
+type TabType = "email" | "ai-text";
+
 export default function AdminCaseEmailPage() {
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
-  const [emailText, setEmailText] = useState("");
+  const [activeTab, setActiveTab] = useState<TabType>("email");
+
+  // Shared state
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -25,6 +30,13 @@ export default function AdminCaseEmailPage() {
     duplicates?: number;
   } | null>(null);
   const [error, setError] = useState("");
+
+  // Email tab state
+  const [emailText, setEmailText] = useState("");
+
+  // AI tab state
+  const [aiText, setAiText] = useState("");
+  const [aiParsing, setAiParsing] = useState(false);
 
   useEffect(() => {
     async function checkAdmin() {
@@ -50,7 +62,25 @@ export default function AdminCaseEmailPage() {
     checkAdmin();
   }, [router]);
 
-  function handleParse() {
+  function resetAll() {
+    setParseResult(null);
+    setImportResult(null);
+    setEmailText("");
+    setAiText("");
+    setSelected(new Set());
+    setEditingIdx(null);
+    setEditForm({});
+    setError("");
+  }
+
+  function switchTab(tab: TabType) {
+    if (tab === activeTab) return;
+    resetAll();
+    setActiveTab(tab);
+  }
+
+  // ── Email tab: regex parse ──
+  function handleEmailParse() {
     if (!emailText.trim()) {
       setError("メール本文を貼り付けてください");
       return;
@@ -59,7 +89,6 @@ export default function AdminCaseEmailPage() {
     setImportResult(null);
     const result = parseEmailCases(emailText);
     setParseResult(result);
-    // 全案件を選択状態にする
     setSelected(new Set(result.cases.map((_, i) => i)));
     setEditingIdx(null);
     setEditForm({});
@@ -69,6 +98,43 @@ export default function AdminCaseEmailPage() {
     }
   }
 
+  // ── AI tab: Claude parse ──
+  async function handleAiParse() {
+    if (!aiText.trim()) {
+      setError("テキストを貼り付けてください");
+      return;
+    }
+    setError("");
+    setImportResult(null);
+    setAiParsing(true);
+
+    try {
+      const res = await fetch("/api/admin/cases/parse-text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: aiText }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "AI解析に失敗しました");
+        return;
+      }
+      setParseResult(data);
+      setSelected(new Set((data.cases || []).map((_: unknown, i: number) => i)));
+      setEditingIdx(null);
+      setEditForm({});
+
+      if (!data.cases || data.cases.length === 0) {
+        setError("案件情報を抽出できませんでした。テキストの内容を確認してください。");
+      }
+    } catch {
+      setError("AI解析に失敗しました。もう一度お試しください。");
+    } finally {
+      setAiParsing(false);
+    }
+  }
+
+  // ── Shared functions ──
   function toggleSelect(idx: number) {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -102,6 +168,7 @@ export default function AdminCaseEmailPage() {
       fee: c.fee,
       occupancy: c.occupancy,
       location: c.location,
+      work_style: c.work_style,
       office_days: c.office_days,
       start_date: c.start_date,
       background: c.background,
@@ -126,6 +193,7 @@ export default function AdminCaseEmailPage() {
       fee: editForm.fee || "",
       occupancy: editForm.occupancy || "",
       location: editForm.location || "",
+      work_style: editForm.work_style || "",
       office_days: editForm.office_days || "",
       start_date: editForm.start_date || "",
       background: editForm.background || "",
@@ -152,7 +220,6 @@ export default function AdminCaseEmailPage() {
     setImporting(true);
 
     try {
-      // ParsedCase → API用のRecord形式に変換
       const casesForApi = selectedCases.map((c) => ({
         case_no: c.case_no || null,
         title: c.title,
@@ -166,11 +233,12 @@ export default function AdminCaseEmailPage() {
         fee: c.fee || null,
         occupancy: c.occupancy || null,
         location: c.location || null,
+        work_style: c.work_style || null,
         office_days: c.office_days || null,
         flow: c.flow || null,
         client_company: c.client_company || null,
         commercial_flow: c.commercial_flow || null,
-        source: "email",
+        source: activeTab === "email" ? "email" : "ai-text",
         source_url: c.source_url || null,
       }));
 
@@ -208,7 +276,8 @@ export default function AdminCaseEmailPage() {
     fee: "報酬",
     occupancy: "稼働率",
     location: "勤務地",
-    office_days: "勤務形態",
+    work_style: "勤務形態",
+    office_days: "出社日数（補足）",
     start_date: "期間",
     background: "案件背景",
     description: "業務内容",
@@ -226,16 +295,44 @@ export default function AdminCaseEmailPage() {
           href="/dashboard/admin/cases"
           className="text-[12px] text-[#E15454] hover:underline mb-2 inline-block"
         >
-          ← 案件管理
+          &larr; 案件管理
         </Link>
         <p className="text-[10px] font-bold text-[#E15454] tracking-[0.18em] uppercase mb-1">
-          ADMIN / EMAIL IMPORT
+          ADMIN / CASE IMPORT
         </p>
-        <h1 className="text-xl font-black text-navy">メールから案件一括登録</h1>
+        <h1 className="text-xl font-black text-navy">テキストから案件登録</h1>
         <p className="text-[13px] text-[#888] mt-1">
-          パートナーからの案件メールを貼り付けると、複数案件を自動抽出して一括登録できます。
+          メールやチャット等の案件情報を貼り付けて、自動抽出 → プレビュー → 一括登録できます。
         </p>
       </div>
+
+      {/* ── Tab Navigation ── */}
+      {!importResult && (
+        <div className="flex mb-5 border-b border-border">
+          <button
+            onClick={() => switchTab("email")}
+            className={`px-5 py-3 text-[13px] font-bold border-b-2 transition-colors flex items-center gap-2 ${
+              activeTab === "email"
+                ? "border-[#E15454] text-navy"
+                : "border-transparent text-[#888] hover:text-navy"
+            }`}
+          >
+            <Icon name="email" className="text-[18px]" />
+            メールから登録
+          </button>
+          <button
+            onClick={() => switchTab("ai-text")}
+            className={`px-5 py-3 text-[13px] font-bold border-b-2 transition-colors flex items-center gap-2 ${
+              activeTab === "ai-text"
+                ? "border-[#E15454] text-navy"
+                : "border-transparent text-[#888] hover:text-navy"
+            }`}
+          >
+            <Icon name="auto_awesome" className="text-[18px]" />
+            テキストから登録（AI）
+          </button>
+        </div>
+      )}
 
       {/* Import Result */}
       {importResult && (
@@ -264,13 +361,7 @@ export default function AdminCaseEmailPage() {
               案件管理に戻る
             </Link>
             <button
-              onClick={() => {
-                setParseResult(null);
-                setImportResult(null);
-                setEmailText("");
-                setSelected(new Set());
-                setError("");
-              }}
+              onClick={resetAll}
               className="px-6 py-2 border border-border text-[13px] font-bold text-navy hover:bg-[#f5f5f5] transition-colors"
             >
               続けてインポート
@@ -279,8 +370,8 @@ export default function AdminCaseEmailPage() {
         </div>
       )}
 
-      {/* Step 1: Paste email */}
-      {!importResult && (
+      {/* ══ Tab 1: Email (regex parser) ══ */}
+      {activeTab === "email" && !importResult && (
         <div className="bg-white border border-border p-6 mb-5">
           <h2 className="text-sm font-bold text-navy mb-1 pb-3 border-b-2 border-[#E15454]">
             STEP 1 — メール本文を貼り付け
@@ -301,7 +392,7 @@ export default function AdminCaseEmailPage() {
           {error && !parseResult && <p className="text-[12px] text-[#E15454] mt-2">{error}</p>}
           <div className="mt-3 flex gap-3">
             <button
-              onClick={handleParse}
+              onClick={handleEmailParse}
               className="px-8 py-3 bg-[#E15454] text-white text-[14px] font-bold hover:bg-[#d04343] transition-colors flex items-center gap-2"
             >
               <Icon name="auto_awesome" className="text-[18px]" />
@@ -324,7 +415,62 @@ export default function AdminCaseEmailPage() {
         </div>
       )}
 
-      {/* Parse errors */}
+      {/* ══ Tab 2: AI text parser ══ */}
+      {activeTab === "ai-text" && !importResult && (
+        <div className="bg-white border border-border p-6 mb-5">
+          <h2 className="text-sm font-bold text-navy mb-1 pb-3 border-b-2 border-[#E15454]">
+            STEP 1 — 案件情報を貼り付け
+          </h2>
+          <p className="text-[12px] text-[#888] mb-1">
+            案件表、Slack、チャット等で受け取った案件情報をそのまま貼り付けてください。
+          </p>
+          <p className="text-[11px] text-[#aaa] mb-3">
+            AIが自動で案件情報を構造化します。どんなフォーマットでも対応可能です。
+          </p>
+          <textarea
+            value={aiText}
+            onChange={(e) => setAiText(e.target.value)}
+            rows={14}
+            placeholder={`案件情報をそのまま貼り付けてください。\n\n例:\n案件名：大手金融機関DX推進PMO\n報酬：150万円/月\n稼働率：100%\n勤務地：東京（週2出社、残りリモート）\n期間：2026年4月〜長期\n\n必須スキル：\n・金融業界でのPMO経験3年以上\n・大規模プロジェクト管理経験\n\n歓迎スキル：\n・PMP資格\n・アジャイル開発経験`}
+            className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white resize-none font-mono leading-[1.7]"
+          />
+          {error && !parseResult && <p className="text-[12px] text-[#E15454] mt-2">{error}</p>}
+          <div className="mt-3 flex gap-3">
+            <button
+              onClick={handleAiParse}
+              disabled={aiParsing}
+              className="px-8 py-3 bg-[#E15454] text-white text-[14px] font-bold hover:bg-[#d04343] transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {aiParsing ? (
+                <>
+                  <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  AI解析中...
+                </>
+              ) : (
+                <>
+                  <Icon name="auto_awesome" className="text-[18px]" />
+                  AIで解析する
+                </>
+              )}
+            </button>
+            {parseResult && (
+              <button
+                onClick={() => {
+                  setParseResult(null);
+                  setSelected(new Set());
+                  setEditingIdx(null);
+                  setError("");
+                }}
+                className="px-4 py-3 text-[13px] text-[#888] hover:text-navy transition-colors"
+              >
+                リセット
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ══ Shared: Parse errors ══ */}
       {parseResult && parseResult.errors.length > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 p-4 mb-5">
           <p className="text-[12px] font-bold text-yellow-800 mb-1">
@@ -336,7 +482,7 @@ export default function AdminCaseEmailPage() {
         </div>
       )}
 
-      {/* Step 2: Review parsed cases */}
+      {/* ══ Shared: Step 2 - Review parsed cases ══ */}
       {parseResult && parseResult.cases.length > 0 && !importResult && (
         <div className="bg-white border border-border p-6 mb-5">
           <div className="flex items-center justify-between mb-4 pb-3 border-b-2 border-[#E15454]">
@@ -391,6 +537,11 @@ export default function AdminCaseEmailPage() {
                           {c.industry}
                         </span>
                       )}
+                      {c.work_style && (
+                        <span className="text-[10px] bg-[#ecfdf5] text-[#10b981] px-2 py-0.5 font-bold">
+                          {c.work_style}
+                        </span>
+                      )}
                       {c._sales_rep && (
                         <span className="text-[10px] text-[#aaa]">
                           担当: {c._sales_rep}
@@ -427,7 +578,7 @@ export default function AdminCaseEmailPage() {
                   </button>
                 </div>
 
-                {/* Expandable detail */}
+                {/* Expandable edit form */}
                 {editingIdx === idx && (
                   <div className="mt-4 pt-4 border-t border-border">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -451,6 +602,17 @@ export default function AdminCaseEmailPage() {
                             >
                               <option value="IT">IT</option>
                               <option value="非IT">非IT</option>
+                            </select>
+                          ) : key === "work_style" ? (
+                            <select
+                              value={editForm[key] || ""}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, [key]: e.target.value }))}
+                              className="w-full px-2 py-1.5 border border-border text-[12px] text-text outline-none bg-white focus:border-blue"
+                            >
+                              <option value="">未選択</option>
+                              {WORK_STYLE_OPTIONS.map((opt) => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                              ))}
                             </select>
                           ) : (
                             <input
@@ -485,7 +647,7 @@ export default function AdminCaseEmailPage() {
         </div>
       )}
 
-      {/* Import button */}
+      {/* ══ Shared: Import button ══ */}
       {parseResult && parseResult.cases.length > 0 && !importResult && (
         <div className="mb-5">
           {error && parseResult && <p className="text-[12px] text-[#E15454] mb-3">{error}</p>}
@@ -514,14 +676,14 @@ export default function AdminCaseEmailPage() {
         </div>
       )}
 
-      {/* Original email (collapsible) */}
+      {/* Original text (collapsible) */}
       {parseResult && !importResult && (
         <details className="bg-[#f9f9fb] border border-border p-4 mb-5">
           <summary className="text-[12px] font-bold text-[#888] cursor-pointer">
-            元のメール本文を表示
+            元のテキストを表示
           </summary>
           <pre className="mt-3 text-[11px] text-[#666] whitespace-pre-wrap leading-[1.7] font-mono max-h-[300px] overflow-y-auto">
-            {emailText}
+            {activeTab === "email" ? emailText : aiText}
           </pre>
         </details>
       )}

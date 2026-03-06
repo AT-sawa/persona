@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { WORK_STYLE_OPTIONS } from "@/lib/constants";
 
 const INITIAL_FORM = {
   case_no: "",
@@ -16,6 +17,7 @@ const INITIAL_FORM = {
   extendable: "",
   occupancy: "",
   fee: "",
+  work_style: "",
   office_days: "",
   location: "",
   must_req: "",
@@ -83,6 +85,7 @@ export default function AdminNewCasePage() {
         extendable: form.extendable || null,
         occupancy: form.occupancy || null,
         fee: form.fee || null,
+        work_style: form.work_style || null,
         office_days: form.office_days || null,
         location: form.location || null,
         must_req: form.must_req || null,
@@ -249,13 +252,28 @@ export default function AdminNewCasePage() {
             </div>
             <div>
               <label className="block text-[11px] font-bold text-[#888] mb-1">
-                出社日数
+                勤務形態
+              </label>
+              <select
+                value={form.work_style}
+                onChange={(e) => update("work_style", e.target.value)}
+                className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
+              >
+                <option value="">選択してください</option>
+                {WORK_STYLE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-[#888] mb-1">
+                出社日数（補足）
               </label>
               <input
                 type="text"
                 value={form.office_days}
                 onChange={(e) => update("office_days", e.target.value)}
-                placeholder="例: 週3日出社 / フルリモート"
+                placeholder="例: 週3日出社"
                 className="w-full px-3 py-2.5 border border-border text-[13px] text-text outline-none bg-[#fafafa] focus:border-blue focus:bg-white"
               />
             </div>
