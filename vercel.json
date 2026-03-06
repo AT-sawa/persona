@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/sync-talents",
       "schedule": "0 21 * * *"
+    },
+    {
+      "path": "/api/cron/seo-sync",
+      "schedule": "0 3 * * *"
     }
   ]
 }

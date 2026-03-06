@@ -30,13 +30,13 @@ export const AB_EXPERIMENTS: ABExperiment[] = [
     id: "cta-text",
     description: "Test CTA button text: A=無料登録 vs B=案件を見てみる",
     trafficB: 0.5,
-    active: false,
+    active: true,
   },
   {
     id: "hero-layout",
-    description: "Test hero section layout: A=current vs B=video background",
+    description: "Test hero section layout: A=current vs B=stats-focused",
     trafficB: 0.5,
-    active: false,
+    active: true,
   },
 ];
 

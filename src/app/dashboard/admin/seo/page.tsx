@@ -53,6 +53,11 @@ export default function AdminSeoPage() {
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Sync status states
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<string | null>(null);
+
   /* ─── Fetch data ─── */
   const fetchData = useCallback(async () => {
     try {
@@ -61,6 +66,20 @@ export default function AdminSeoPage() {
       const data = await res.json();
       setKeywords(data.keywords || []);
       setSnapshots(data.snapshots || []);
+
+      // Determine last Search Console sync time from snapshots
+      const scSnapshots = (data.snapshots || []).filter(
+        (s: SeoSnapshot) => s.source === "search_console"
+      );
+      if (scSnapshots.length > 0) {
+        const latest = scSnapshots.reduce(
+          (a: SeoSnapshot, b: SeoSnapshot) =>
+            (a.created_at ?? "") > (b.created_at ?? "") ? a : b
+        );
+        setLastSyncTime(latest.created_at);
+      } else {
+        setLastSyncTime(null);
+      }
     } catch (err) {
       console.error("SEO data fetch error:", err);
     }
@@ -312,6 +331,34 @@ export default function AdminSeoPage() {
       alert("削除に失敗しました");
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  async function handleManualSync() {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch("/api/cron/seo-sync", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET || ""}`,
+        },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSyncResult(`同期失敗: ${data.error || data.message || "不明なエラー"}`);
+        return;
+      }
+      setSyncResult(
+        `同期完了: ${data.keywordsSynced}件同期, ${data.newKeywordsAdded}件新規追加${
+          data.errors?.length > 0 ? ` (${data.errors.length}件のエラー)` : ""
+        }`
+      );
+      await fetchData();
+    } catch {
+      setSyncResult("同期に失敗しました。ネットワークエラーが発生しました。");
+    } finally {
+      setSyncing(false);
     }
   }
 
@@ -612,6 +659,58 @@ export default function AdminSeoPage() {
         </div>
       </div>
 
+      {/* ── Search Console Sync Status ── */}
+      <div className="bg-white rounded-xl border border-[#e3e6eb] p-5 mb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-bold text-[#091747] flex items-center gap-2">
+              <Icon name="sync" className="text-[18px] text-[#6366f1]" />
+              Search Console 同期ステータス
+            </h2>
+            <p className="text-[11px] text-[#666] mt-1">
+              最終同期:{" "}
+              {lastSyncTime
+                ? new Date(lastSyncTime).toLocaleString("ja-JP", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "未同期"}
+            </p>
+            {syncResult && (
+              <p
+                className={`text-[11px] mt-1 font-medium ${
+                  syncResult.includes("失敗")
+                    ? "text-[#ef4444]"
+                    : "text-[#10b981]"
+                }`}
+              >
+                {syncResult}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={handleManualSync}
+            disabled={syncing}
+            className="px-4 py-2 bg-[#6366f1] text-white text-[13px] font-bold rounded-lg hover:bg-[#4f46e5] transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            {syncing ? (
+              <>
+                <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                同期中...
+              </>
+            ) : (
+              <>
+                <Icon name="sync" className="text-[18px]" />
+                今すぐ同期
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
       {/* ── Position Trend Chart ── */}
       <div className="bg-white rounded-xl border border-[#e3e6eb] p-6 mb-6">
         <div className="flex items-center justify-between mb-1">
@@ -711,6 +810,9 @@ export default function AdminSeoPage() {
                       />
                     )}
                   </th>
+                  <th className="text-center py-2 pr-3 font-bold text-[#888]">
+                    ソース
+                  </th>
                   <th className="text-left py-2 pr-3 font-bold text-[#888]">
                     対象URL
                   </th>
@@ -788,6 +890,19 @@ export default function AdminSeoPage() {
                         {latest?.ctr != null
                           ? `${latest.ctr.toFixed(2)}%`
                           : "–"}
+                      </td>
+                      <td className="py-2.5 pr-3 text-center">
+                        {latest?.source === "search_console" ? (
+                          <span className="inline-block px-1.5 py-0.5 bg-[#6366f1]/10 text-[#6366f1] text-[9px] font-bold rounded">
+                            GSC
+                          </span>
+                        ) : latest ? (
+                          <span className="inline-block px-1.5 py-0.5 bg-[#888]/10 text-[#888] text-[9px] font-bold rounded">
+                            手動
+                          </span>
+                        ) : (
+                          <span className="text-[#ccc]">--</span>
+                        )}
                       </td>
                       <td className="py-2.5 pr-3 text-[#888] truncate max-w-[200px]">
                         {kw.target_url ? (

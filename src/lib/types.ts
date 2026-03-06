@@ -114,6 +114,8 @@ export interface MatchingResult {
   factors: Record<string, unknown>;
   is_notified: boolean;
   matched_at: string | null;
+  semantic_score: number | null;
+  llm_reasoning: string | null;
   cases?: Case;
 }
 

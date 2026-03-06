@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { analytics } from "@/lib/analytics";
 import type { Case, MatchingResult, Resume, Entry } from "@/lib/types";
 
 export default function AppCaseDetailPage() {
@@ -81,6 +82,11 @@ export default function AppCaseDetailPage() {
     setResumes(resumeRes.data ?? []);
     setExistingEntry(entryRes.data);
 
+    // Track case view
+    if (caseRes.data) {
+      analytics.caseView(caseId, caseRes.data.category || "");
+    }
+
     // Default to primary resume
     const primary = (resumeRes.data ?? []).find((r: Resume) => r.is_primary);
     if (primary) setSelectedResume(primary.id);
@@ -132,6 +138,7 @@ export default function AppCaseDetailPage() {
       });
 
       if (insertError) throw insertError;
+      analytics.entrySubmit(caseId);
       setSubmitted(true);
     } catch {
       setError("エントリーに失敗しました。もう一度お試しください。");

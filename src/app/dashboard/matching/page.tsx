@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { analytics } from "@/lib/analytics";
 import type { MatchingResult, Case } from "@/lib/types";
 
 type MatchWithCase = MatchingResult & { cases: Case };
@@ -38,6 +39,7 @@ export default function MatchingPage() {
     if (data && data.length > 0) {
       setLastRun(data[0].matched_at);
     }
+    analytics.matchingView();
     setLoading(false);
   }, [router]);
 
@@ -147,6 +149,12 @@ export default function MatchingPage() {
                       >
                         {getScoreLabel(match.score)} {match.score}%
                       </span>
+                      {match.semantic_score != null && (
+                        <span className="text-[10px] font-bold text-[#7c3aed] bg-[#f5f3ff] px-1.5 py-0.5">
+                          <Icon name="auto_awesome" className="text-[12px] align-middle mr-0.5" />
+                          AI分析
+                        </span>
+                      )}
                       {match.cases?.category && (
                         <span className="text-[10px] text-[#888] border border-border px-1.5 py-0.5">
                           {match.cases.category}
@@ -186,6 +194,12 @@ export default function MatchingPage() {
                           </span>
                         )}
                       </div>
+                    )}
+                    {match.llm_reasoning && (
+                      <p className="text-[11px] text-[#666] mt-1.5 flex items-start gap-1">
+                        <Icon name="psychology" className="text-[14px] text-[#7c3aed] shrink-0 mt-px" />
+                        <span>{match.llm_reasoning}</span>
+                      </p>
                     )}
                   </div>
                   <div className="shrink-0 w-14 h-14 flex flex-col items-center justify-center">

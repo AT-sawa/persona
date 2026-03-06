@@ -1,8 +1,14 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import HeroForm from "./HeroForm";
+import { useExperiment } from "@/hooks/useExperiment";
+import { analytics } from "@/lib/analytics";
 
 export default function Hero() {
+  const ctaVariant = useExperiment("cta-text");
+
   return (
     <section id="hero" className="relative overflow-hidden">
       {/* ── Background layers ── */}
@@ -75,9 +81,10 @@ export default function Hero() {
           </div>
           <Link
             href="#register"
+            onClick={() => analytics.ctaClick("hero")}
             className="inline-flex items-center gap-2 bg-blue text-white px-8 py-3.5 text-[15px] font-bold transition-colors hover:bg-blue-dark shadow-[0_4px_14px_rgba(31,171,233,0.3)]"
           >
-            無料で登録する
+            {ctaVariant === "B" ? "案件を見てみる" : "無料で登録する"}
             <span>→</span>
           </Link>
         </div>

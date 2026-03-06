@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { analytics } from "@/lib/analytics";
 import Header from "@/components/Header";
 import SkillsInput from "@/components/dashboard/SkillsInput";
 
@@ -159,12 +160,18 @@ export default function OnboardingPage() {
     let ok = false;
     if (step === 1) ok = await saveStep1();
     if (step === 2) ok = await saveStep2();
-    if (ok) setStep(step + 1);
+    if (ok) {
+      analytics.onboardingStep(step + 1);
+      setStep(step + 1);
+    }
   }
 
   async function handleComplete() {
     const ok = await saveStep3();
-    if (ok) router.push("/dashboard");
+    if (ok) {
+      analytics.onboardingComplete();
+      router.push("/dashboard");
+    }
   }
 
   async function handleSkip() {

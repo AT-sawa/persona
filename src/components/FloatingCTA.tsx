@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { analytics } from "@/lib/analytics";
 
 const HIDDEN_PATHS = ["/auth/register", "/dashboard", "/onboarding", "/services/assessment"];
 const SESSION_KEY = "persona_cta_dismissed";
@@ -109,6 +110,7 @@ export default function FloatingCTA() {
         </p>
         <Link
           href="/auth/register"
+          onClick={() => analytics.ctaClick("floating_pc")}
           className="flex items-center justify-center gap-2 w-full py-3 bg-blue text-white text-[14px] font-bold rounded-lg transition-colors hover:bg-blue-dark shadow-[0_4px_14px_rgba(31,171,233,0.25)]"
         >
           無料で登録する
@@ -128,6 +130,7 @@ export default function FloatingCTA() {
         </div>
         <Link
           href="/auth/register"
+          onClick={() => analytics.ctaClick("floating_mobile")}
           className="shrink-0 bg-blue text-white text-[13px] font-bold px-5 py-2.5 rounded-lg transition-colors hover:bg-blue-dark"
         >
           無料登録

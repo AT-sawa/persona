@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { analytics } from "@/lib/analytics";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
@@ -19,6 +20,10 @@ export default function RegisterPage() {
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    analytics.signupStart();
+  }, []);
 
   function update(key: string, value: string) {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -56,6 +61,8 @@ export default function RegisterPage() {
         setLoading(false);
         return;
       }
+
+      analytics.signupComplete("email");
 
       // Auto-login after registration
       const supabase = createClient();
