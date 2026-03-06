@@ -5,6 +5,8 @@ import Footer from "@/components/Footer";
 import Link from "next/link";
 import { CASE_STUDIES, CASE_STUDY_SLUGS } from "@/lib/case-studies-data";
 import { BASE_URL } from "@/lib/constants";
+import { EXPERTISE_AREAS } from "@/lib/expertise-data";
+import { INDUSTRY_AREAS } from "@/lib/industry-data";
 
 export const revalidate = 3600;
 
@@ -42,6 +44,11 @@ const categoryColors: Record<string, { bg: string; text: string }> = {
   "新規事業開発": { bg: "bg-[#f59e0b]/10", text: "text-[#f59e0b]" },
   "業務改革（BPR）": { bg: "bg-[#8b5cf6]/10", text: "text-[#8b5cf6]" },
   "経営戦略": { bg: "bg-[#34d399]/10", text: "text-[#059669]" },
+  "M&A/PMI": { bg: "bg-[#ef4444]/10", text: "text-[#ef4444]" },
+  "ITシステム": { bg: "bg-[#0ea5e9]/10", text: "text-[#0ea5e9]" },
+  "SCM": { bg: "bg-[#14b8a6]/10", text: "text-[#14b8a6]" },
+  "人事・組織": { bg: "bg-[#f97316]/10", text: "text-[#f97316]" },
+  "マーケティング・CX": { bg: "bg-[#ec4899]/10", text: "text-[#ec4899]" },
 };
 
 const resultGradients = [
@@ -142,14 +149,44 @@ export default async function CaseStudyDetailPage({ params }: Props) {
 
             {/* Badges */}
             <div className="flex items-center gap-2 mb-6">
-              <span
-                className={`inline-flex items-center text-[10px] font-bold ${color.bg} ${color.text} rounded-full px-3 py-1`}
-              >
-                {study.category}
-              </span>
-              <span className="text-[10px] font-bold text-white/60 bg-white/10 rounded-full px-3 py-1">
-                {study.industry}
-              </span>
+              {(() => {
+                const expertiseSlug = study.expertiseAreas?.[0];
+                const expertiseArea = expertiseSlug ? EXPERTISE_AREAS[expertiseSlug] : null;
+                if (expertiseArea) {
+                  return (
+                    <Link
+                      href={`/expertise/${expertiseSlug}`}
+                      className={`inline-flex items-center text-[10px] font-bold ${color.bg} ${color.text} rounded-full px-3 py-1 hover:opacity-80 transition-opacity`}
+                    >
+                      {study.category}
+                    </Link>
+                  );
+                }
+                return (
+                  <span className={`inline-flex items-center text-[10px] font-bold ${color.bg} ${color.text} rounded-full px-3 py-1`}>
+                    {study.category}
+                  </span>
+                );
+              })()}
+              {(() => {
+                const industrySlug = study.industryAreas?.[0];
+                const industryArea = industrySlug ? INDUSTRY_AREAS[industrySlug] : null;
+                if (industryArea) {
+                  return (
+                    <Link
+                      href={`/industries/${industrySlug}`}
+                      className="text-[10px] font-bold text-white/60 bg-white/10 rounded-full px-3 py-1 hover:bg-white/20 transition-colors"
+                    >
+                      {study.industry}
+                    </Link>
+                  );
+                }
+                return (
+                  <span className="text-[10px] font-bold text-white/60 bg-white/10 rounded-full px-3 py-1">
+                    {study.industry}
+                  </span>
+                );
+              })()}
             </div>
 
             <h1 className="text-[clamp(26px,4vw,40px)] font-black text-white leading-[1.3] mb-4">

@@ -7,7 +7,50 @@ import { createClient } from "@/lib/supabase/client";
 import type { Case } from "@/lib/types";
 
 function Icon({ name, className = "" }: { name: string; className?: string }) {
-  return <span className={`material-symbols-rounded ${className}`}>{name}</span>;
+  return (
+    <span className={`material-symbols-rounded ${className}`}>{name}</span>
+  );
+}
+
+function InfoRow({
+  label,
+  value,
+  highlight,
+}: {
+  label: string;
+  value: string | null | undefined;
+  highlight?: boolean;
+}) {
+  if (!value) return null;
+  return (
+    <div className="flex gap-2 text-[12px]">
+      <span className="text-[#999] shrink-0 w-[100px]">{label}</span>
+      <span className={highlight ? "text-navy font-bold" : "text-[#333]"}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function Tag({
+  children,
+  color = "gray",
+}: {
+  children: React.ReactNode;
+  color?: "gray" | "blue" | "green" | "navy" | "red";
+}) {
+  const cls = {
+    gray: "bg-[#f0f2f5] text-[#555]",
+    blue: "bg-[#EBF7FD] text-blue",
+    green: "bg-[#ecfdf5] text-[#10b981]",
+    navy: "bg-navy/8 text-navy",
+    red: "bg-[#fef2f2] text-[#E15454]",
+  }[color];
+  return (
+    <span className={`text-[11px] font-medium px-2 py-0.5 rounded ${cls}`}>
+      {children}
+    </span>
+  );
 }
 
 export default function AdminCasesPage() {
@@ -15,6 +58,8 @@ export default function AdminCasesPage() {
   const [cases, setCases] = useState<Case[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("active");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [entryCounts, setEntryCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     async function fetchData() {
@@ -44,6 +89,20 @@ export default function AdminCasesPage() {
         .select("*")
         .order("created_at", { ascending: false });
       setCases(data ?? []);
+
+      // Fetch entry counts per case
+      const { data: entryData } = await supabase
+        .from("entries")
+        .select("case_id");
+
+      if (entryData) {
+        const counts: Record<string, number> = {};
+        for (const e of entryData) {
+          counts[e.case_id] = (counts[e.case_id] || 0) + 1;
+        }
+        setEntryCounts(counts);
+      }
+
       setLoading(false);
     }
     fetchData();
@@ -87,7 +146,7 @@ export default function AdminCasesPage() {
             href="/dashboard/admin"
             className="text-[12px] text-[#E15454] hover:underline mb-2 inline-block"
           >
-            ← 管理者TOP
+            &larr; 管理者TOP
           </Link>
           <p className="text-[10px] font-bold text-[#E15454] tracking-[0.18em] uppercase mb-1">
             ADMIN / CASES
@@ -148,60 +207,273 @@ export default function AdminCasesPage() {
       </div>
 
       {/* Cases list */}
-      <div className="flex flex-col gap-2">
-        {filtered.map((c) => (
-          <div key={c.id} className="bg-white border border-border p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  {c.case_no && (
-                    <span className="text-[10px] text-[#aaa]">{c.case_no}</span>
-                  )}
-                  {c.category && (
-                    <span className="text-[10px] text-[#888] border border-border px-1.5 py-0.5">
-                      {c.category}
-                    </span>
-                  )}
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 ${
-                      c.is_active
-                        ? "text-[#10b981] bg-[#ecfdf5]"
-                        : "text-[#888] bg-[#f5f5f5]"
-                    }`}
-                  >
-                    {c.is_active ? "公開中" : "非公開"}
-                  </span>
-                </div>
-                <p className="text-[14px] font-bold text-navy mb-1">
-                  {c.title}
-                </p>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#888]">
-                  {c.fee && <span><Icon name="payments" className="text-[14px] align-middle" /> {c.fee}</span>}
-                  {c.location && <span><Icon name="location_on" className="text-[14px] align-middle" /> {c.location}</span>}
-                  {c.industry && <span><Icon name="business" className="text-[14px] align-middle" /> {c.industry}</span>}
-                  {c.created_at && (
-                    <span>
-                      <Icon name="calendar_today" className="text-[14px] align-middle" /> {new Date(c.created_at).toLocaleDateString("ja-JP")}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="flex gap-2 shrink-0">
-                <button
-                  onClick={() => toggleActive(c.id, c.is_active)}
-                  className={`text-[11px] px-3 py-1 border font-bold ${
-                    c.is_active
-                      ? "text-[#888] border-border hover:text-[#E15454]"
-                      : "text-[#10b981] border-[#10b981] hover:bg-[#ecfdf5]"
-                  }`}
+      {filtered.length === 0 ? (
+        <div className="bg-white border border-border p-8 text-center">
+          <p className="text-[13px] text-[#888]">案件がありません</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {filtered.map((c) => {
+            const isExpanded = expandedId === c.id;
+            const entryCount = entryCounts[c.id] || 0;
+
+            return (
+              <div
+                key={c.id}
+                className="bg-white border border-border rounded-lg overflow-hidden"
+              >
+                {/* ── Summary Row ── */}
+                <div
+                  className="p-4 cursor-pointer hover:bg-[#fafafa] transition-colors"
+                  onClick={() =>
+                    setExpandedId(isExpanded ? null : c.id)
+                  }
                 >
-                  {c.is_active ? "非公開にする" : "公開する"}
-                </button>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      {/* Row 1: badges */}
+                      <div className="flex items-center gap-2 mb-1">
+                        <Icon
+                          name={isExpanded ? "expand_less" : "expand_more"}
+                          className="text-[18px] text-[#999] shrink-0"
+                        />
+                        {c.case_no && (
+                          <span className="text-[10px] text-[#aaa]">
+                            {c.case_no}
+                          </span>
+                        )}
+                        {c.category && (
+                          <Tag color="navy">{c.category}</Tag>
+                        )}
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                            c.is_active
+                              ? "text-[#10b981] bg-[#ecfdf5]"
+                              : "text-[#888] bg-[#f5f5f5]"
+                          }`}
+                        >
+                          {c.is_active ? "公開中" : "非公開"}
+                        </span>
+                        {entryCount > 0 && (
+                          <Tag color="blue">
+                            エントリー {entryCount}件
+                          </Tag>
+                        )}
+                      </div>
+
+                      {/* Row 2: title */}
+                      <p className="text-[14px] font-bold text-navy mb-1.5 ml-7">
+                        {c.title}
+                      </p>
+
+                      {/* Row 3: key conditions */}
+                      <div className="ml-7 flex flex-wrap gap-1.5 mb-1">
+                        {c.fee && <Tag color="navy">{c.fee}</Tag>}
+                        {c.occupancy && <Tag color="blue">{c.occupancy}</Tag>}
+                        {c.start_date && (
+                          <Tag color="green">開始: {c.start_date}</Tag>
+                        )}
+                        {c.location && <Tag>{c.location}</Tag>}
+                        {c.office_days && <Tag>{c.office_days}</Tag>}
+                        {c.industry && <Tag>{c.industry}</Tag>}
+                      </div>
+
+                      {/* Row 4: meta */}
+                      <div className="ml-7 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#aaa]">
+                        {c.created_at && (
+                          <span>
+                            作成:{" "}
+                            {new Date(c.created_at).toLocaleDateString(
+                              "ja-JP"
+                            )}
+                          </span>
+                        )}
+                        {c.source && (
+                          <span>ソース: {c.source}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Toggle button */}
+                    <div
+                      className="flex gap-2 shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        onClick={() => toggleActive(c.id, c.is_active)}
+                        className={`text-[11px] px-3 py-1 border font-bold rounded ${
+                          c.is_active
+                            ? "text-[#888] border-border hover:text-[#E15454]"
+                            : "text-[#10b981] border-[#10b981] hover:bg-[#ecfdf5]"
+                        }`}
+                      >
+                        {c.is_active ? "非公開にする" : "公開する"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Expanded Detail ── */}
+                {isExpanded && (
+                  <div className="border-t border-border">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-border">
+                      {/* Left: Basic Info */}
+                      <div className="p-5">
+                        <p className="text-[11px] font-bold text-[#E15454] tracking-[0.12em] uppercase mb-3">
+                          基本情報
+                        </p>
+                        <div className="flex flex-col gap-2">
+                          <InfoRow label="案件番号" value={c.case_no} />
+                          <InfoRow
+                            label="案件名"
+                            value={c.title}
+                            highlight
+                          />
+                          <InfoRow label="カテゴリ" value={c.category} />
+                          <InfoRow label="業界" value={c.industry} />
+                          <InfoRow
+                            label="単価"
+                            value={c.fee}
+                            highlight
+                          />
+                          <InfoRow
+                            label="稼働率"
+                            value={c.occupancy}
+                            highlight
+                          />
+                          <InfoRow
+                            label="開始時期"
+                            value={c.start_date}
+                            highlight
+                          />
+                          <InfoRow label="勤務地" value={c.location} />
+                          <InfoRow
+                            label="出社日数"
+                            value={c.office_days}
+                          />
+                          <InfoRow
+                            label="延長"
+                            value={c.extendable}
+                          />
+                          <InfoRow
+                            label="公開状態"
+                            value={c.is_active ? "公開中" : "非公開"}
+                          />
+                          <InfoRow
+                            label="ステータス"
+                            value={c.status}
+                          />
+                          <InfoRow
+                            label="公開日"
+                            value={
+                              c.published_at
+                                ? new Date(
+                                    c.published_at
+                                  ).toLocaleString("ja-JP")
+                                : null
+                            }
+                          />
+                          <InfoRow
+                            label="作成日"
+                            value={
+                              c.created_at
+                                ? new Date(
+                                    c.created_at
+                                  ).toLocaleString("ja-JP")
+                                : null
+                            }
+                          />
+                          {entryCount > 0 && (
+                            <div className="flex gap-2 text-[12px]">
+                              <span className="text-[#999] shrink-0 w-[100px]">
+                                エントリー
+                              </span>
+                              <Link
+                                href="/dashboard/admin/entries"
+                                className="text-blue font-bold hover:underline"
+                              >
+                                {entryCount}件
+                              </Link>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Right: Detail Text */}
+                      <div className="p-5">
+                        <p className="text-[11px] font-bold text-blue tracking-[0.12em] uppercase mb-3">
+                          案件詳細
+                        </p>
+                        <div className="flex flex-col gap-2">
+                          {c.background && (
+                            <div>
+                              <span className="text-[11px] text-[#999]">
+                                背景
+                              </span>
+                              <p className="text-[12px] text-[#444] mt-1 whitespace-pre-wrap bg-[#f9f9fc] p-3 rounded-lg">
+                                {c.background}
+                              </p>
+                            </div>
+                          )}
+                          {c.description && (
+                            <div>
+                              <span className="text-[11px] text-[#999]">
+                                案件詳細
+                              </span>
+                              <p className="text-[12px] text-[#444] mt-1 whitespace-pre-wrap bg-[#f9f9fc] p-3 rounded-lg max-h-[300px] overflow-y-auto">
+                                {c.description}
+                              </p>
+                            </div>
+                          )}
+                          {c.must_req && (
+                            <div>
+                              <span className="text-[11px] text-[#999]">
+                                必須要件
+                              </span>
+                              <p className="text-[12px] text-[#444] mt-1 whitespace-pre-wrap bg-[#fef2f2] p-3 rounded-lg">
+                                {c.must_req}
+                              </p>
+                            </div>
+                          )}
+                          {c.nice_to_have && (
+                            <div>
+                              <span className="text-[11px] text-[#999]">
+                                歓迎要件
+                              </span>
+                              <p className="text-[12px] text-[#444] mt-1 whitespace-pre-wrap bg-[#f0faf5] p-3 rounded-lg">
+                                {c.nice_to_have}
+                              </p>
+                            </div>
+                          )}
+                          {c.flow && (
+                            <div>
+                              <span className="text-[11px] text-[#999]">
+                                選考フロー
+                              </span>
+                              <p className="text-[12px] text-[#444] mt-1 whitespace-pre-wrap bg-[#fef9ee] p-3 rounded-lg border border-[#fde68a]">
+                                {c.flow}
+                              </p>
+                            </div>
+                          )}
+                          {!c.background &&
+                            !c.description &&
+                            !c.must_req &&
+                            !c.nice_to_have &&
+                            !c.flow && (
+                              <p className="text-[12px] text-[#aaa] italic">
+                                詳細情報はありません
+                              </p>
+                            )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          </div>
-        ))}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

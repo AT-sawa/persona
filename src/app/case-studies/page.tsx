@@ -30,6 +30,11 @@ const categoryColors: Record<string, { bg: string; text: string }> = {
   "新規事業開発": { bg: "bg-[#f59e0b]/10", text: "text-[#f59e0b]" },
   "業務改革（BPR）": { bg: "bg-[#8b5cf6]/10", text: "text-[#8b5cf6]" },
   "経営戦略": { bg: "bg-[#34d399]/10", text: "text-[#059669]" },
+  "M&A/PMI": { bg: "bg-[#ef4444]/10", text: "text-[#ef4444]" },
+  "ITシステム": { bg: "bg-[#0ea5e9]/10", text: "text-[#0ea5e9]" },
+  "SCM": { bg: "bg-[#14b8a6]/10", text: "text-[#14b8a6]" },
+  "人事・組織": { bg: "bg-[#f97316]/10", text: "text-[#f97316]" },
+  "マーケティング・CX": { bg: "bg-[#ec4899]/10", text: "text-[#ec4899]" },
 };
 
 export default function CaseStudiesPage() {
