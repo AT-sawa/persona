@@ -137,13 +137,13 @@ async function runRuleBasedMatching(
 
         // Calculate scores for all active cases
         const scored = (cases as Case[]).map((c) => {
-          const { score, factors } = calculateScore(
+          const { score, factors, profileCompleteness } = calculateScore(
             c,
             profile,
             preferences,
             experiences
           );
-          return { case_id: c.id, user_id: profile.id, score, factors };
+          return { case_id: c.id, user_id: profile.id, score, factors, profileCompleteness };
         });
 
         const filtered = scored.filter((r) => r.score > 20);
@@ -379,7 +379,7 @@ async function runSemanticMatching(
 
         // --- Stage 2: Rule-based scoring on candidates ---
         const scored = candidateCases.map((c) => {
-          const { score, factors } = calculateScore(
+          const { score, factors, profileCompleteness } = calculateScore(
             c,
             profile,
             preferences,
@@ -392,6 +392,7 @@ async function runSemanticMatching(
             rule_score: score,
             vector_similarity: vectorSimilarity,
             factors,
+            profileCompleteness,
           };
         });
 
