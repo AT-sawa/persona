@@ -25,6 +25,7 @@ const ADMIN_ITEMS = [
   { href: "/dashboard/admin/entries", label: "エントリー管理", icon: "assignment" },
   { href: "/dashboard/admin/case-studies", label: "事例管理", icon: "rate_review" },
   { href: "/dashboard/admin/analytics", label: "アナリティクス", icon: "analytics" },
+  { href: "/dashboard/admin/talents", label: "外部人材DB", icon: "groups" },
   { href: "/dashboard/admin/seo", label: "SEO", icon: "monitoring" },
   { href: "/dashboard/admin/perks", label: "特典管理", icon: "loyalty" },
 ];

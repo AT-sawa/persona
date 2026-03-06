@@ -8,12 +8,14 @@ import { createClient } from "@/lib/supabase/client";
 interface ExternalTalent {
   id: string;
   source_name: string;
+  source_sheet_url: string;
   source_row_key: string;
   name: string | null;
   availability_date: string | null;
   project_type: string | null;
   personnel_info: string | null;
   resume_url: string | null;
+  resume_file_path: string | null;
   position: string | null;
   age_range: string | null;
   work_style: string | null;
@@ -54,6 +56,7 @@ export default function AdminTalentsPage() {
   const [sources, setSources] = useState<PartnerSource[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"active" | "all">("active");
+  const [sourceFilter, setSourceFilter] = useState<"all" | "partner" | "pdf">("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
@@ -82,7 +85,7 @@ export default function AdminTalentsPage() {
     const [talentsRes, sourcesRes] = await Promise.all([
       supabase
         .from("external_talents")
-        .select("id, source_name, source_row_key, name, availability_date, project_type, personnel_info, resume_url, position, age_range, work_style, fee_min, fee_max, introduction, distribution, raw_data, is_active, first_synced_at, last_synced_at")
+        .select("id, source_name, source_sheet_url, source_row_key, name, availability_date, project_type, personnel_info, resume_url, resume_file_path, position, age_range, work_style, fee_min, fee_max, introduction, distribution, raw_data, is_active, first_synced_at, last_synced_at")
         .order("last_synced_at", { ascending: false }),
       supabase
         .from("partner_sheet_sources")
@@ -124,10 +127,27 @@ export default function AdminTalentsPage() {
     }
   };
 
-  const filtered =
-    filter === "active"
-      ? talents.filter((t) => t.is_active)
-      : talents;
+  const filtered = talents
+    .filter((t) => (filter === "active" ? t.is_active : true))
+    .filter((t) => {
+      if (sourceFilter === "pdf") return t.source_sheet_url === "pdf-upload";
+      if (sourceFilter === "partner") return t.source_sheet_url !== "pdf-upload";
+      return true;
+    });
+
+  const pdfCount = talents.filter((t) => t.source_sheet_url === "pdf-upload" && t.is_active).length;
+
+  const handleResumeDownload = async (filePath: string) => {
+    try {
+      const res = await fetch(`/api/admin/talents/resume-url?path=${encodeURIComponent(filePath)}`);
+      const data = await res.json();
+      if (data.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   if (loading) {
     return (
@@ -151,7 +171,7 @@ export default function AdminTalentsPage() {
         </p>
         <h1 className="text-xl font-black text-navy">外部人材DB</h1>
         <p className="text-[12px] text-[#888] mt-1">
-          パートナー企業の人材リスト（読み取り専用）
+          パートナー企業の人材リスト＆PDF一括アップロード
         </p>
       </div>
 
@@ -202,8 +222,8 @@ export default function AdminTalentsPage() {
         </div>
       )}
 
-      {/* Sync Status & Manual Trigger */}
-      <div className="mb-4 flex items-center gap-3">
+      {/* Actions */}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <button
           onClick={handleManualSync}
           disabled={syncing}
@@ -212,11 +232,32 @@ export default function AdminTalentsPage() {
           <Icon name="sync" className={`text-[16px] ${syncing ? "animate-spin" : ""}`} />
           {syncing ? "同期中..." : "手動同期"}
         </button>
+        <Link
+          href="/dashboard/admin/talents/upload"
+          className="px-4 py-2 bg-[#E15454] text-white text-[12px] font-bold hover:bg-[#d04343] transition-colors flex items-center gap-1.5"
+        >
+          <Icon name="upload_file" className="text-[16px]" />
+          PDFアップロード
+        </Link>
         {syncMessage && (
           <p className="text-[12px] text-[#666]">{syncMessage}</p>
         )}
 
         <div className="ml-auto flex gap-2">
+          {(["all", "partner", "pdf"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setSourceFilter(f)}
+              className={`px-3 py-1.5 text-[12px] font-bold border transition-colors ${
+                sourceFilter === f
+                  ? "bg-navy text-white border-navy"
+                  : "bg-white text-[#666] border-border hover:border-navy hover:text-navy"
+              }`}
+            >
+              {f === "all" ? "全ソース" : f === "partner" ? "パートナー" : "PDF"}
+            </button>
+          ))}
+          <span className="w-px bg-border" />
           {(["active", "all"] as const).map((f) => (
             <button
               key={f}
@@ -234,7 +275,7 @@ export default function AdminTalentsPage() {
       </div>
 
       {/* Stats */}
-      <div className="mb-4 grid grid-cols-3 gap-3">
+      <div className="mb-4 grid grid-cols-4 gap-3">
         <div className="bg-white border border-border p-3 text-center">
           <p className="text-[24px] font-black text-navy">
             {talents.filter((t) => t.is_active).length}
@@ -244,6 +285,10 @@ export default function AdminTalentsPage() {
         <div className="bg-white border border-border p-3 text-center">
           <p className="text-[24px] font-black text-navy">{sources.length}</p>
           <p className="text-[11px] text-[#888]">パートナー</p>
+        </div>
+        <div className="bg-white border border-border p-3 text-center">
+          <p className="text-[24px] font-black text-navy">{pdfCount}</p>
+          <p className="text-[11px] text-[#888]">PDFアップロード</p>
         </div>
         <div className="bg-white border border-border p-3 text-center">
           <p className="text-[24px] font-black text-navy">
@@ -344,6 +389,18 @@ export default function AdminTalentsPage() {
                         <Icon name="description" className="text-[14px] align-middle mr-0.5" />
                         レジュメ
                       </a>
+                    )}
+                    {talent.resume_file_path && !talent.resume_url && (
+                      <button
+                        className="text-blue hover:underline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleResumeDownload(talent.resume_file_path!);
+                        }}
+                      >
+                        <Icon name="picture_as_pdf" className="text-[14px] align-middle mr-0.5" />
+                        PDF
+                      </button>
                     )}
                   </div>
                 </div>
