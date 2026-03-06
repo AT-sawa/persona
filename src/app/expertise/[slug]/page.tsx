@@ -6,7 +6,8 @@ import Link from "next/link";
 import { EXPERTISE_AREAS, EXPERTISE_SLUGS } from "@/lib/expertise-data";
 import type { Case } from "@/lib/types";
 import { BASE_URL } from "@/lib/constants";
-import { getCaseStudiesByExpertise } from "@/lib/case-studies-data";
+import { INDUSTRY_AREAS, INDUSTRY_SLUGS } from "@/lib/industry-data";
+import { getCategoryBySlug } from "@/lib/case-categories";
 
 export const revalidate = 3600;
 
@@ -109,7 +110,8 @@ export default async function ExpertiseDetailPage({ params }: Props) {
     getCaseCount(area.caseKeywords),
   ]);
 
-  const relatedCaseStudies = getCaseStudiesByExpertise(slug);
+  // Get matching category for linking to case archive pages
+  const matchingCategory = getCategoryBySlug(slug);
 
   // JSON-LD: BreadcrumbList
   const breadcrumbJsonLd = {
@@ -458,61 +460,57 @@ export default async function ExpertiseDetailPage({ params }: Props) {
           </div>
         </section>
 
-        {/* ── Related Case Studies ── */}
-        {relatedCaseStudies.length > 0 && (
+        {/* ── Browse by Industry ── */}
+        {matchingCategory && (
           <section className="py-20 px-6 bg-[#f2f2f7]">
             <div className="max-w-[1000px] mx-auto">
               <div className="text-center mb-12">
                 <span className="text-[11px] font-bold text-[#1FABE9] tracking-[0.2em] uppercase">
-                  CASE STUDIES
+                  BROWSE BY INDUSTRY
                 </span>
                 <h2 className="text-[clamp(20px,2.5vw,28px)] font-black text-[#091747] mt-2">
-                  {area.name}の導入事例
+                  {area.name}の業界別案件
                 </h2>
                 <p className="text-[13px] text-[#888] mt-3">
-                  {area.name}領域でのフリーコンサルタント活用事例をご紹介します
+                  {area.name}領域の案件を業界別にご覧いただけます
                 </p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {relatedCaseStudies.slice(0, 6).map((cs) => (
-                  <Link
-                    key={cs.slug}
-                    href={`/case-studies/${cs.slug}`}
-                    className="group bg-white rounded-2xl border border-[#e8e8ed] p-6 hover:shadow-[0_4px_24px_rgba(0,0,0,0.06)] hover:border-[#1FABE9]/30 transition-all duration-300"
-                  >
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-[10px] font-bold text-[#1FABE9] bg-[#1FABE9]/10 rounded-full px-3 py-1">
-                        {cs.category}
-                      </span>
-                      <span className="text-[10px] font-bold text-[#888] bg-[#f2f2f7] rounded-full px-3 py-1">
-                        {cs.industry}
-                      </span>
-                    </div>
-                    <h3 className="text-[14px] font-bold text-[#091747] leading-[1.5] mb-2 group-hover:text-[#1FABE9] transition-colors">
-                      {cs.title}
-                    </h3>
-                    <p className="text-[12px] text-[#888] leading-[1.7] line-clamp-2 mb-3">
-                      {cs.subtitle}
-                    </p>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {cs.results.slice(0, 2).map((r) => (
-                        <span key={r.metric} className="text-[10px] text-[#555] bg-[#f2f2f7] rounded px-2 py-0.5">
-                          <span className="font-bold text-[#091747]">{r.value}</span> {r.metric}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {INDUSTRY_SLUGS.map((indSlug) => {
+                  const ind = INDUSTRY_AREAS[indSlug];
+                  return (
+                    <Link
+                      key={indSlug}
+                      href={`/cases/category/${slug}/${indSlug}`}
+                      className="group bg-white rounded-2xl border border-[#e8e8ed] p-6 hover:shadow-[0_4px_24px_rgba(0,0,0,0.06)] hover:border-[#1FABE9]/30 transition-all duration-300"
+                    >
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-[10px] font-bold text-[#1FABE9] bg-[#1FABE9]/10 rounded-full px-3 py-1">
+                          {matchingCategory.name}
                         </span>
-                      ))}
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1FABE9]">
-                      詳しく見る →
-                    </span>
-                  </Link>
-                ))}
+                        <span className="text-[10px] font-bold text-[#888] bg-[#f2f2f7] rounded-full px-3 py-1">
+                          {ind.name}
+                        </span>
+                      </div>
+                      <h3 className="text-[15px] font-bold text-[#091747] leading-[1.5] mb-2 group-hover:text-[#1FABE9] transition-colors">
+                        {ind.name}の{matchingCategory.name}案件
+                      </h3>
+                      <p className="text-[12px] text-[#888] leading-[1.7] line-clamp-2 mb-3">
+                        {ind.name}業界×{matchingCategory.name}のフリーコンサル案件一覧
+                      </p>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1FABE9]">
+                        案件を見る →
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
               <div className="text-center mt-8">
                 <Link
-                  href="/case-studies"
+                  href={`/cases/category/${slug}`}
                   className="inline-flex items-center gap-2 text-[14px] font-bold text-[#1FABE9] hover:text-[#091747] transition-colors"
                 >
-                  すべての導入事例を見る →
+                  {matchingCategory.name}の全案件を見る →
                 </Link>
               </div>
             </div>
