@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import type { ParsedCase } from "@/lib/parse-email-cases";
+import { sanitizeParsedCase } from "@/lib/sanitize-case-text";
 
 let _anthropic: Anthropic | null = null;
 function getAnthropic(): Anthropic | null {
@@ -44,7 +45,8 @@ const SYSTEM_PROMPT = `あなたはフリーランスコンサルタント案件
 - カテゴリはIT系（システム開発、SAP、AWS等）なら "IT"、経営戦略・M&A・組織改革等なら "非IT"
 - work_style は「フルリモート」「一部リモート」「常駐」「ミーティング出社」の4択から最も近いものを選んでください
 - 情報がない項目は空文字 "" にしてください
-- JSON以外のテキスト（説明や前置き）は一切不要です`;
+- JSON以外のテキスト（説明や前置き）は一切不要です
+- 重要: 元請け企業やパートナー企業の担当者名・連絡先・提案方法の注意書き（例:「LINEでご提案の際は～」「担当:○○」）は絶対に含めないでください。これらは業務内容ではなく営業上の情報です`;
 
 export async function POST(request: NextRequest) {
   try {
@@ -158,15 +160,18 @@ export async function POST(request: NextRequest) {
         _sales_rep: "",
       }));
 
+    // サニタイズ（元請け連絡先・提案注意書き等を除去）
+    const sanitizedCases = cases.map((c) => sanitizeParsedCase(c));
+
     const errors: string[] = [];
-    if (cases.length < parsed.length) {
+    if (sanitizedCases.length < parsed.length) {
       errors.push(
         `${parsed.length - cases.length}件のタイトルなしデータをスキップしました`
       );
     }
 
     return NextResponse.json({
-      cases,
+      cases: sanitizedCases,
       errors,
       rawSections: parsed.length,
     });

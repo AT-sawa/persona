@@ -6,6 +6,8 @@
  * - Format B: コロニー等（[案件名][単価][必須スキル] 半角角括弧）
  */
 
+import { sanitizeParsedCase } from "./sanitize-case-text";
+
 export interface ParsedCase {
   case_no: string;
   title: string;
@@ -47,12 +49,18 @@ export interface ParseResult {
  */
 export function parseEmailCases(emailBody: string): ParseResult {
   // Format B 検出: [案件名] パターン
+  let result: ParseResult;
   if (/\[案件名\]/i.test(emailBody)) {
-    return parseBracketFormat(emailBody);
+    result = parseBracketFormat(emailBody);
+  } else {
+    // Format A: XIENZ/LASINVA 形式
+    result = parseXienzFormat(emailBody);
   }
 
-  // Format A: XIENZ/LASINVA 形式
-  return parseXienzFormat(emailBody);
+  // 全案件テキストをサニタイズ（元請け連絡先・提案注意書き等を除去）
+  result.cases = result.cases.map((c) => sanitizeParsedCase(c));
+
+  return result;
 }
 
 // ═══════════════════════════════════════════════

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { logAudit } from "@/lib/audit";
 import { generateEmbedding, buildCaseEmbeddingText } from "@/lib/embedding";
+import { sanitizeCaseRecord } from "@/lib/sanitize-case-text";
 import type { Case } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
@@ -61,9 +62,12 @@ export async function POST(request: NextRequest) {
       is_active: true,
     }));
 
+    // サニタイズ（元請け連絡先・提案注意書き等を除去）
+    const sanitized = cleaned.map((c) => sanitizeCaseRecord(c));
+
     // Filter out entries without title
-    const valid = cleaned.filter(
-      (c: { title: string }) => c.title && c.title.trim() !== ""
+    const valid = sanitized.filter(
+      (c) => c.title && typeof c.title === "string" && c.title.trim() !== ""
     );
 
     if (valid.length === 0) {
