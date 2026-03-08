@@ -245,6 +245,25 @@ export async function middleware(request: NextRequest) {
     if (isAuthPage && user) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
+
+    // --- Admin route protection: block non-admin users ---
+    const isAdminRoute =
+      pathname.startsWith("/dashboard/admin") ||
+      pathname.startsWith("/api/admin/");
+    if (user && isAdminRoute) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_admin")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile?.is_admin) {
+        if (pathname.startsWith("/api/")) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
+    }
   }
 
   return supabaseResponse;

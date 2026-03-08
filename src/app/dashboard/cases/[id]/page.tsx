@@ -40,6 +40,7 @@ export default function AppCaseDetailPage() {
 
   // Entry form
   const [showEntry, setShowEntry] = useState(false);
+  const [showResumePrompt, setShowResumePrompt] = useState(false);
   const [message, setMessage] = useState("");
   const [selectedResume, setSelectedResume] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -582,11 +583,64 @@ export default function AppCaseDetailPage() {
         </div>
       ) : (
         <button
-          onClick={() => setShowEntry(true)}
+          onClick={() => {
+            if (resumes.length === 0) {
+              setShowResumePrompt(true);
+            } else {
+              setShowEntry(true);
+            }
+          }}
           className="w-full py-4 bg-blue text-white text-[15px] font-bold hover:bg-blue-dark transition-colors"
         >
           この案件にエントリーする
         </button>
+      )}
+
+      {/* Resume prompt modal */}
+      {showResumePrompt && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center px-4">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setShowResumePrompt(false)}
+          />
+          <div className="relative bg-white border border-border p-6 max-w-[440px] w-full shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="w-11 h-11 rounded-full bg-[#fffbeb] flex items-center justify-center shrink-0">
+                <span className="material-symbols-rounded text-[22px] text-[#f59e0b]">
+                  description
+                </span>
+              </span>
+              <div>
+                <h3 className="text-[15px] font-black text-navy">
+                  レジュメを登録しませんか？
+                </h3>
+              </div>
+            </div>
+            <p className="text-[13px] text-[#555] leading-[1.8] mb-5">
+              レジュメ（職務経歴書）を添付すると、
+              <span className="font-bold text-navy">書類選考の通過率が大幅にアップ</span>
+              します。まだレジュメが登録されていません。先に登録してからエントリーすることをおすすめします。
+            </p>
+            <div className="flex flex-col gap-2.5">
+              <Link
+                href="/dashboard/resumes"
+                className="w-full py-3 bg-blue text-white text-[14px] font-bold text-center hover:bg-blue-dark transition-colors flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-rounded text-[18px]">upload_file</span>
+                レジュメを登録する
+              </Link>
+              <button
+                onClick={() => {
+                  setShowResumePrompt(false);
+                  setShowEntry(true);
+                }}
+                className="w-full py-3 border border-border text-[13px] text-[#888] font-bold hover:bg-[#fafafa] transition-colors"
+              >
+                レジュメなしでエントリーする
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
