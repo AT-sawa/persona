@@ -47,6 +47,24 @@ interface RecentEntry {
   createdAt: string;
 }
 
+interface TrafficSourceItem {
+  source: string;
+  count: number;
+}
+
+interface FeatureUsageItem {
+  label: string;
+  count: number;
+  icon: string;
+  color: string;
+}
+
+interface FunnelStep {
+  label: string;
+  count: number;
+  color: string;
+}
+
 /* ─── Helpers ─── */
 
 function Icon({ name, className = "" }: { name: string; className?: string }) {
@@ -98,6 +116,9 @@ export default function AdminAnalyticsPage() {
     rejected: 0,
   });
   const [recentEntries, setRecentEntries] = useState<RecentEntry[]>([]);
+  const [trafficSources, setTrafficSources] = useState<TrafficSourceItem[]>([]);
+  const [featureUsage, setFeatureUsage] = useState<FeatureUsageItem[]>([]);
+  const [funnelData, setFunnelData] = useState<FunnelStep[]>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -280,6 +301,131 @@ export default function AdminAnalyticsPage() {
         })
       );
 
+      /* ── 7. Traffic Sources (from audit_logs) ── */
+      const { data: registrationLogs } = await supabase
+        .from("audit_logs")
+        .select("details, created_at")
+        .eq("action", "account.register")
+        .order("created_at", { ascending: false })
+        .limit(500);
+
+      const sourceMap: Record<string, number> = {};
+      (registrationLogs ?? []).forEach(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (log: any) => {
+          const ts = log.details?.traffic_source;
+          if (!ts || (!ts.referrer && !ts.utm_source)) {
+            sourceMap["直接"] = (sourceMap["直接"] || 0) + 1;
+            return;
+          }
+          let source = "直接";
+          if (ts.utm_source) {
+            source = ts.utm_source;
+          } else if (ts.referrer) {
+            try {
+              source = new URL(ts.referrer).hostname
+                .replace("www.", "")
+                .replace(".com", "")
+                .replace(".co.jp", "");
+            } catch {
+              source = "外部サイト";
+            }
+          }
+          sourceMap[source] = (sourceMap[source] || 0) + 1;
+        }
+      );
+
+      const sortedSources = Object.entries(sourceMap)
+        .map(([source, count]) => ({ source, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      setTrafficSources(sortedSources);
+
+      /* ── 8. Feature Usage (last 30 days) ── */
+      const [favCount, entryCount30d, prefsCount, resumeCount] =
+        await Promise.all([
+          supabase
+            .from("favorites")
+            .select("id", { count: "exact", head: true })
+            .gte("created_at", thirtyDaysAgoISO),
+          supabase
+            .from("entries")
+            .select("id", { count: "exact", head: true })
+            .gte("created_at", thirtyDaysAgoISO),
+          supabase
+            .from("user_preferences")
+            .select("id", { count: "exact", head: true })
+            .gte("updated_at", thirtyDaysAgoISO),
+          supabase
+            .from("resumes")
+            .select("id", { count: "exact", head: true })
+            .gte("uploaded_at", thirtyDaysAgoISO),
+        ]);
+
+      setFeatureUsage([
+        {
+          label: "お気に入り追加",
+          count: favCount.count ?? 0,
+          icon: "bookmark",
+          color: "#f59e0b",
+        },
+        {
+          label: "エントリー",
+          count: entryCount30d.count ?? 0,
+          icon: "send",
+          color: "#1fabe9",
+        },
+        {
+          label: "希望条件更新",
+          count: prefsCount.count ?? 0,
+          icon: "tune",
+          color: "#8b5cf6",
+        },
+        {
+          label: "レジュメ登録",
+          count: resumeCount.count ?? 0,
+          icon: "description",
+          color: "#10b981",
+        },
+      ]);
+
+      /* ── 9. User Funnel ── */
+      const [totalProfiles, onboardedRes, entryUsersRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id", { count: "exact", head: true }),
+        supabase
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .not("skills", "is", null),
+        supabase.from("entries").select("user_id"),
+      ]);
+
+      const uniqueEntryUsers = new Set(
+        (entryUsersRes.data ?? []).map(
+          (e: { user_id: string }) => e.user_id
+        )
+      ).size;
+
+      setFunnelData([
+        {
+          label: "登録",
+          count: totalProfiles.count ?? 0,
+          color: "#1fabe9",
+        },
+        {
+          label: "オンボーディング完了",
+          count: onboardedRes.count ?? 0,
+          color: "#8b5cf6",
+        },
+        {
+          label: "エントリー済",
+          count: uniqueEntryUsers,
+          color: "#10b981",
+        },
+      ]);
+
       setLoading(false);
     }
     fetchData();
@@ -310,6 +456,11 @@ export default function AdminAnalyticsPage() {
     statusBreakdown.accepted +
     statusBreakdown.rejected;
   const totalEntries30d = dailyEntries.reduce((sum, d) => sum + d.count, 0);
+  const maxSourceCount = Math.max(
+    ...trafficSources.map((s) => s.count),
+    1
+  );
+  const funnelMax = Math.max(...funnelData.map((f) => f.count), 1);
 
   return (
     <div className="py-6">
@@ -650,6 +801,186 @@ export default function AdminAnalyticsPage() {
                       件
                     </span>
                   </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Traffic Sources ── */}
+      <div className="bg-white rounded-xl border border-[#e3e6eb] p-6 mb-6">
+        <h2 className="text-sm font-bold text-[#091747] mb-1 flex items-center gap-2">
+          <Icon name="public" className="text-[18px] text-[#6366f1]" />
+          流入元分析
+        </h2>
+        <p className="text-[11px] text-[#666] mb-5">
+          新規登録ユーザーの流入元（登録時のリファラー・UTMパラメータ）
+        </p>
+
+        {trafficSources.length === 0 ? (
+          <p className="text-[13px] text-[#888] text-center py-6">
+            流入元データがありません
+            <br />
+            <span className="text-[11px] text-[#aaa]">
+              今後の新規登録から自動で記録されます
+            </span>
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {trafficSources.map((s, i) => {
+              const pct =
+                maxSourceCount > 0 ? (s.count / maxSourceCount) * 100 : 0;
+              const colors = [
+                "#6366f1",
+                "#1fabe9",
+                "#10b981",
+                "#f59e0b",
+                "#ef4444",
+                "#8b5cf6",
+                "#ec4899",
+                "#14b8a6",
+                "#f97316",
+                "#091747",
+              ];
+              const color = colors[i % colors.length];
+              return (
+                <div key={s.source}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[12px] font-bold text-[#091747] truncate max-w-[60%]">
+                      {s.source}
+                    </span>
+                    <span className="text-[12px] font-bold text-[#091747]">
+                      {s.count}
+                      <span className="text-[10px] text-[#666] ml-0.5">
+                        人
+                      </span>
+                    </span>
+                  </div>
+                  <div className="w-full h-5 bg-[#f5f6f8] rounded overflow-hidden">
+                    <div
+                      className="h-full rounded transition-all"
+                      style={{
+                        width: `${Math.max(pct, 4)}%`,
+                        backgroundColor: color,
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Feature Usage (Last 30 Days) ── */}
+      <div className="bg-white rounded-xl border border-[#e3e6eb] p-6 mb-6">
+        <h2 className="text-sm font-bold text-[#091747] mb-1 flex items-center gap-2">
+          <Icon name="touch_app" className="text-[18px] text-[#f59e0b]" />
+          機能利用状況（直近30日間）
+        </h2>
+        <p className="text-[11px] text-[#666] mb-5">
+          ユーザーが利用した主要機能の集計
+        </p>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {featureUsage.map((item) => (
+            <div
+              key={item.label}
+              className="rounded-xl border border-[#e3e6eb] p-4"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <div
+                  className="w-7 h-7 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: item.color + "14" }}
+                >
+                  <span
+                    className="material-symbols-rounded text-[16px]"
+                    style={{ color: item.color }}
+                  >
+                    {item.icon}
+                  </span>
+                </div>
+                <p className="text-[10px] font-bold text-[#666]">
+                  {item.label}
+                </p>
+              </div>
+              <p className="text-2xl font-black text-[#091747]">
+                {item.count}
+                <span className="text-[11px] text-[#888] font-bold ml-1">
+                  件
+                </span>
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── User Funnel ── */}
+      <div className="bg-white rounded-xl border border-[#e3e6eb] p-6 mb-6">
+        <h2 className="text-sm font-bold text-[#091747] mb-1 flex items-center gap-2">
+          <Icon name="filter_alt" className="text-[18px] text-[#10b981]" />
+          ユーザーファネル
+        </h2>
+        <p className="text-[11px] text-[#666] mb-5">
+          登録からエントリーまでの各段階のユーザー数と転換率
+        </p>
+
+        {funnelData.length === 0 ? (
+          <p className="text-[13px] text-[#888] text-center py-6">
+            データがありません
+          </p>
+        ) : (
+          <div className="space-y-4">
+            {funnelData.map((step, i) => {
+              const pct =
+                funnelMax > 0 ? (step.count / funnelMax) * 100 : 0;
+              const prevCount = i > 0 ? funnelData[i - 1].count : null;
+              const convRate =
+                prevCount && prevCount > 0
+                  ? Math.round((step.count / prevCount) * 100)
+                  : null;
+              return (
+                <div key={step.label}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black text-white"
+                        style={{ backgroundColor: step.color }}
+                      >
+                        {i + 1}
+                      </span>
+                      <span className="text-[12px] font-bold text-[#091747]">
+                        {step.label}
+                      </span>
+                      {convRate !== null && (
+                        <span className="text-[10px] font-bold text-[#888] bg-[#f5f6f8] px-1.5 py-0.5 rounded">
+                          前段階から {convRate}%
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[14px] font-black text-[#091747]">
+                      {step.count}
+                      <span className="text-[10px] text-[#666] font-bold ml-0.5">
+                        人
+                      </span>
+                    </span>
+                  </div>
+                  <div className="w-full h-8 bg-[#f5f6f8] rounded overflow-hidden">
+                    <div
+                      className="h-full rounded transition-all flex items-center pl-3"
+                      style={{
+                        width: `${Math.max(pct, 4)}%`,
+                        backgroundColor: step.color,
+                      }}
+                    >
+                      {pct > 15 && (
+                        <span className="text-[10px] font-bold text-white">
+                          {Math.round(pct)}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               );
             })}

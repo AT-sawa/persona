@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { analytics } from "@/lib/analytics";
 import type { UserPreferences } from "@/lib/types";
 
 const INDUSTRIES = [
@@ -54,6 +55,7 @@ export default function PreferencesPage() {
       setHasExisting(true);
     }
     setLoading(false);
+    analytics.preferencesView();
   }, [router]);
 
   useEffect(() => {
@@ -118,6 +120,7 @@ export default function PreferencesPage() {
         setHasExisting(true);
       }
       setSaved(true);
+      analytics.preferencesUpdate();
 
       // Trigger matching recalculation in the background
       fetch("/api/matching/trigger", { method: "POST" }).catch(() => {

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { analytics } from "@/lib/analytics";
 
 interface FavoriteButtonProps {
   caseId: string;
@@ -71,8 +72,9 @@ export default function FavoriteButton({ caseId }: FavoriteButtonProps) {
           body: JSON.stringify({ case_id: caseId }),
         });
         if (!res.ok) {
-          // Revert on failure
           setIsFavorited(previousState);
+        } else {
+          analytics.favoriteRemove(caseId);
         }
       } else {
         // Add to favorites
@@ -82,8 +84,9 @@ export default function FavoriteButton({ caseId }: FavoriteButtonProps) {
           body: JSON.stringify({ case_id: caseId }),
         });
         if (!res.ok) {
-          // Revert on failure
           setIsFavorited(previousState);
+        } else {
+          analytics.favoriteAdd(caseId);
         }
       }
     } catch {

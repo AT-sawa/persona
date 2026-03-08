@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { analytics } from "@/lib/analytics";
 import type { Case } from "@/lib/types";
 
 function Icon({ name, className = "" }: { name: string; className?: string }) {
@@ -91,6 +92,7 @@ export default function AppCasesPage() {
     });
     setMatchScores(scores);
     setLoading(false);
+    analytics.caseListView(casesData.length);
   }, [router]);
 
   useEffect(() => {

@@ -9,7 +9,7 @@ import { buildWelcomeEmail } from "@/lib/emails/welcome";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, fullName, phone, firm } = body;
+    const { email, password, fullName, phone, firm, trafficSource } = body;
 
     if (!email || !password || !fullName) {
       return NextResponse.json(
@@ -111,7 +111,10 @@ export async function POST(request: NextRequest) {
         resourceType: "profiles",
         resourceId: userData.user.id,
         userId: userData.user.id,
-        details: { email: sanitizedEmail },
+        details: {
+          email: sanitizedEmail,
+          traffic_source: trafficSource || {},
+        },
         ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined,
         userAgent: request.headers.get("user-agent") || undefined,
       });

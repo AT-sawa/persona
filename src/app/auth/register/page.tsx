@@ -41,6 +41,15 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
+      // Capture traffic source from sessionStorage (set by TrafficSourceCapture)
+      let trafficSource = {};
+      try {
+        const stored = sessionStorage.getItem("_traffic_source");
+        if (stored) trafficSource = JSON.parse(stored);
+      } catch {
+        // Ignore parse errors
+      }
+
       // Register via server API (bypasses email confirmation)
       const res = await fetch("/api/auth/register", {
         method: "POST",
@@ -51,6 +60,7 @@ export default function RegisterPage() {
           fullName: formData.fullName,
           phone: formData.phone,
           firm: formData.firm,
+          trafficSource,
         }),
       });
 

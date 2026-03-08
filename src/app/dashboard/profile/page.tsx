@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { analytics } from "@/lib/analytics";
 import type { Profile } from "@/lib/types";
 import ProfileForm from "@/components/dashboard/ProfileForm";
 
@@ -28,6 +29,7 @@ export default function ProfilePage() {
         .single();
       setProfile(data);
       setLoading(false);
+      analytics.profileView();
     }
     fetchProfile();
   }, [router]);

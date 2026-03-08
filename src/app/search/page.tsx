@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getAllPosts } from "@/lib/blog";
 import type { Case } from "@/lib/types";
 import SearchInput from "./SearchInput";
+import SearchTracker from "./SearchTracker";
 
 export const metadata: Metadata = {
   title: "検索",
@@ -79,6 +80,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
   return (
     <>
       <Header />
+      <SearchTracker query={query} resultCount={totalResults} />
       <main className="pt-[72px] pb-16 min-h-screen">
         {/* Hero header */}
         <div className="bg-gradient-to-b from-[#f0f8ff] to-white px-6 pt-12 pb-10">

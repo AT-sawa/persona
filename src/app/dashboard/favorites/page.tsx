@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { analytics } from "@/lib/analytics";
 import type { Favorite, Case } from "@/lib/types";
 
 type FavoriteWithCase = Favorite & { cases: Case };
@@ -43,6 +44,10 @@ export default function FavoritesPage() {
       setLoading(false);
     }
   }, [router]);
+
+  useEffect(() => {
+    if (!loading) analytics.favoritesView(favorites.length);
+  }, [loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchFavorites();

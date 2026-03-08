@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP, Noto_Serif_JP } from "next/font/google";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
+import TrafficSourceCapture from "@/components/TrafficSourceCapture";
 import FloatingCTA from "@/components/FloatingCTA";
 import PageTransition from "@/components/PageTransition";
 import { BASE_URL } from "@/lib/constants";
@@ -88,6 +89,7 @@ export default function RootLayout({
         style={{ fontFamily: "var(--font-noto-sans-jp), sans-serif" }}
       >
         <GoogleAnalytics />
+        <TrafficSourceCapture />
         <PageTransition>{children}</PageTransition>
         <FloatingCTA />
         {/* Organization JSON-LD — global entity for AI/search engines + GEO */}

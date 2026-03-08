@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { analytics } from "@/lib/analytics";
 import type { Entry } from "@/lib/types";
 
 interface EntryWithCase extends Entry {
@@ -46,8 +47,10 @@ export default function EntriesPage() {
         .select("*, cases(title, fee, category, location)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
-      setEntries((data as EntryWithCase[]) ?? []);
+      const entries = (data as EntryWithCase[]) ?? [];
+      setEntries(entries);
       setLoading(false);
+      analytics.entriesHistoryView(entries.length);
     }
     fetchEntries();
   }, [router]);

@@ -7,6 +7,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { BASE_URL } from "@/lib/constants";
+import BlogTracker from "./BlogTracker";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -134,6 +135,7 @@ export default async function BlogPostPage({ params }: Props) {
   return (
     <>
       <Header />
+      <BlogTracker slug={slug} category={post.category ?? ""} />
       <main className="pt-[72px] pb-16">
         {/* Hero section */}
         <div className="bg-gradient-to-b from-[#f0f8ff] to-white">

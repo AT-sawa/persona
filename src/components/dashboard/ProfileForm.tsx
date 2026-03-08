@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { analytics } from "@/lib/analytics";
 import type { Profile } from "@/lib/types";
 import SkillsInput from "./SkillsInput";
 
@@ -83,6 +84,7 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
 
       if (updateError) throw updateError;
       setSaved(true);
+      analytics.profileUpdate();
 
       // Trigger embedding regeneration + matching recalculation
       fetch("/api/matching/trigger", { method: "POST" }).catch(() => {});
