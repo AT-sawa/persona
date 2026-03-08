@@ -287,7 +287,7 @@ export default async function BlogPostPage({ params }: Props) {
             )}
 
             {/* Cross-links */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Link
                 href="/cases"
                 className="group block p-5 bg-white rounded-xl border border-border hover:border-blue/20 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all"
@@ -296,7 +296,18 @@ export default async function BlogPostPage({ params }: Props) {
                   CASES
                 </p>
                 <p className="text-[14px] font-bold text-navy group-hover:text-blue transition-colors">
-                  フリーコンサル案件一覧を見る →
+                  フリーコンサル案件一覧 →
+                </p>
+              </Link>
+              <Link
+                href="/expertise"
+                className="group block p-5 bg-white rounded-xl border border-border hover:border-blue/20 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all"
+              >
+                <p className="text-[10px] font-bold text-blue tracking-[0.12em] uppercase mb-1">
+                  EXPERTISE
+                </p>
+                <p className="text-[14px] font-bold text-navy group-hover:text-blue transition-colors">
+                  専門領域から案件を探す →
                 </p>
               </Link>
               <Link
@@ -307,7 +318,7 @@ export default async function BlogPostPage({ params }: Props) {
                   FOR ENTERPRISE
                 </p>
                 <p className="text-[14px] font-bold text-navy group-hover:text-blue transition-colors">
-                  企業向けサービスを見る →
+                  企業向けサービス →
                 </p>
               </Link>
             </div>

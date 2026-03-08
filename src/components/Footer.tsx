@@ -114,7 +114,17 @@ export default function Footer() {
             <ul className="list-none flex flex-col gap-[9px]">
               <li>
                 <Link href="/blog" className="text-xs text-white/30 transition-colors hover:text-white">
-                  ブログ
+                  フリーコンサルブログ
+                </Link>
+              </li>
+              <li>
+                <Link href="/search" className="text-xs text-white/30 transition-colors hover:text-white">
+                  案件検索
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" className="text-xs text-white/30 transition-colors hover:text-white">
+                  利用規約
                 </Link>
               </li>
               <li>

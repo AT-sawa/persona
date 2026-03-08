@@ -295,6 +295,39 @@ export default async function CaseDetailPage({ params }: Props) {
 
           {/* Entry form (client component) — only for active cases */}
           {caseData.is_active && <EntryForm caseId={caseData.id} />}
+
+          {/* Related links for SEO internal linking */}
+          <div className="bg-white rounded-2xl border border-[#e8e8ed] p-6 mb-5 mt-5">
+            <h2 className="text-[13px] font-semibold text-navy mb-3">関連情報</h2>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/cases"
+                className="text-[13px] text-blue font-bold hover:underline"
+              >
+                フリーコンサル案件一覧を見る →
+              </Link>
+              {caseData.category && (
+                <Link
+                  href={`/cases/category/${encodeURIComponent(caseData.category)}`}
+                  className="text-[13px] text-blue font-bold hover:underline"
+                >
+                  {caseData.category}の案件を見る →
+                </Link>
+              )}
+              <Link
+                href="/expertise"
+                className="text-[13px] text-blue font-bold hover:underline"
+              >
+                専門領域から案件を探す →
+              </Link>
+              <Link
+                href="/blog"
+                className="text-[13px] text-blue font-bold hover:underline"
+              >
+                フリーコンサルブログ →
+              </Link>
+            </div>
+          </div>
         </div>
       </main>
       <Footer />
@@ -307,6 +340,48 @@ export default async function CaseDetailPage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      {/* FAQPage JSON-LD for case detail */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: [
+              {
+                "@type": "Question",
+                name: `この${caseData.category || "フリーコンサル"}案件の報酬はいくらですか？`,
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: caseData.fee
+                    ? `この案件の報酬は${caseData.fee}です。PERSONAでは月額100万〜250万円の高単価フリーコンサル案件を常時100件以上掲載しています。`
+                    : "報酬は個別にご相談ください。PERSONAでは月額100万〜250万円の高単価フリーコンサル案件を常時100件以上掲載しています。",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "この案件にエントリーするにはどうすればいいですか？",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "PERSONAに無料会員登録後、本ページのエントリーフォームからワンクリックでエントリーできます。エントリー後は専門コーディネーターが面談調整を行い、最短1週間での参画が可能です。",
+                },
+              },
+              ...(caseData.work_style
+                ? [
+                    {
+                      "@type": "Question",
+                      name: "この案件の勤務形態は？リモートワークは可能ですか？",
+                      acceptedAnswer: {
+                        "@type": "Answer",
+                        text: `この案件の勤務形態は「${caseData.work_style}」です。${caseData.office_days ? `出社頻度: ${caseData.office_days}。` : ""}${caseData.location ? `勤務地: ${caseData.location}。` : ""}PERSONAではフルリモート案件も約40%取り扱っています。`,
+                      },
+                    },
+                  ]
+                : []),
+            ],
+          }),
+        }}
       />
     </>
   );

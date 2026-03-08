@@ -285,6 +285,27 @@ export default async function BlogPage({ searchParams }: PageProps) {
             </nav>
           )}
 
+          {/* Internal links for SEO */}
+          <div className="mt-12 bg-[#f0f8ff] border border-blue/10 rounded-2xl p-6">
+            <p className="text-[14px] font-bold text-navy mb-3">
+              フリーコンサルタントの案件をお探しですか？
+            </p>
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              <Link href="/cases" className="text-[13px] font-bold text-blue hover:underline">
+                フリーコンサル案件一覧 →
+              </Link>
+              <Link href="/expertise" className="text-[13px] font-bold text-blue hover:underline">
+                専門領域から案件を探す →
+              </Link>
+              <Link href="/industries" className="text-[13px] font-bold text-blue hover:underline">
+                業界別の案件を見る →
+              </Link>
+              <Link href="/auth/register" className="text-[13px] font-bold text-blue hover:underline">
+                無料会員登録 →
+              </Link>
+            </div>
+          </div>
+
           {/* Newsletter */}
           <div className="mt-16">
             <NewsletterForm />

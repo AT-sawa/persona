@@ -11,6 +11,7 @@ import CasesSection from "@/components/CasesSection";
 import Strengths from "@/components/Strengths";
 import Story from "@/components/Story";
 import Firms from "@/components/Firms";
+import HomeAchievements from "@/components/HomeAchievements";
 import HomeFAQ from "@/components/HomeFAQ";
 import Register from "@/components/Register";
 import Footer from "@/components/Footer";
@@ -121,6 +122,9 @@ export default async function Home() {
         <Firms />
       </ScrollReveal>
       <ScrollReveal>
+        <HomeAchievements />
+      </ScrollReveal>
+      <ScrollReveal>
         <HomeFAQ />
       </ScrollReveal>
       <ScrollReveal>
@@ -134,6 +138,18 @@ export default async function Home() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "ホーム", item: BASE_URL },
+            ],
+          }),
+        }}
       />
     </>
   );

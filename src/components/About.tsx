@@ -35,12 +35,20 @@ export default function About() {
                 </li>
               ))}
             </ul>
-            <Link
-              href="#register"
-              className="inline-flex items-center gap-2 bg-blue text-white px-7 py-3 text-sm font-bold transition-colors hover:bg-blue-dark"
-            >
-              案件を探す →
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/cases"
+                className="inline-flex items-center gap-2 bg-blue text-white px-7 py-3 text-sm font-bold transition-colors hover:bg-blue-dark"
+              >
+                フリーコンサル案件一覧 →
+              </Link>
+              <Link
+                href="/expertise"
+                className="inline-flex items-center gap-2 bg-white text-navy border border-border px-5 py-3 text-sm font-bold transition-colors hover:bg-[#f8f8f8]"
+              >
+                専門領域から探す
+              </Link>
+            </div>
           </div>
           <div className="relative">
             <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.12)]">

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CaseFilters from "@/components/CaseFilters";
+import CasesFAQ from "@/components/CasesFAQ";
 import type { Case } from "@/lib/types";
 import Link from "next/link";
 import { CASE_CATEGORIES } from "@/lib/case-categories";
@@ -78,6 +79,12 @@ export default async function CasesPage() {
           </h1>
           <p className="text-sm text-[#555] mt-2 mb-1 leading-[1.8]">
             戦略・DX推進・PMO・SAP導入支援など、コンサルティングファーム出身者向けのフリーコンサル案件を掲載しています。
+            月額100万〜250万円の高単価案件を常時100件以上取り扱い。フルリモート・ハイブリッド・週2〜3日稼働など柔軟な働き方の案件も豊富です。
+          </p>
+          <p className="text-[12px] text-[#888] mt-1 mb-1 leading-[1.7]">
+            募集中の案件だけでなく、過去に掲載した案件もアーカイブとして閲覧可能です。
+            <Link href="/auth/register" className="text-blue font-bold hover:underline ml-1">無料会員登録</Link>
+            いただくと、AIマッチングで最適な案件をレコメンドします。
           </p>
           <div className="w-9 h-[3px] bg-blue mt-3 mb-6" />
 
@@ -101,6 +108,9 @@ export default async function CasesPage() {
 
           {/* Client-side filter/search */}
           <CaseFilters cases={cases} />
+
+          {/* FAQ section for SEO */}
+          <CasesFAQ />
         </div>
       </main>
       <Footer />
@@ -109,6 +119,20 @@ export default async function CasesPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      {/* BreadcrumbList */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "ホーム", item: BASE_URL },
+              { "@type": "ListItem", position: 2, name: "フリーコンサル案件一覧", item: `${BASE_URL}/cases` },
+            ],
+          }),
+        }}
       />
     </>
   );

@@ -125,12 +125,24 @@ export default function CasesSection({ cases }: CasesSectionProps) {
             この他にも多くのフリーコンサル案件をご提案可能です。
           </p>
         </div>
-        <div className="mt-6 text-center">
+        <div className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2">
+          <Link
+            href="/expertise"
+            className="text-[13px] font-bold text-blue hover:underline"
+          >
+            専門領域から案件を探す →
+          </Link>
+          <Link
+            href="/industries"
+            className="text-[13px] font-bold text-blue hover:underline"
+          >
+            業界別のフリーコンサル案件 →
+          </Link>
           <Link
             href="/blog"
             className="text-[13px] font-bold text-blue hover:underline"
           >
-            フリーコンサル関連の記事を読む →
+            フリーコンサルのキャリアブログ →
           </Link>
         </div>
       </div>
