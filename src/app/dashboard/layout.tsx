@@ -15,13 +15,15 @@ export default async function DashboardLayout({
   } = await supabase.auth.getUser();
 
   let isAdmin = false;
+  let isClient = false;
   if (user) {
     const { data } = await supabase
       .from("profiles")
-      .select("is_admin")
+      .select("is_admin, is_client")
       .eq("id", user.id)
       .single();
     isAdmin = data?.is_admin ?? false;
+    isClient = data?.is_client ?? false;
   }
 
   return (
@@ -29,7 +31,7 @@ export default async function DashboardLayout({
       <Header isLoggedIn={true} />
       <main className="pt-[72px] pb-[100px] lg:pb-[72px] px-4 md:px-8 min-h-screen bg-gray-bg">
         <div className="max-w-[1320px] mx-auto flex gap-8">
-          <DashboardSidebar isAdmin={isAdmin} />
+          <DashboardSidebar isAdmin={isAdmin} isClient={isClient} />
           <div className="flex-1 min-w-0">{children}</div>
         </div>
       </main>

@@ -54,6 +54,8 @@ export interface Profile {
   profile_complete: boolean;
   is_admin: boolean;
   is_looking: boolean;
+  is_client: boolean;
+  company_name: string | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -196,4 +198,67 @@ export interface SeoSnapshot {
   snapshot_date: string;
   source: string;
   created_at: string | null;
+}
+
+// ============================================
+// Proposal Portal types
+// ============================================
+
+export interface Proposal {
+  id: string;
+  case_id: string;
+  client_id: string;
+  title: string;
+  message: string | null;
+  status: "draft" | "sent" | "viewed" | "responded" | "closed";
+  sent_at: string | null;
+  viewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined relations (optional)
+  cases?: Case;
+  profiles?: Pick<Profile, "id" | "full_name" | "email" | "company_name">;
+  proposal_talents?: ProposalTalent[];
+}
+
+export interface ProposalTalent {
+  id: string;
+  proposal_id: string;
+  profile_id: string | null;
+  external_talent_id: string | null;
+  display_label: string;
+  sort_order: number;
+  client_fee: number | null;
+  internal_cost: number | null;
+  internal_note: string | null;
+  summary_position: string | null;
+  summary_experience: string | null;
+  summary_skills: string[] | null;
+  summary_background: string | null;
+  summary_work_style: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined relations (optional)
+  proposal_reactions?: ProposalReaction[];
+}
+
+export interface ProposalReaction {
+  id: string;
+  proposal_talent_id: string;
+  client_id: string;
+  reaction: "interested" | "pass";
+  message: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProposalMessage {
+  id: string;
+  proposal_id: string;
+  sender_id: string;
+  body: string;
+  is_admin: boolean;
+  created_at: string;
+  // Joined relations (optional)
+  profiles?: Pick<Profile, "id" | "full_name" | "company_name">;
 }

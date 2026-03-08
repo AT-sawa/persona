@@ -13,9 +13,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/favorites", label: "お気に入り", icon: "bookmark" },
   { href: "/dashboard/matching", label: "マッチング", icon: "auto_awesome" },
   { href: "/dashboard/entries", label: "エントリー", icon: "send" },
-  { href: "/dashboard/case-studies", label: "事例投稿", icon: "edit_note" },
   { href: "/dashboard/notifications", label: "通知", icon: "notifications" },
-  { href: "/dashboard/perks", label: "特典", icon: "redeem" },
 ];
 
 const ADMIN_ITEMS = [
@@ -23,6 +21,8 @@ const ADMIN_ITEMS = [
   { href: "/dashboard/admin/users", label: "ユーザー管理", icon: "group" },
   { href: "/dashboard/admin/cases", label: "案件管理", icon: "folder_open" },
   { href: "/dashboard/admin/entries", label: "エントリー管理", icon: "assignment" },
+  { href: "/dashboard/admin/clients", label: "クライアント管理", icon: "apartment" },
+  { href: "/dashboard/admin/proposals", label: "提案書管理", icon: "handshake" },
   { href: "/dashboard/admin/case-studies", label: "事例管理", icon: "rate_review" },
   { href: "/dashboard/admin/analytics", label: "アナリティクス", icon: "analytics" },
   { href: "/dashboard/admin/talents", label: "外部人材DB", icon: "groups" },
@@ -30,7 +30,17 @@ const ADMIN_ITEMS = [
   { href: "/dashboard/admin/perks", label: "特典管理", icon: "loyalty" },
 ];
 
-export default function DashboardSidebar({ isAdmin }: { isAdmin: boolean }) {
+const CLIENT_ITEMS = [
+  { href: "/dashboard/portal", label: "提案一覧", icon: "description" },
+];
+
+export default function DashboardSidebar({
+  isAdmin,
+  isClient,
+}: {
+  isAdmin: boolean;
+  isClient?: boolean;
+}) {
   const pathname = usePathname();
 
   function isActive(href: string) {
@@ -38,6 +48,63 @@ export default function DashboardSidebar({ isAdmin }: { isAdmin: boolean }) {
     if (href === "/dashboard/admin") return pathname === "/dashboard/admin";
     if (href === "/dashboard/profile") return pathname === "/dashboard/profile";
     return pathname.startsWith(href);
+  }
+
+  // Client-only view: simplified sidebar
+  if (isClient && !isAdmin) {
+    return (
+      <>
+        <aside className="hidden lg:block w-[240px] shrink-0">
+          <nav className="sticky top-[84px] max-h-[calc(100vh-96px)] overflow-y-auto flex flex-col gap-0.5 bg-white rounded-2xl border border-border/60 p-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <p className="px-4 py-1 text-[10px] font-bold text-blue tracking-wider uppercase">
+              Client Portal
+            </p>
+            {CLIENT_ITEMS.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium rounded-xl transition-all ${
+                  isActive(item.href)
+                    ? "bg-blue/8 text-blue font-bold"
+                    : "text-[#555] hover:bg-[#f5f7fa] hover:text-navy"
+                }`}
+              >
+                <span
+                  className={`material-symbols-rounded text-[20px] ${
+                    isActive(item.href) ? "filled" : ""
+                  }`}
+                >
+                  {item.icon}
+                </span>
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </aside>
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white/95 backdrop-blur-md border-t border-border/40 flex justify-around py-1.5 px-1 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
+          {CLIENT_ITEMS.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex flex-col items-center gap-0.5 py-1 px-2 min-w-[56px] text-center transition-colors ${
+                isActive(item.href) ? "text-blue" : "text-[#999]"
+              }`}
+            >
+              <span
+                className={`material-symbols-rounded text-[22px] ${
+                  isActive(item.href) ? "filled" : ""
+                }`}
+              >
+                {item.icon}
+              </span>
+              <span className="text-[9px] font-bold leading-tight">
+                {item.label}
+              </span>
+            </Link>
+          ))}
+        </nav>
+      </>
+    );
   }
 
   return (

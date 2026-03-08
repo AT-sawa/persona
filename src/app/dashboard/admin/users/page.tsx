@@ -235,7 +235,7 @@ export default function AdminUsersPage() {
       const [usersRes, resumesRes] = await Promise.all([
         supabase
           .from("profiles")
-          .select("id, full_name, email, phone, background, skills, avatar_url, bio, years_experience, hourly_rate_min, hourly_rate_max, linkedin_url, available_from, prefecture, remote_preference, profile_complete, is_admin, is_looking, created_at, updated_at")
+          .select("id, full_name, email, phone, background, skills, avatar_url, bio, years_experience, hourly_rate_min, hourly_rate_max, linkedin_url, available_from, prefecture, remote_preference, profile_complete, is_admin, is_looking, is_client, company_name, created_at, updated_at")
           .order("created_at", { ascending: false }),
         supabase
           .from("resumes")

@@ -10,6 +10,8 @@ interface Stats {
   activeCases: number;
   entries: number;
   inquiries: number;
+  clients: number;
+  proposals: number;
 }
 
 interface QueueItem {
@@ -83,7 +85,7 @@ export default function AdminPage() {
       }
 
       // Fetch stats & matching queue in parallel
-      const [usersRes, casesRes, entriesRes, inquiriesRes] = await Promise.all([
+      const [usersRes, casesRes, entriesRes, inquiriesRes, clientsRes, proposalsRes] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase
           .from("cases")
@@ -91,6 +93,8 @@ export default function AdminPage() {
           .eq("is_active", true),
         supabase.from("entries").select("id", { count: "exact", head: true }),
         supabase.from("inquiries").select("id", { count: "exact", head: true }),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_client", true),
+        supabase.from("proposals").select("id", { count: "exact", head: true }),
       ]);
 
       setStats({
@@ -98,6 +102,8 @@ export default function AdminPage() {
         activeCases: casesRes.count ?? 0,
         entries: entriesRes.count ?? 0,
         inquiries: inquiriesRes.count ?? 0,
+        clients: clientsRes.count ?? 0,
+        proposals: proposalsRes.count ?? 0,
       });
 
       // Fetch matching queue
@@ -161,12 +167,14 @@ export default function AdminPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
         {[
           { label: "登録ユーザー", value: stats?.users, href: "/dashboard/admin/users" },
           { label: "公開案件", value: stats?.activeCases, href: "/dashboard/admin/cases" },
           { label: "エントリー", value: stats?.entries, href: "/dashboard/admin/entries" },
           { label: "お問い合わせ", value: stats?.inquiries, href: "#" },
+          { label: "クライアント", value: stats?.clients, href: "/dashboard/admin/clients" },
+          { label: "提案書", value: stats?.proposals, href: "/dashboard/admin/proposals" },
         ].map((item) => (
           <Link
             key={item.label}
@@ -233,6 +241,20 @@ export default function AdminPage() {
           >
             <span className="text-2xl block mb-1"><Icon name="campaign" className="text-[24px]" /></span>
             <span className="text-[13px] font-bold text-navy">営業メール送信</span>
+          </Link>
+          <Link
+            href="/dashboard/admin/clients"
+            className="p-4 border border-border text-center hover:bg-[#fafafa] transition-colors"
+          >
+            <span className="text-2xl block mb-1"><Icon name="apartment" className="text-[24px]" /></span>
+            <span className="text-[13px] font-bold text-navy">クライアント管理</span>
+          </Link>
+          <Link
+            href="/dashboard/admin/proposals"
+            className="p-4 border border-border text-center hover:bg-[#fafafa] transition-colors"
+          >
+            <span className="text-2xl block mb-1"><Icon name="handshake" className="text-[24px]" /></span>
+            <span className="text-[13px] font-bold text-navy">提案管理</span>
           </Link>
         </div>
       </div>
