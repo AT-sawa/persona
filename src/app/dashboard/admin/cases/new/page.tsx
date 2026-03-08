@@ -74,33 +74,46 @@ export default function AdminNewCasePage() {
 
     try {
       const supabase = createClient();
-      const { error: insertError } = await supabase.from("cases").insert({
-        case_no: form.case_no || null,
-        title: form.title,
-        category: form.category || null,
-        background: form.background || null,
-        description: form.description || null,
-        industry: form.industry || null,
-        start_date: form.start_date || null,
-        extendable: form.extendable || null,
-        occupancy: form.occupancy || null,
-        fee: form.fee || null,
-        work_style: form.work_style || null,
-        office_days: form.office_days || null,
-        location: form.location || null,
-        must_req: form.must_req || null,
-        nice_to_have: form.nice_to_have || null,
-        flow: form.flow || null,
-        client_company: form.client_company || null,
-        commercial_flow: form.commercial_flow || null,
-        is_active: form.is_active,
-        status: "active",
-      });
+      const { data: insertedCase, error: insertError } = await supabase
+        .from("cases")
+        .insert({
+          case_no: form.case_no || null,
+          title: form.title,
+          category: form.category || null,
+          background: form.background || null,
+          description: form.description || null,
+          industry: form.industry || null,
+          start_date: form.start_date || null,
+          extendable: form.extendable || null,
+          occupancy: form.occupancy || null,
+          fee: form.fee || null,
+          work_style: form.work_style || null,
+          office_days: form.office_days || null,
+          location: form.location || null,
+          must_req: form.must_req || null,
+          nice_to_have: form.nice_to_have || null,
+          flow: form.flow || null,
+          client_company: form.client_company || null,
+          commercial_flow: form.commercial_flow || null,
+          is_active: form.is_active,
+          status: "active",
+        })
+        .select("id")
+        .single();
 
       if (insertError) throw insertError;
 
       // Trigger embedding generation for the new case
       fetch("/api/admin/embeddings", { method: "POST" }).catch(() => {});
+
+      // Trigger matching for the new case
+      if (insertedCase?.id) {
+        fetch("/api/admin/matching", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ targetCaseId: insertedCase.id }),
+        }).catch(() => {});
+      }
 
       router.push("/dashboard/admin/cases");
     } catch {

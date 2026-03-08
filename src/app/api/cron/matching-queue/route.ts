@@ -75,6 +75,7 @@ export async function GET(request: NextRequest) {
         // Run matching
         const matchResult = await runMatching({
           targetUserId: item.target_user_id || null,
+          targetCaseId: item.target_case_id || null,
           sendEmails: true,
           triggerType: item.trigger_type,
         });

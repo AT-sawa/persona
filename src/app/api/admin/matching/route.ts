@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { runMatching } from "@/lib/matching/runMatching";
+import { runMatching, queueMatchingRun } from "@/lib/matching/runMatching";
 import { logAudit } from "@/lib/audit";
 
 /**
@@ -9,6 +9,7 @@ import { logAudit } from "@/lib/audit";
  *
  * Body (optional):
  *   targetUserId?: string  - Run for specific user only
+ *   targetCaseId?: string  - Queue matching for specific case (async)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -33,6 +34,17 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json().catch(() => ({}));
     const targetUserId = body.targetUserId || null;
+    const targetCaseId = body.targetCaseId || null;
+
+    // If targetCaseId is specified, queue async matching instead of running immediately
+    if (targetCaseId) {
+      await queueMatchingRun({
+        triggerType: "case_create",
+        targetCaseId,
+        createdBy: user.id,
+      });
+      return NextResponse.json({ queued: true, targetCaseId });
+    }
 
     const result = await runMatching({
       targetUserId,

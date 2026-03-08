@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { logAudit } from "@/lib/audit";
 import { generateEmbedding, buildCaseEmbeddingText } from "@/lib/embedding";
 import { sanitizeCaseRecord } from "@/lib/sanitize-case-text";
+import { queueMatchingRun } from "@/lib/matching/runMatching";
 import type { Case } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
@@ -151,6 +152,29 @@ export async function POST(request: NextRequest) {
         } catch {
           // Best effort — hourly cron will catch any missed cases
         }
+      }
+    }
+
+    // Queue matching for newly created cases
+    if (data && data.length > 0) {
+      try {
+        if (data.length <= 5) {
+          for (const c of data as Case[]) {
+            await queueMatchingRun({
+              triggerType: "case_create",
+              targetCaseId: c.id,
+              createdBy: user.id,
+            });
+          }
+        } else {
+          // Large batch: queue a single full matching run
+          await queueMatchingRun({
+            triggerType: "sync",
+            createdBy: user.id,
+          });
+        }
+      } catch {
+        // Best effort — don't fail the import
       }
     }
 

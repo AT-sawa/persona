@@ -286,6 +286,13 @@ export default function AdminPage() {
           <p className="text-[12px] text-[#888]">
             全ユーザーに対して即時マッチングを実行します。定時バッチは毎日07:00(JST)に自動実行されます。
           </p>
+          <Link
+            href="/dashboard/admin/matching"
+            className="text-[12px] text-blue font-bold hover:underline shrink-0 flex items-center gap-1"
+          >
+            <Icon name="leaderboard" className="text-[14px]" />
+            結果一覧を表示
+          </Link>
         </div>
 
         {/* Result */}

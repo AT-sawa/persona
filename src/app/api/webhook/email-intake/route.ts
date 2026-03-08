@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { parseEmailCases } from "@/lib/parse-email-cases";
 import { Resend } from "resend";
 import { generateEmbedding, buildCaseEmbeddingText } from "@/lib/embedding";
+import { queueMatchingRun } from "@/lib/matching/runMatching";
 import type { Case } from "@/lib/types";
 
 /**
@@ -442,6 +443,24 @@ export async function POST(request: NextRequest) {
             // Best effort — hourly cron will catch any missed cases
           }
         }
+      }
+    }
+
+    // Queue matching for newly created cases
+    if (insertedCaseIds.length > 0) {
+      try {
+        if (insertedCaseIds.length <= 5) {
+          for (const caseId of insertedCaseIds) {
+            await queueMatchingRun({
+              triggerType: "case_create",
+              targetCaseId: caseId,
+            });
+          }
+        } else {
+          await queueMatchingRun({ triggerType: "sync" });
+        }
+      } catch {
+        // Best effort — don't fail the intake
       }
     }
 

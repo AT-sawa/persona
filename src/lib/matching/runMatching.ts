@@ -34,6 +34,8 @@ export interface MatchingRunResult {
 interface MatchingOptions {
   /** Run for a specific user only (null = all active users) */
   targetUserId?: string | null;
+  /** Run for a specific case only (null = all active cases within 30 days) */
+  targetCaseId?: string | null;
   /** Send email notifications for high-score matches */
   sendEmails?: boolean;
   /** Source label for logging */
@@ -66,6 +68,7 @@ async function runRuleBasedMatching(
 ): Promise<MatchingRunResult> {
   const {
     targetUserId = null,
+    targetCaseId = null,
     sendEmails = true,
     triggerType = "unknown",
   } = options;
@@ -99,11 +102,19 @@ async function runRuleBasedMatching(
       return result;
     }
 
-    // 2. Fetch all active cases (once)
-    const { data: cases, error: casesError } = await supabase
-      .from("cases")
-      .select("*")
-      .eq("is_active", true);
+    // 2. Fetch cases
+    let casesQuery = supabase.from("cases").select("*").eq("is_active", true);
+
+    if (targetCaseId) {
+      // Single case mode: fetch only the target case
+      casesQuery = casesQuery.eq("id", targetCaseId);
+    } else {
+      // Batch mode: only cases created within 30 days
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      casesQuery = casesQuery.gte("created_at", thirtyDaysAgo);
+    }
+
+    const { data: cases, error: casesError } = await casesQuery;
 
     if (casesError) {
       result.errors.push(`案件取得エラー: ${casesError.message}`);
@@ -233,6 +244,7 @@ async function runSemanticMatching(
 ): Promise<MatchingRunResult> {
   const {
     targetUserId = null,
+    targetCaseId = null,
     sendEmails = true,
     triggerType = "unknown",
   } = options;
@@ -320,8 +332,20 @@ async function runSemanticMatching(
         // If we have an embedding, use vector search; otherwise fall back to all cases
         let candidateCases: Case[] = [];
         const similarityMap = new Map<string, number>();
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-        if (profileEmbedding) {
+        if (targetCaseId) {
+          // Single case mode: skip vector search, fetch only the target case
+          const { data: targetCase } = await supabase
+            .from("cases")
+            .select("*")
+            .eq("id", targetCaseId)
+            .eq("is_active", true)
+            .single();
+          if (targetCase) {
+            candidateCases = [targetCase as Case];
+          }
+        } else if (profileEmbedding) {
           // Call the pgvector RPC function
           const { data: vectorResults, error: vectorError } = await supabase
             .rpc("match_cases_by_embedding", {
@@ -332,11 +356,12 @@ async function runSemanticMatching(
 
           if (vectorError) {
             console.error("Vector search error:", vectorError.message);
-            // Fall back to fetching all active cases
+            // Fall back to fetching active cases within 30 days
             const { data: allCases } = await supabase
               .from("cases")
               .select("*")
-              .eq("is_active", true);
+              .eq("is_active", true)
+              .gte("created_at", thirtyDaysAgo);
             candidateCases = (allCases as Case[]) ?? [];
           } else if (vectorResults && vectorResults.length > 0) {
             // Store similarity scores
@@ -344,29 +369,32 @@ async function runSemanticMatching(
               similarityMap.set(vr.id, vr.similarity);
             }
 
-            // Fetch full case data for the matched IDs
+            // Fetch full case data for the matched IDs (with 30-day filter)
             const caseIds = vectorResults.map(
               (vr: { id: string }) => vr.id
             );
             const { data: fullCases } = await supabase
               .from("cases")
               .select("*")
-              .in("id", caseIds);
+              .in("id", caseIds)
+              .gte("created_at", thirtyDaysAgo);
             candidateCases = (fullCases as Case[]) ?? [];
           } else {
-            // No vector results — fetch all active cases as fallback
+            // No vector results — fetch active cases within 30 days as fallback
             const { data: allCases } = await supabase
               .from("cases")
               .select("*")
-              .eq("is_active", true);
+              .eq("is_active", true)
+              .gte("created_at", thirtyDaysAgo);
             candidateCases = (allCases as Case[]) ?? [];
           }
         } else {
-          // No embedding available — fetch all active cases
+          // No embedding available — fetch active cases within 30 days
           const { data: allCases } = await supabase
             .from("cases")
             .select("*")
-            .eq("is_active", true);
+            .eq("is_active", true)
+            .gte("created_at", thirtyDaysAgo);
           candidateCases = (allCases as Case[]) ?? [];
         }
 
@@ -607,8 +635,9 @@ async function sendMatchEmails(
  * The cron processor will pick it up after the cooldown period.
  */
 export async function queueMatchingRun(options: {
-  triggerType: "sync" | "manual" | "user_register" | "user_update";
+  triggerType: "sync" | "manual" | "user_register" | "user_update" | "case_create" | "daily_cron";
   targetUserId?: string | null;
+  targetCaseId?: string | null;
   createdBy?: string | null;
 }): Promise<void> {
   const supabase = createServiceClient();
@@ -640,6 +669,7 @@ export async function queueMatchingRun(options: {
   await supabase.from("matching_queue").insert({
     trigger_type: options.triggerType,
     target_user_id: options.targetUserId || null,
+    target_case_id: options.targetCaseId || null,
     created_by: options.createdBy || null,
   });
 }
