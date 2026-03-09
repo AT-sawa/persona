@@ -573,6 +573,10 @@ async function runSemanticMatching(
 
 /**
  * Shared email notification logic for both pipelines.
+ *
+ * Checks:
+ * 1. User has not opted out (notify_matching_email = false)
+ * 2. Last email was sent more than 7 days ago (weekly rate limit)
  */
 async function sendMatchEmails(
   sendEmails: boolean,
@@ -581,51 +585,80 @@ async function sendMatchEmails(
   caseMap: Map<string, Case>,
   result: MatchingRunResult
 ): Promise<void> {
-  if (sendEmails && process.env.RESEND_API_KEY) {
-    const topNew = filtered.filter((r) => r.score >= 60).slice(0, 5);
-    if (topNew.length > 0 && profile.email) {
-      try {
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        const fromEmail =
-          process.env.FROM_EMAIL || "noreply@persona-consultant.com";
+  if (!sendEmails || !process.env.RESEND_API_KEY) return;
 
-        const caseLines = topNew
-          .map((m) => {
-            const c = caseMap.get(m.case_id);
-            return c
-              ? `- ${c.title}（マッチ度 ${m.score}%）${c.fee ? ` / ${c.fee}` : ""}`
-              : null;
-          })
-          .filter(Boolean)
-          .join("\n");
+  const topNew = filtered.filter((r) => r.score >= 60).slice(0, 5);
+  if (topNew.length === 0 || !profile.email) return;
 
-        await resend.emails.send({
-          from: `PERSONA <${fromEmail}>`,
-          to: profile.email,
-          subject: `【PERSONA】あなたにマッチする案件が${topNew.length}件見つかりました`,
-          text: [
-            `${profile.full_name || ""}さん`,
-            "",
-            `AIマッチングの結果、マッチ度60%以上の案件が${topNew.length}件見つかりました。`,
-            "",
-            caseLines,
-            "",
-            "詳細はダッシュボードからご確認ください。",
-            `${BASE_URL}/dashboard/matching`,
-            "",
-            "---",
-            "PERSONA - フリーコンサル案件紹介サービス",
-            "",
-            "このメールの配信を停止するには、ダッシュボードの",
-            "「設定」から通知設定を変更してください。",
-            `${BASE_URL}/dashboard/preferences`,
-          ].join("\n"),
-        });
-        result.emailsSent++;
-      } catch {
-        // Email error — don't fail the whole run
+  try {
+    const supabase = createServiceClient();
+
+    // Check user notification preferences + rate limit
+    const { data: prefs } = await supabase
+      .from("user_preferences")
+      .select("notify_matching_email, last_matching_email_at")
+      .eq("user_id", profile.id)
+      .single();
+
+    // 1. Opt-out check: if user explicitly disabled matching emails, skip
+    if (prefs && prefs.notify_matching_email === false) {
+      return;
+    }
+
+    // 2. Weekly rate limit: skip if last email was within 7 days
+    if (prefs?.last_matching_email_at) {
+      const lastSent = new Date(prefs.last_matching_email_at).getTime();
+      const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+      if (Date.now() - lastSent < sevenDaysMs) {
+        return;
       }
     }
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const fromEmail =
+      process.env.FROM_EMAIL || "noreply@persona-consultant.com";
+
+    const caseLines = topNew
+      .map((m) => {
+        const c = caseMap.get(m.case_id);
+        return c
+          ? `- ${c.title}（マッチ度 ${m.score}%）${c.fee ? ` / ${c.fee}` : ""}`
+          : null;
+      })
+      .filter(Boolean)
+      .join("\n");
+
+    await resend.emails.send({
+      from: `PERSONA <${fromEmail}>`,
+      to: profile.email,
+      subject: `【PERSONA】あなたにマッチする案件が${topNew.length}件見つかりました`,
+      text: [
+        `${profile.full_name || ""}さん`,
+        "",
+        `AIマッチングの結果、マッチ度60%以上の案件が${topNew.length}件見つかりました。`,
+        "",
+        caseLines,
+        "",
+        "詳細はダッシュボードからご確認ください。",
+        `${BASE_URL}/dashboard/matching`,
+        "",
+        "---",
+        "PERSONA - フリーコンサル案件紹介サービス",
+        "",
+        "このメールの配信を停止するには、ダッシュボードの",
+        "「条件登録」ページから通知設定を変更してください。",
+        `${BASE_URL}/dashboard/preferences`,
+      ].join("\n"),
+    });
+    result.emailsSent++;
+
+    // Update last_matching_email_at to enforce weekly rate limit
+    await supabase
+      .from("user_preferences")
+      .update({ last_matching_email_at: new Date().toISOString() })
+      .eq("user_id", profile.id);
+  } catch {
+    // Email error — don't fail the whole run
   }
 }
 

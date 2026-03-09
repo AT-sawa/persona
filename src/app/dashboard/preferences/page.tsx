@@ -47,7 +47,7 @@ export default function PreferencesPage() {
     setUserId(user.id);
     const { data } = await supabase
       .from("user_preferences")
-      .select("id, user_id, desired_rate_min, desired_rate_max, desired_industries, desired_categories, desired_roles, preferred_locations, remote_preference, min_occupancy, max_occupancy, available_from, notes")
+      .select("id, user_id, desired_rate_min, desired_rate_max, desired_industries, desired_categories, desired_roles, preferred_locations, remote_preference, min_occupancy, max_occupancy, available_from, notes, notify_matching_email")
       .eq("user_id", user.id)
       .single();
     if (data) {
@@ -103,6 +103,7 @@ export default function PreferencesPage() {
         max_occupancy: prefs.max_occupancy || null,
         available_from: prefs.available_from || null,
         notes: prefs.notes || null,
+        notify_matching_email: prefs.notify_matching_email !== false, // default true
         updated_at: new Date().toISOString(),
       };
 
@@ -399,6 +400,36 @@ export default function PreferencesPage() {
               />
             </div>
           </div>
+        </div>
+
+        {/* 通知設定 */}
+        <div className="bg-white border border-border p-6">
+          <h2 className="text-sm font-bold text-navy mb-4 pb-3 border-b-2 border-blue">
+            メール通知設定
+          </h2>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={prefs.notify_matching_email !== false}
+              onChange={(e) => {
+                setPrefs((p) => ({
+                  ...p,
+                  notify_matching_email: e.target.checked,
+                }));
+                setSaved(false);
+              }}
+              className="mt-0.5 w-4 h-4 accent-blue cursor-pointer"
+            />
+            <div>
+              <p className="text-[13px] font-bold text-navy">
+                マッチング案件の通知メールを受け取る
+              </p>
+              <p className="text-[11px] text-[#888] mt-0.5">
+                AIマッチングで高スコアの案件が見つかった場合、週1回までメールでお知らせします。
+                オフにするとマッチング通知メールは送信されません。
+              </p>
+            </div>
+          </label>
         </div>
 
         {/* 備考 */}

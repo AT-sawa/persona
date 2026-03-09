@@ -85,6 +85,8 @@ export interface UserPreferences {
   max_occupancy: number | null;
   available_from: string | null;
   notes: string | null;
+  notify_matching_email: boolean;
+  last_matching_email_at: string | null;
   created_at: string | null;
   updated_at: string | null;
 }
