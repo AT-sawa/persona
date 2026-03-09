@@ -343,7 +343,8 @@ export default function AdminSeoPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setSyncResult(`同期失敗: ${data.error || data.message || "不明なエラー"}`);
+        const detail = [data.error, data.message].filter(Boolean).join(" - ");
+        setSyncResult(`同期失敗: ${detail || "不明なエラー"}`);
         return;
       }
       setSyncResult(
