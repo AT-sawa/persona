@@ -48,5 +48,10 @@ all_cases.json
 cases_preview.json
 cases_import.csv
 
+# service account keys (never commit)
+*-credentials.json
+*-service-account.json
+persona-seo-*.json
+
 # claude
 .claude/
