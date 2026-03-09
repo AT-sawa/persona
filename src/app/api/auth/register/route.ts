@@ -9,7 +9,47 @@ import { buildWelcomeEmail } from "@/lib/emails/welcome";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, fullName, phone, firm, trafficSource } = body;
+    const { email, password, fullName, phone, firm, trafficSource, _hp, _ts } = body;
+
+    // ── Anti-bot checks ──
+
+    // 1. Honeypot: if filled, silently reject (pretend success so bot doesn't retry)
+    if (_hp) {
+      console.log("[register] Honeypot triggered, rejecting spam registration");
+      return NextResponse.json({ success: true, userId: "ok" });
+    }
+
+    // 2. Timing: form submitted in < 3 seconds = bot
+    if (_ts && typeof _ts === "number" && Date.now() - _ts < 3000) {
+      console.log("[register] Timing check failed (<3s), rejecting spam registration");
+      return NextResponse.json({ success: true, userId: "ok" });
+    }
+
+    // 3. Content check: detect random gibberish in name/firm
+    function looksLikeSpam(text: string): boolean {
+      if (!text || text.length < 16) return false;
+      // Has spaces or Japanese → probably human
+      const hasSpaceOrJapanese = /[\s\u3000\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/.test(text);
+      if (hasSpaceOrJapanese) return false;
+      // Only check all-alpha strings (no numbers/symbols)
+      if (!/^[a-zA-Z]+$/.test(text)) return false;
+      // Random strings have mixed case + low vowel ratio
+      const upperCount = (text.match(/[A-Z]/g) || []).length;
+      const vowelCount = (text.match(/[aeiouAEIOU]/g) || []).length;
+      const upperRatio = upperCount / text.length;
+      const vowelRatio = vowelCount / text.length;
+      // Random: mixed case (30-70%) AND few vowels (<25%)
+      // e.g. "KNFalDCQYXgnPwue" → upper 56%, vowels 19% → spam
+      // e.g. "BostonConsultingGroup" → upper 14%, vowels 33% → safe
+      return upperRatio > 0.3 && upperRatio < 0.7 && vowelRatio < 0.25;
+    }
+
+    if (looksLikeSpam(fullName) || looksLikeSpam(firm)) {
+      console.log(`[register] Spam content detected: name="${fullName}", firm="${firm}"`);
+      return NextResponse.json({ success: true, userId: "ok" });
+    }
+
+    // ── Standard validation ──
 
     if (!email || !password || !fullName) {
       return NextResponse.json(

@@ -20,6 +20,9 @@ export default function RegisterPage() {
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // Anti-bot: honeypot + timing
+  const [website, setWebsite] = useState(""); // honeypot — bots fill this
+  const [formLoadedAt] = useState(() => Date.now());
 
   useEffect(() => {
     analytics.signupStart();
@@ -35,6 +38,20 @@ export default function RegisterPage() {
 
     if (formData.password.length < 8) {
       setError("パスワードは8文字以上で入力してください");
+      return;
+    }
+
+    // Anti-bot: honeypot check
+    if (website) {
+      // Silently pretend success so bot doesn't retry
+      setLoading(true);
+      setTimeout(() => router.push("/"), 1500);
+      return;
+    }
+
+    // Anti-bot: timing check (< 3 seconds = bot)
+    if (Date.now() - formLoadedAt < 3000) {
+      setError("もう少しお待ちください");
       return;
     }
 
@@ -61,6 +78,8 @@ export default function RegisterPage() {
           phone: formData.phone,
           firm: formData.firm,
           trafficSource,
+          _hp: website, // honeypot
+          _ts: formLoadedAt, // form load timestamp
         }),
       });
 
@@ -151,6 +170,19 @@ export default function RegisterPage() {
                   />
                 </div>
               ))}
+              {/* Honeypot field — invisible to humans, bots auto-fill it */}
+              <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", top: "-9999px", opacity: 0, height: 0, overflow: "hidden" }}>
+                <label htmlFor="website">Website</label>
+                <input
+                  type="text"
+                  id="website"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                />
+              </div>
               <label className="flex items-start gap-2 mb-4 cursor-pointer">
                 <input
                   type="checkbox"
