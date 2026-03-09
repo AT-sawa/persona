@@ -48,7 +48,7 @@ function Icon({ name, className = "" }: { name: string; className?: string }) {
   return <span className={`material-symbols-rounded ${className}`}>{name}</span>;
 }
 
-type ScoreFilter = "all" | "high" | "mid" | "low";
+type ScoreFilter = "all" | "high" | "mid";
 
 /**
  * Parse must_req text into individual requirement items.
@@ -152,7 +152,7 @@ export default function AdminMatchingPage() {
     return matches.filter((m) => {
       if (scoreFilter === "high" && m.score < 60) return false;
       if (scoreFilter === "mid" && (m.score < 40 || m.score >= 60)) return false;
-      if (scoreFilter === "low" && m.score >= 40) return false;
+      // 40点未満はDBに保存されないため low フィルタは不要
 
       if (caseSearch) {
         const q = caseSearch.toLowerCase();
@@ -247,7 +247,6 @@ export default function AdminMatchingPage() {
             { value: "all" as ScoreFilter, label: "すべて" },
             { value: "high" as ScoreFilter, label: "60以上" },
             { value: "mid" as ScoreFilter, label: "40-59" },
-            { value: "low" as ScoreFilter, label: "20-39" },
           ]).map((item) => (
             <button
               key={item.value}

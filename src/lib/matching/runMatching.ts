@@ -157,7 +157,7 @@ async function runRuleBasedMatching(
           return { case_id: c.id, user_id: profile.id, score, factors, profileCompleteness };
         });
 
-        const filtered = scored.filter((r) => r.score > 20);
+        const filtered = scored.filter((r) => r.score >= 40);
         filtered.sort((a, b) => b.score - a.score);
 
         if (filtered.length > 0) {
@@ -486,7 +486,7 @@ async function runSemanticMatching(
             finalScore = s.rule_score;
           }
 
-          if (finalScore > 20) {
+          if (finalScore >= 40) {
             finalResults.push({
               case_id: s.case_id,
               user_id: s.user_id,

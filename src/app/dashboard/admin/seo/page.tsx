@@ -338,11 +338,8 @@ export default function AdminSeoPage() {
     setSyncing(true);
     setSyncResult(null);
     try {
-      const res = await fetch("/api/cron/seo-sync", {
+      const res = await fetch("/api/admin/seo-sync", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET || ""}`,
-        },
       });
       const data = await res.json();
       if (!res.ok) {
