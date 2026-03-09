@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 import type { Perk, PerkCategory } from "@/lib/types";
 
 const TIER_OPTIONS = [
@@ -99,8 +100,17 @@ export default function AdminPerksPage() {
   }, [router]);
 
   useEffect(() => {
-    fetchPerks();
-  }, [fetchPerks]);
+    async function checkAdminAndFetch() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push("/auth/login"); return; }
+      const { data: profile } = await supabase
+        .from("profiles").select("is_admin").eq("id", user.id).single();
+      if (!profile?.is_admin) { router.push("/dashboard"); return; }
+      fetchPerks();
+    }
+    checkAdminAndFetch();
+  }, [fetchPerks, router]);
 
   function updateForm(field: keyof PerkFormData, value: string | boolean | number) {
     setForm((prev) => ({ ...prev, [field]: value }));
