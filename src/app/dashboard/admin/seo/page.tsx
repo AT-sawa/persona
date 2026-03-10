@@ -26,6 +26,28 @@ const CHART_COLORS = [
 ];
 
 type SortField = "position" | "clicks" | "impressions" | "ctr" | "keyword";
+type KeywordTab = "relevant" | "irrelevant" | "all";
+
+/* ─── Keyword relevance classifier ─── */
+
+const RELEVANT_PATTERNS = [
+  // Core business
+  /コンサル/i, /フリーランス/i, /フリーコンサル/i, /フリー\s?コンサル/i,
+  /案件/i, /マッチング/i, /独立/i, /エージェント/i, /プラットフォーム/i,
+  // Domains
+  /pmo/i, /sap/i, /dx/i, /erp/i, /iot/i, /it\s?コンサル/i,
+  /戦略/i, /金融/i, /公共/i, /セキュリティ/i, /servicenow/i,
+  /マーケティング/i, /業務改善/i, /業務改革/i, /人事\s?案件/i, /人材\s?案件/i,
+  /教育\s?案件/i, /通信\s?案件/i, /商社\s?案件/i, /食品\s?案件/i, /業務\s?案件/i,
+  // Brand
+  /persona/i, /ペルソナ\s?コンサル/i,
+  // Fee / work style
+  /高単価/i, /副業/i, /年収/i, /社員代替/i, /常駐/i,
+];
+
+function isRelevantKeyword(kw: string): boolean {
+  return RELEVANT_PATTERNS.some((p) => p.test(kw));
+}
 
 /* ─── Component ─── */
 
@@ -53,6 +75,7 @@ export default function AdminSeoPage() {
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showTodos, setShowTodos] = useState(true);
+  const [keywordTab, setKeywordTab] = useState<KeywordTab>("relevant");
 
   // Sync status states
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
@@ -235,6 +258,22 @@ export default function AdminSeoPage() {
     });
     return arr;
   }, [keywords, latestByKeyword, sortField, sortAsc]);
+
+  // Filtered keywords by tab
+  const filteredKeywords = useMemo(() => {
+    if (keywordTab === "all") return sortedKeywords;
+    return sortedKeywords.filter((kw) =>
+      keywordTab === "relevant"
+        ? kw.is_primary || isRelevantKeyword(kw.keyword)
+        : !kw.is_primary && !isRelevantKeyword(kw.keyword)
+    );
+  }, [sortedKeywords, keywordTab]);
+
+  const relevantCount = useMemo(
+    () => keywords.filter((kw) => kw.is_primary || isRelevantKeyword(kw.keyword)).length,
+    [keywords]
+  );
+  const irrelevantCount = keywords.length - relevantCount;
 
   /* ─── Actions ─── */
 
@@ -605,60 +644,66 @@ export default function AdminSeoPage() {
         </button>
         {showTodos && (
           <div className="mt-4 space-y-4">
-            {/* High Priority */}
+            {/* Completed */}
             <div>
-              <p className="text-[10px] font-bold text-[#ef4444] tracking-wide uppercase mb-2">
-                HIGH PRIORITY
+              <p className="text-[10px] font-bold text-[#10b981] tracking-wide uppercase mb-2">
+                完了済み
               </p>
               <ul className="space-y-1.5">
                 {[
                   "案件詳細ページにFAQ構造化データ(JSON-LD)を追加",
                   "カテゴリ/業界ページにパンくずリスト構造化データを追加",
-                  "案件一覧ページのmeta descriptionを動的に最適化（カテゴリ・件数を含む）",
-                  "主要ランディングページのCore Web Vitals改善（LCP, CLS）",
-                  "内部リンク構造を強化（関連案件・関連カテゴリへのリンク）",
+                  "案件一覧ページのmeta descriptionを動的に最適化",
+                  "内部リンク構造を強化（関連案件セクション追加）",
+                  "OGP画像を案件タイトル入り動的OG画像に変更",
+                  "XMLサイトマップにlastmod, changefreq, priorityを設定済み",
+                  "案件ページにcanonical URLを設定済み",
+                  "カテゴリページにリード文（200-300文字）を設定済み",
+                  "hreflangタグ追加済み（日本語サイト明示）",
+                  "404ページにカテゴリ・ナビゲーションリンク追加済み",
                 ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-2 text-[12px] text-[#333]">
-                    <span className="mt-0.5 text-[#ef4444]"><Icon name="priority_high" className="text-[14px]" /></span>
+                  <li key={i} className="flex items-start gap-2 text-[12px] text-[#999] line-through">
+                    <span className="mt-0.5 text-[#10b981]"><Icon name="check_circle" className="text-[14px]" /></span>
                     {item}
                   </li>
                 ))}
               </ul>
             </div>
-            {/* Medium Priority */}
+            {/* Remaining: Technical (Claude can do) */}
+            <div>
+              <p className="text-[10px] font-bold text-[#8b5cf6] tracking-wide uppercase mb-2">
+                🤖 テクニカルSEO（Claude対応可）
+              </p>
+              <ul className="space-y-1.5">
+                {[
+                  "主要ランディングページのCore Web Vitals改善（LCP, CLS最適化）",
+                  "ページ表示速度改善（next/image最適化、遅延読み込み、バンドルサイズ削減）",
+                  "robots.txtの最適化・不要ページのnoindex設定",
+                  "構造化データの拡充（Organization, WebSite, Breadcrumb の網羅）",
+                  "内部リンクの自動最適化（関連案件・カテゴリ間リンクの強化）",
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[12px] text-[#333]">
+                    <span className="mt-0.5 text-[#8b5cf6]"><Icon name="smart_toy" className="text-[14px]" /></span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {/* Content / Marketing (User action needed) */}
             <div>
               <p className="text-[10px] font-bold text-[#f59e0b] tracking-wide uppercase mb-2">
-                MEDIUM PRIORITY
+                ✍️ コンテンツ・運用（手動対応）
               </p>
               <ul className="space-y-1.5">
                 {[
-                  "ブログ記事にtargetキーワードを設定し内部リンクで案件ページへ誘導",
-                  "OGP画像を各ページ固有のものに（案件タイトル入り動的OG画像）",
-                  "XMLサイトマップにlastmod, changefreq, priorityを正確に設定",
-                  "案件ページにcanonical URLを明示的に設定",
-                  "カテゴリページの本文コンテンツを充実（200-300文字のリード文）",
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-2 text-[12px] text-[#333]">
-                    <span className="mt-0.5 text-[#f59e0b]"><Icon name="flag" className="text-[14px]" /></span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            {/* Low Priority */}
-            <div>
-              <p className="text-[10px] font-bold text-[#10b981] tracking-wide uppercase mb-2">
-                LOW PRIORITY
-              </p>
-              <ul className="space-y-1.5">
-                {[
-                  "hreflangタグ追加（日本語サイトであることを明示）",
-                  "404ページのSEO最適化（関連案件・カテゴリへのリンク）",
-                  "ページ表示速度の改善（画像最適化、遅延読み込み）",
+                  "ブログ記事作成 → targetキーワードを設定し内部リンクで案件ページへ誘導",
+                  "事例インタビュー記事の追加（実績ページのコンテンツ拡充）",
                   "Search Consoleでインデックスカバレッジエラーを定期確認",
+                  "外部被リンク獲得（メディア掲載、パートナーサイトからのリンク）",
+                  "Googleビジネスプロフィールの登録・最適化",
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-2 text-[12px] text-[#333]">
-                    <span className="mt-0.5 text-[#10b981]"><Icon name="eco" className="text-[14px]" /></span>
+                    <span className="mt-0.5 text-[#f59e0b]"><Icon name="edit_note" className="text-[14px]" /></span>
                     {item}
                   </li>
                 ))}
@@ -814,11 +859,47 @@ export default function AdminSeoPage() {
       <div className="bg-white rounded-xl border border-[#e3e6eb] p-6 mb-6">
         <h2 className="text-sm font-bold text-[#091747] mb-1 flex items-center gap-2">
           <Icon name="list" className="text-[18px] text-[#091747]" />
-          キーワード一覧
+          検索クエリ一覧
         </h2>
-        <p className="text-[11px] text-[#666] mb-4">
-          登録済みキーワードと最新データ
+        <p className="text-[11px] text-[#666] mb-2">
+          Google Search Consoleで表示された検索語句（不要なものはゴミ箱で削除）
         </p>
+
+        {/* Tab filter */}
+        <div className="flex gap-1 mb-4 border-b border-[#e3e6eb]">
+          {([
+            { key: "relevant" as KeywordTab, label: "関連キーワード", count: relevantCount, color: "#10b981" },
+            { key: "irrelevant" as KeywordTab, label: "削除候補", count: irrelevantCount, color: "#ef4444" },
+            { key: "all" as KeywordTab, label: "すべて", count: keywords.length, color: "#888" },
+          ]).map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setKeywordTab(tab.key)}
+              className={`px-3 py-2 text-[12px] font-bold border-b-2 transition-colors ${
+                keywordTab === tab.key
+                  ? "border-[#091747] text-[#091747]"
+                  : "border-transparent text-[#888] hover:text-[#091747]"
+              }`}
+            >
+              {tab.label}
+              <span
+                className="ml-1.5 inline-block px-1.5 py-0.5 rounded-full text-[10px] text-white"
+                style={{ backgroundColor: keywordTab === tab.key ? tab.color : "#ccc" }}
+              >
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {keywordTab === "irrelevant" && irrelevantCount > 0 && (
+          <div className="bg-[#fef2f2] border border-[#fecaca] rounded-lg px-4 py-2.5 mb-4 flex items-center justify-between">
+            <p className="text-[12px] text-[#991b1b]">
+              <Icon name="info" className="text-[14px] align-middle mr-1" />
+              事業と無関係な検索クエリです。削除しても順位に影響はありません。
+            </p>
+          </div>
+        )}
 
         {keywords.length === 0 ? (
           <p className="text-[13px] text-[#888] text-center py-6">
@@ -904,7 +985,7 @@ export default function AdminSeoPage() {
                 </tr>
               </thead>
               <tbody>
-                {sortedKeywords.map((kw) => {
+                {filteredKeywords.map((kw) => {
                   const latest = latestByKeyword[kw.id];
                   const weekAgo = weekAgoByKeyword[kw.id];
                   const currentPos = latest?.position ?? null;
@@ -941,7 +1022,16 @@ export default function AdminSeoPage() {
                               PRIMARY
                             </span>
                           )}
-                          <span className="font-bold text-[#091747]">
+                          {!kw.is_primary && !isRelevantKeyword(kw.keyword) && keywordTab === "all" && (
+                            <span className="inline-block px-1.5 py-0.5 bg-[#ef4444]/10 text-[#ef4444] text-[9px] font-bold rounded">
+                              無関係
+                            </span>
+                          )}
+                          <span className={`font-bold ${
+                            !kw.is_primary && !isRelevantKeyword(kw.keyword)
+                              ? "text-[#999]"
+                              : "text-[#091747]"
+                          }`}>
                             {kw.keyword}
                           </span>
                         </div>

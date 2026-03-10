@@ -162,6 +162,35 @@ export default function DashboardSidebar({
               ))}
             </>
           )}
+
+          {(isClient || isAdmin) && (
+            <>
+              <div className="border-t border-border/60 my-2" />
+              <p className="px-4 py-1 text-[10px] font-bold text-blue tracking-wider uppercase">
+                Client Portal
+              </p>
+              {CLIENT_ITEMS.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium rounded-xl transition-all ${
+                    isActive(item.href)
+                      ? "bg-blue/8 text-blue font-bold"
+                      : "text-[#555] hover:bg-[#f5f7fa] hover:text-navy"
+                  }`}
+                >
+                  <span
+                    className={`material-symbols-rounded text-[20px] ${
+                      isActive(item.href) ? "filled" : ""
+                    }`}
+                  >
+                    {item.icon}
+                  </span>
+                  {item.label}
+                </Link>
+              ))}
+            </>
+          )}
         </nav>
       </aside>
 

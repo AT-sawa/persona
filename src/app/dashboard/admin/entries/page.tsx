@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { maskEmail } from "@/lib/mask";
+import { calculateScore } from "@/lib/matching/calculateScore";
+import type { Case, Profile, UserPreferences, UserExperience } from "@/lib/types";
 
 interface AdminEntry {
   id: string;
@@ -340,6 +342,22 @@ export default function AdminEntriesPage() {
   const [duplicateGroups, setDuplicateGroups] = useState<DuplicateGroup[]>([]);
   const [dedupLoading, setDedupLoading] = useState(false);
   const [showDedup, setShowDedup] = useState(false);
+  const [userPrefs, setUserPrefs] = useState<Record<string, UserPreferences>>({});
+  const [userExps, setUserExps] = useState<Record<string, UserExperience[]>>({});
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [clients, setClients] = useState<{ id: string; full_name: string | null; company_name: string | null }[]>([]);
+  const [proposalTarget, setProposalTarget] = useState<AdminEntry | null>(null);
+  const [proposalCreating, setProposalCreating] = useState(false);
+  // Manual matching state
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [allCases, setAllCases] = useState<{ id: string; title: string; fee: string | null; category: string | null }[]>([]);
+  const [allUsers, setAllUsers] = useState<{ id: string; full_name: string | null; email: string | null; background: string | null }[]>([]);
+  const [manualCaseId, setManualCaseId] = useState("");
+  const [manualUserId, setManualUserId] = useState("");
+  const [manualMessage, setManualMessage] = useState("");
+  const [manualCreating, setManualCreating] = useState(false);
+  const [caseSearch, setCaseSearch] = useState("");
+  const [userSearch, setUserSearch] = useState("");
 
   const fetchDuplicates = useCallback(async () => {
     setDedupLoading(true);
@@ -393,10 +411,21 @@ export default function AdminEntriesPage() {
         ...new Set(entriesData.map((e) => e.user_id).filter(Boolean)),
       ];
       if (userIds.length > 0) {
-        const { data: allResumes } = await supabase
-          .from("resumes")
-          .select("id, user_id, filename, file_size")
-          .in("user_id", userIds);
+        const [{ data: allResumes }, { data: allPrefs }, { data: allExps }] = await Promise.all([
+          supabase
+            .from("resumes")
+            .select("id, user_id, filename, file_size")
+            .in("user_id", userIds),
+          supabase
+            .from("user_preferences")
+            .select("*")
+            .in("user_id", userIds),
+          supabase
+            .from("user_experiences")
+            .select("*")
+            .in("user_id", userIds)
+            .order("sort_order", { ascending: true }),
+        ]);
 
         if (allResumes) {
           for (const entry of entriesData) {
@@ -405,7 +434,47 @@ export default function AdminEntriesPage() {
             );
           }
         }
+
+        // Build lookup maps
+        const prefsMap: Record<string, UserPreferences> = {};
+        if (allPrefs) {
+          for (const p of allPrefs) prefsMap[p.user_id] = p as UserPreferences;
+        }
+        setUserPrefs(prefsMap);
+
+        const expsMap: Record<string, UserExperience[]> = {};
+        if (allExps) {
+          for (const e of allExps as UserExperience[]) {
+            if (!expsMap[e.user_id]) expsMap[e.user_id] = [];
+            expsMap[e.user_id].push(e);
+          }
+        }
+        setUserExps(expsMap);
       }
+
+      // Fetch client profiles for proposal creation
+      const [{ data: clientData }, { data: casesData }, { data: usersData }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id, full_name, company_name")
+          .eq("is_client", true)
+          .order("company_name", { ascending: true }),
+        supabase
+          .from("cases")
+          .select("id, title, fee, category")
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+          .limit(500),
+        supabase
+          .from("profiles")
+          .select("id, full_name, email, background")
+          .eq("is_admin", false)
+          .order("full_name", { ascending: true })
+          .limit(500),
+      ]);
+      setClients(clientData ?? []);
+      setAllCases(casesData ?? []);
+      setAllUsers(usersData ?? []);
 
       setEntries(entriesData);
       setLoading(false);
@@ -426,6 +495,255 @@ export default function AdminEntriesPage() {
       );
     }
   }
+
+  // Extract alphabetical initials from email (e.g., taro.yamada@... → TY)
+  function extractInitials(email: string | null, fullName: string | null): string {
+    if (email) {
+      const local = email.split("@")[0];
+      const cleaned = local.replace(/[0-9]/g, "");
+      // Try patterns: first.last, first_last, first-last
+      const parts = cleaned.split(/[._-]+/).filter((p) => p.length > 0);
+      if (parts.length >= 2) {
+        // Given name initial + Family name initial
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
+      if (cleaned.length >= 2) {
+        return cleaned.slice(0, 2).toUpperCase();
+      }
+    }
+    // Fallback: sequential letter from name hash
+    if (fullName) {
+      const code = fullName.charCodeAt(0) + (fullName.charCodeAt(1) || 0);
+      return String.fromCharCode(65 + (code % 26)) + String.fromCharCode(65 + ((code * 7) % 26));
+    }
+    return "XX";
+  }
+
+  // Generate anonymized client submission text
+  function generateClientText(entry: AdminEntry, index: number): string {
+    const p = entry.profiles;
+    const c = entry.cases;
+    if (!p) return "";
+
+    // Initials from email (e.g., taro.yamada@... → TY)
+    const initials = extractInitials(p.email, p.full_name);
+
+    const header = `○${initials}さん`;
+
+    // Bio / background description
+    const bio = p.bio || "";
+
+    // 報酬: fee + occupancy combined (e.g., "150~200万円/月・100%")
+    const fee = c?.fee || "要確認";
+    const occupancy = c?.occupancy || "";
+    const feeDisplay = occupancy ? `${fee}・${occupancy}` : fee;
+
+    // 常駐: work style from office_days, remote_preference, or location
+    let workStyle = "";
+    if (c?.office_days) {
+      workStyle = c.office_days;
+    } else if (p.remote_preference) {
+      workStyle = REMOTE_LABELS[p.remote_preference] || p.remote_preference;
+    } else if (c?.location) {
+      workStyle = c.location;
+    } else {
+      workStyle = "要確認";
+    }
+
+    // 稼働開始日: user's available_from or case start_date
+    const startDate = p.available_from || c?.start_date || "要確認";
+
+    return [
+      header,
+      bio,
+      `・報酬:${feeDisplay}`,
+      `・稼働率:${occupancy || "要確認"}`,
+      `・常駐:${workStyle}`,
+      `・稼働開始日:${startDate}`,
+    ].join("\n");
+  }
+
+  async function copyClientText(entry: AdminEntry, index: number) {
+    const text = generateClientText(entry, index);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(entry.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      // Fallback for older browsers
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      setCopiedId(entry.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
+  }
+
+  // Create proposal from entry: create draft, add talent, navigate
+  async function createProposalFromEntry(entry: AdminEntry, clientId: string) {
+    setProposalCreating(true);
+    try {
+      const caseTitle = entry.cases?.title || "提案";
+      // 1. Create draft proposal
+      const res = await fetch("/api/admin/proposals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          case_id: entry.case_id,
+          client_id: clientId,
+          title: caseTitle,
+        }),
+      });
+      if (!res.ok) throw new Error("提案作成に失敗しました");
+      const { proposal } = await res.json();
+
+      // 2. Add user as talent
+      const p = entry.profiles;
+      if (p) {
+        await fetch(`/api/admin/proposals/${proposal.id}/talents`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            profile_id: entry.user_id,
+            display_label: p.full_name ? `${p.full_name?.[0] || "A"}氏` : "A氏",
+            summary_background: p.bio || p.background || "",
+            summary_skills: p.skills || [],
+            summary_work_style: p.remote_preference
+              ? REMOTE_LABELS[p.remote_preference] || p.remote_preference
+              : "",
+          }),
+        });
+      }
+
+      // 3. Navigate to proposal detail
+      setProposalTarget(null);
+      router.push(`/dashboard/admin/proposals/${proposal.id}`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "エラーが発生しました");
+    } finally {
+      setProposalCreating(false);
+    }
+  }
+
+  // Manual entry creation
+  async function createManualEntry() {
+    if (!manualCaseId || !manualUserId) return;
+    setManualCreating(true);
+    try {
+      const supabase = createClient();
+      // Check if entry already exists
+      const { data: existing } = await supabase
+        .from("entries")
+        .select("id")
+        .eq("case_id", manualCaseId)
+        .eq("user_id", manualUserId)
+        .maybeSingle();
+      if (existing) {
+        alert("このユーザーは既にこの案件にエントリー済みです");
+        return;
+      }
+      const { error } = await supabase.from("entries").insert({
+        case_id: manualCaseId,
+        user_id: manualUserId,
+        status: "reviewing",
+        message: manualMessage || "管理者による手動マッチング",
+      });
+      if (error) throw error;
+      // Reload page to show new entry
+      setShowManualEntry(false);
+      setManualCaseId("");
+      setManualUserId("");
+      setManualMessage("");
+      window.location.reload();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "エントリー作成に失敗しました");
+    } finally {
+      setManualCreating(false);
+    }
+  }
+
+  // Calculate matching scores for each entry
+  const entryScores = useMemo(() => {
+    const map: Record<string, { score: number; mustHaveFulfillment: number; mustHaveMatched: string[]; mustHaveRequired: string[]; skillsMatched: string[] }> = {};
+    for (const entry of entries) {
+      if (!entry.cases || !entry.profiles) continue;
+      try {
+        const c = entry.cases;
+        const p = entry.profiles;
+        const caseData: Case = {
+          id: entry.case_id,
+          case_no: null,
+          title: c.title,
+          category: c.category,
+          background: c.background ?? null,
+          description: c.description,
+          industry: c.industry,
+          start_date: c.start_date,
+          extendable: c.extendable ?? null,
+          occupancy: c.occupancy,
+          fee: c.fee,
+          office_days: c.office_days,
+          work_style: null,
+          location: c.location,
+          must_req: c.must_req ?? null,
+          nice_to_have: c.nice_to_have ?? null,
+          flow: null,
+          status: null,
+          published_at: null,
+          created_at: null,
+          is_active: true,
+          client_company: null,
+          commercial_flow: null,
+          source: null,
+          source_url: null,
+          synced_at: null,
+          title_normalized: null,
+          source_hash: null,
+          email_intake_id: null,
+        };
+        const profileData: Profile = {
+          id: entry.user_id,
+          full_name: p.full_name,
+          email: p.email,
+          phone: p.phone,
+          background: p.background,
+          skills: p.skills,
+          avatar_url: null,
+          bio: p.bio,
+          years_experience: p.years_experience,
+          hourly_rate_min: p.hourly_rate_min,
+          hourly_rate_max: p.hourly_rate_max,
+          linkedin_url: null,
+          available_from: p.available_from,
+          prefecture: p.prefecture,
+          remote_preference: p.remote_preference as Profile["remote_preference"],
+          profile_complete: true,
+          is_admin: false,
+          is_looking: p.is_looking ?? true,
+          is_client: false,
+          company_name: null,
+          created_at: null,
+          updated_at: null,
+        };
+        const prefs = userPrefs[entry.user_id] ?? null;
+        const exps = userExps[entry.user_id] ?? [];
+        const result = calculateScore(caseData, profileData, prefs, exps);
+        map[entry.id] = {
+          score: result.score,
+          mustHaveFulfillment: result.factors.must_have.fulfillment,
+          mustHaveMatched: result.factors.must_have.matched,
+          mustHaveRequired: result.factors.must_have.required,
+          skillsMatched: result.factors.skills.matched,
+        };
+      } catch {
+        // Skip if calculation fails
+      }
+    }
+    return map;
+  }, [entries, userPrefs, userExps]);
 
   const filtered =
     filter === "all" ? entries : entries.filter((e) => e.status === filter);
@@ -462,9 +780,155 @@ export default function AdminEntriesPage() {
           <p className="text-[10px] font-bold text-[#E15454] tracking-[0.18em] uppercase mb-1">
             ADMIN / ENTRIES
           </p>
-          <h1 className="text-xl font-black text-navy">エントリー管理</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-black text-navy">エントリー管理</h1>
+            <button
+              onClick={() => setShowManualEntry(!showManualEntry)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold text-white bg-navy rounded-lg hover:bg-navy/90 transition-colors"
+            >
+              <Icon name="add" className="text-[16px]" />
+              手動マッチング
+            </button>
+          </div>
           <p className="text-[12px] text-[#888] mt-1">{entries.length}件</p>
         </div>
+
+        {/* Manual Entry Creation */}
+        {showManualEntry && (
+          <div className="mb-4 bg-white border-2 border-navy/20 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Icon name="link" className="text-[20px] text-navy" />
+              <h3 className="text-[14px] font-black text-navy">手動マッチング（エントリー作成）</h3>
+            </div>
+            <p className="text-[12px] text-[#888] mb-4">
+              管理者が案件とユーザーを手動で紐付けてエントリーを作成します。ステータスは「書類選考中」で作成されます。
+            </p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+              {/* Case selector */}
+              <div>
+                <label className="text-[11px] font-bold text-[#888] tracking-wide uppercase block mb-1.5">
+                  案件を選択
+                </label>
+                <input
+                  type="text"
+                  placeholder="案件名で検索..."
+                  value={caseSearch}
+                  onChange={(e) => setCaseSearch(e.target.value)}
+                  className="w-full px-3 py-2 text-[12px] border border-border rounded-lg outline-none focus:border-navy mb-2"
+                />
+                <div className="max-h-[200px] overflow-y-auto border border-border rounded-lg">
+                  {allCases
+                    .filter((c) =>
+                      !caseSearch || c.title.toLowerCase().includes(caseSearch.toLowerCase()) ||
+                      (c.category?.toLowerCase().includes(caseSearch.toLowerCase()))
+                    )
+                    .slice(0, 30)
+                    .map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => setManualCaseId(c.id)}
+                        className={`w-full text-left px-3 py-2 text-[12px] border-b border-border/50 last:border-0 transition-colors ${
+                          manualCaseId === c.id
+                            ? "bg-navy/8 text-navy font-bold"
+                            : "hover:bg-[#f5f7fa]"
+                        }`}
+                      >
+                        <p className="font-medium truncate">{c.title}</p>
+                        <p className="text-[10px] text-[#999]">
+                          {[c.fee, c.category].filter(Boolean).join(" / ")}
+                        </p>
+                      </button>
+                    ))}
+                </div>
+              </div>
+              {/* User selector */}
+              <div>
+                <label className="text-[11px] font-bold text-[#888] tracking-wide uppercase block mb-1.5">
+                  ユーザーを選択
+                </label>
+                <input
+                  type="text"
+                  placeholder="名前・メールで検索..."
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  className="w-full px-3 py-2 text-[12px] border border-border rounded-lg outline-none focus:border-navy mb-2"
+                />
+                <div className="max-h-[200px] overflow-y-auto border border-border rounded-lg">
+                  {allUsers
+                    .filter((u) =>
+                      !userSearch ||
+                      (u.full_name?.toLowerCase().includes(userSearch.toLowerCase())) ||
+                      (u.email?.toLowerCase().includes(userSearch.toLowerCase())) ||
+                      (u.background?.toLowerCase().includes(userSearch.toLowerCase()))
+                    )
+                    .slice(0, 30)
+                    .map((u) => (
+                      <button
+                        key={u.id}
+                        onClick={() => setManualUserId(u.id)}
+                        className={`w-full text-left px-3 py-2 text-[12px] border-b border-border/50 last:border-0 transition-colors ${
+                          manualUserId === u.id
+                            ? "bg-navy/8 text-navy font-bold"
+                            : "hover:bg-[#f5f7fa]"
+                        }`}
+                      >
+                        <p className="font-medium">{u.full_name || "名前未設定"}</p>
+                        <p className="text-[10px] text-[#999]">
+                          {[u.email, u.background].filter(Boolean).join(" / ")}
+                        </p>
+                      </button>
+                    ))}
+                </div>
+              </div>
+            </div>
+            {/* Message */}
+            <div className="mb-4">
+              <label className="text-[11px] font-bold text-[#888] tracking-wide uppercase block mb-1.5">
+                メモ（任意）
+              </label>
+              <input
+                type="text"
+                placeholder="例: 営業からの紹介、社内推薦 等"
+                value={manualMessage}
+                onChange={(e) => setManualMessage(e.target.value)}
+                className="w-full px-3 py-2 text-[12px] border border-border rounded-lg outline-none focus:border-navy"
+              />
+            </div>
+            {/* Selection summary + submit */}
+            <div className="flex items-center justify-between">
+              <div className="text-[12px] text-[#888]">
+                {manualCaseId && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-navy/8 text-navy font-bold rounded mr-2">
+                    <Icon name="folder_open" className="text-[14px]" />
+                    {allCases.find((c) => c.id === manualCaseId)?.title?.slice(0, 30) || "案件選択済"}
+                  </span>
+                )}
+                {manualUserId && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue/8 text-blue font-bold rounded">
+                    <Icon name="person" className="text-[14px]" />
+                    {allUsers.find((u) => u.id === manualUserId)?.full_name || "ユーザー選択済"}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowManualEntry(false)}
+                  className="px-4 py-2 text-[12px] font-bold text-[#666] hover:text-navy transition-colors"
+                >
+                  閉じる
+                </button>
+                <button
+                  disabled={!manualCaseId || !manualUserId || manualCreating}
+                  onClick={createManualEntry}
+                  className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-bold text-white bg-[#E15454] rounded-lg hover:bg-[#d14545] transition-colors disabled:opacity-40"
+                >
+                  <Icon name="add_link" className="text-[16px]" />
+                  {manualCreating ? "作成中..." : "エントリー作成"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Duplicate Alert Banner */}
         {duplicateGroups.length > 0 && (
@@ -572,12 +1036,14 @@ export default function AdminEntriesPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {filtered.map((entry) => {
+            {filtered.map((entry, entryIndex) => {
               const isExpanded = expandedId === entry.id;
               const p = entry.profiles;
               const c = entry.cases;
               const hasResume =
                 entry.resumes && entry.resumes.length > 0;
+
+              const scoreData = entryScores[entry.id];
 
               return (
                 <div
@@ -591,7 +1057,7 @@ export default function AdminEntriesPage() {
                       setExpandedId(isExpanded ? null : entry.id)
                     }
                   >
-                    {/* Row 1: Case title + status */}
+                    {/* Row 1: Case title + score + status */}
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div className="flex items-center gap-2 min-w-0">
                         <Icon
@@ -601,6 +1067,35 @@ export default function AdminEntriesPage() {
                         <p className="text-[14px] font-bold text-navy truncate">
                           {c?.title || "案件情報なし"}
                         </p>
+                        {/* Matching Score Badge */}
+                        {scoreData && (
+                          <span
+                            className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-black ${
+                              scoreData.score >= 70
+                                ? "bg-[#ecfdf5] text-[#10b981]"
+                                : scoreData.score >= 40
+                                ? "bg-[#fffbeb] text-[#f59e0b]"
+                                : "bg-[#fef2f2] text-[#ef4444]"
+                            }`}
+                            title={`マッチングスコア: ${scoreData.score}点`}
+                          >
+                            <Icon name="auto_awesome" className="text-[12px]" />
+                            {scoreData.score}点
+                          </span>
+                        )}
+                        {/* Must-have fulfillment badge */}
+                        {scoreData && scoreData.mustHaveRequired.length > 0 && (
+                          <span
+                            className={`shrink-0 inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              scoreData.mustHaveFulfillment >= 0.8
+                                ? "bg-[#ecfdf5] text-[#10b981]"
+                                : "bg-[#fef2f2] text-[#ef4444]"
+                            }`}
+                            title={`必須条件充足率: ${Math.round(scoreData.mustHaveFulfillment * 100)}% (${scoreData.mustHaveMatched.length}/${scoreData.mustHaveRequired.length})`}
+                          >
+                            必須{Math.round(scoreData.mustHaveFulfillment * 100)}%
+                          </span>
+                        )}
                       </div>
                       <div
                         className="shrink-0"
@@ -712,6 +1207,60 @@ export default function AdminEntriesPage() {
                   {/* ── Expanded Detail ── */}
                   {isExpanded && (
                     <div className="border-t border-border">
+                      {/* Score detail bar */}
+                      {scoreData && (
+                        <div className="px-5 py-3 bg-[#f9f9fc] border-b border-border">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] font-bold text-[#888] tracking-wide uppercase">マッチスコア</span>
+                              <span className={`text-[16px] font-black ${
+                                scoreData.score >= 70 ? "text-[#10b981]" : scoreData.score >= 40 ? "text-[#f59e0b]" : "text-[#ef4444]"
+                              }`}>{scoreData.score}点</span>
+                            </div>
+                            {scoreData.mustHaveRequired.length > 0 && (
+                              <div className="flex items-center gap-2 border-l border-border pl-3">
+                                <span className="text-[11px] font-bold text-[#888]">必須条件</span>
+                                <span className={`text-[13px] font-black ${
+                                  scoreData.mustHaveFulfillment >= 0.8 ? "text-[#10b981]" : "text-[#ef4444]"
+                                }`}>{Math.round(scoreData.mustHaveFulfillment * 100)}%</span>
+                                <span className="text-[11px] text-[#999]">
+                                  ({scoreData.mustHaveMatched.length}/{scoreData.mustHaveRequired.length})
+                                </span>
+                              </div>
+                            )}
+                            {scoreData.skillsMatched.length > 0 && (
+                              <div className="flex items-center gap-1.5 border-l border-border pl-3">
+                                <span className="text-[11px] font-bold text-[#888]">スキル合致</span>
+                                <div className="flex flex-wrap gap-1">
+                                  {scoreData.skillsMatched.slice(0, 5).map((s) => (
+                                    <span key={s} className="px-1.5 py-0.5 bg-[#1FABE9]/10 text-[#1FABE9] text-[10px] font-bold rounded">
+                                      {s}
+                                    </span>
+                                  ))}
+                                  {scoreData.skillsMatched.length > 5 && (
+                                    <span className="text-[10px] text-[#999]">+{scoreData.skillsMatched.length - 5}</span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            {scoreData.mustHaveRequired.length > 0 && scoreData.mustHaveFulfillment < 1 && (
+                              <div className="flex items-center gap-1.5 border-l border-border pl-3">
+                                <span className="text-[11px] font-bold text-[#ef4444]">未充足</span>
+                                <div className="flex flex-wrap gap-1">
+                                  {scoreData.mustHaveRequired
+                                    .filter((r) => !scoreData.mustHaveMatched.includes(r))
+                                    .slice(0, 3)
+                                    .map((r) => (
+                                      <span key={r} className="px-1.5 py-0.5 bg-[#fef2f2] text-[#ef4444] text-[10px] font-bold rounded">
+                                        {r}
+                                      </span>
+                                    ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                       <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-border">
                         {/* Left: Applicant Info */}
                         <div className="p-5">
@@ -719,20 +1268,46 @@ export default function AdminEntriesPage() {
                             <p className="text-[11px] font-bold text-blue tracking-[0.12em] uppercase">
                               応募者情報
                             </p>
-                            {hasResume && (
+                            <div className="flex items-center gap-2">
                               <button
-                                onClick={() =>
-                                  setResumePanelId(entry.resumes![0].id)
-                                }
-                                className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold text-white bg-blue rounded-lg hover:bg-blue-dark transition-colors"
+                                onClick={() => copyClientText(entry, entryIndex)}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold rounded-lg transition-colors ${
+                                  copiedId === entry.id
+                                    ? "text-white bg-[#10b981]"
+                                    : "text-navy border border-navy/30 hover:bg-navy/5"
+                                }`}
                               >
                                 <Icon
-                                  name="description"
+                                  name={copiedId === entry.id ? "check" : "content_copy"}
                                   className="text-[16px]"
                                 />
-                                レジュメを見る
+                                {copiedId === entry.id ? "コピーしました" : "クライアント提出用コピー"}
                               </button>
-                            )}
+                              <button
+                                onClick={() => setProposalTarget(entry)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold text-white bg-[#E15454] rounded-lg hover:bg-[#d14545] transition-colors"
+                              >
+                                <Icon
+                                  name="handshake"
+                                  className="text-[16px]"
+                                />
+                                提案作成
+                              </button>
+                              {hasResume && (
+                                <button
+                                  onClick={() =>
+                                    setResumePanelId(entry.resumes![0].id)
+                                  }
+                                  className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold text-white bg-blue rounded-lg hover:bg-blue-dark transition-colors"
+                                >
+                                  <Icon
+                                    name="description"
+                                    className="text-[16px]"
+                                  />
+                                  レジュメを見る
+                                </button>
+                              )}
+                            </div>
                           </div>
                           <div className="flex flex-col gap-2">
                             <InfoRow
@@ -952,6 +1527,83 @@ export default function AdminEntriesPage() {
           resumeId={resumePanelId}
           onClose={() => setResumePanelId(null)}
         />
+      )}
+
+      {/* Proposal Client Picker Modal */}
+      {proposalTarget && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/30 z-[200]"
+            onClick={() => !proposalCreating && setProposalTarget(null)}
+          />
+          <div className="fixed inset-0 z-[201] flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[80vh] flex flex-col">
+              <div className="px-6 py-4 border-b border-border">
+                <h3 className="text-[15px] font-black text-navy">提案作成</h3>
+                <p className="text-[12px] text-[#888] mt-1">
+                  クライアントを選択して提案を作成します
+                </p>
+                <div className="mt-2 text-[12px] bg-[#f9f9fc] rounded-lg p-2.5">
+                  <p className="font-bold text-navy truncate">{proposalTarget.cases?.title}</p>
+                  <p className="text-[#888] mt-0.5">
+                    人材: {proposalTarget.profiles?.full_name || "名前未設定"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto px-6 py-3">
+                {clients.length === 0 ? (
+                  <p className="text-[13px] text-[#888] text-center py-4">
+                    クライアントが登録されていません。
+                    <br />
+                    <Link href="/dashboard/admin/clients" className="text-blue hover:underline">
+                      クライアント管理
+                    </Link>
+                    で追加してください。
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    {clients.map((client) => (
+                      <button
+                        key={client.id}
+                        disabled={proposalCreating}
+                        onClick={() => createProposalFromEntry(proposalTarget, client.id)}
+                        className="flex items-center gap-3 px-4 py-3 text-left rounded-xl hover:bg-[#f5f7fa] transition-colors border border-transparent hover:border-border disabled:opacity-50"
+                      >
+                        <Icon name="apartment" className="text-[20px] text-[#999]" />
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-bold text-navy truncate">
+                            {client.company_name || client.full_name || "名前未設定"}
+                          </p>
+                          {client.company_name && client.full_name && (
+                            <p className="text-[11px] text-[#888] truncate">{client.full_name}</p>
+                          )}
+                        </div>
+                        <Icon name="arrow_forward" className="text-[16px] text-[#ccc] ml-auto shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="px-6 py-3 border-t border-border flex justify-end">
+                <button
+                  onClick={() => setProposalTarget(null)}
+                  disabled={proposalCreating}
+                  className="px-4 py-2 text-[12px] font-bold text-[#666] hover:text-navy transition-colors"
+                >
+                  キャンセル
+                </button>
+              </div>
+              {proposalCreating && (
+                <div className="absolute inset-0 bg-white/70 rounded-2xl flex items-center justify-center">
+                  <div className="flex items-center gap-2 text-[13px] text-navy font-bold">
+                    <Icon name="progress_activity" className="text-[20px] animate-spin" />
+                    提案を作成中...
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
       )}
     </>
   );
