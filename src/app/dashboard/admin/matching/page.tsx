@@ -524,6 +524,7 @@ function MatchCard({
               <div className="space-y-1.5">
                 {m.factors && Object.entries(m.factors).map(([key, val]) => {
                   if (!val || typeof val !== "object") return null;
+                  if (key === "must_have") return null; // displayed separately
                   const labels: Record<string, string> = {
                     skills: "スキル",
                     category: "カテゴリ",
@@ -552,6 +553,40 @@ function MatchCard({
                   );
                 })}
               </div>
+
+              {/* Must-have gate indicator from server-side scoring */}
+              {m.factors?.must_have && typeof m.factors.must_have === "object" && "fulfillment" in m.factors.must_have && (
+                <div className="mt-2 pt-2 border-t border-border/50">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-[#888] w-[60px] shrink-0">必須充足</span>
+                    <div className="flex-1 h-2 bg-[#eee] rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          (m.factors.must_have as { fulfillment: number }).fulfillment >= 0.8
+                            ? "bg-[#10b981]"
+                            : "bg-[#ef4444]"
+                        }`}
+                        style={{
+                          width: `${((m.factors.must_have as { fulfillment: number }).fulfillment) * 100}%`,
+                        }}
+                      />
+                    </div>
+                    <span className={`text-[11px] font-bold w-[40px] text-right ${
+                      (m.factors.must_have as { fulfillment: number }).fulfillment >= 0.8
+                        ? "text-[#10b981]"
+                        : "text-[#ef4444]"
+                    }`}>
+                      {Math.round((m.factors.must_have as { fulfillment: number }).fulfillment * 100)}%
+                    </span>
+                  </div>
+                  {(m.factors.must_have as { fulfillment: number }).fulfillment < 0.8 && (
+                    <p className="text-[10px] text-[#ef4444] mt-1 flex items-center gap-1">
+                      <Icon name="warning" className="text-[12px]" />
+                      充足率80%未満のためスコアにペナルティ適用中
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Matched skills */}
               {m.factors?.skills?.matched && Array.isArray(m.factors.skills.matched) && m.factors.skills.matched.length > 0 && (

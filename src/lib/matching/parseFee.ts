@@ -31,6 +31,22 @@ export function parseFee(feeText: string | null): {
 }
 
 /**
+ * 報酬テキストの数値を一律減額して表示用に変換
+ * 例: adjustFee("100~150万円/月", 30) → "70~120万円/月"
+ * 減額後に0以下になる場合は省略
+ */
+export function adjustFee(feeText: string | null, reduction: number): string | null {
+  if (!feeText) return null;
+
+  const result = feeText.replace(/(\d+)/g, (match) => {
+    const adjusted = Number(match) - reduction;
+    return String(Math.max(adjusted, 0));
+  });
+
+  return result;
+}
+
+/**
  * 稼働率テキスト（例: "100%", "60~80%"）から数値を抽出 (0.0 - 1.0)
  */
 export function parseOccupancy(text: string | null): {

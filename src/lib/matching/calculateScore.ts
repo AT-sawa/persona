@@ -1,5 +1,5 @@
 import { parseFee, parseOccupancy } from "./parseFee";
-import { matchSkills, aggregateSkills } from "./matchSkills";
+import { matchSkills, matchMustHaveRequirements, aggregateSkills } from "./matchSkills";
 import type { Case, Profile, UserPreferences, UserExperience } from "@/lib/types";
 
 interface MatchFactors {
@@ -9,6 +9,7 @@ interface MatchFactors {
   rate: { score: number; max: number; caseRange: string; userRange: string; active: boolean };
   location: { score: number; max: number; details: string; active: boolean };
   occupancy: { score: number; max: number; details: string; active: boolean };
+  must_have: { fulfillment: number; matched: string[]; required: string[]; active: boolean };
 }
 
 interface MatchResult {
@@ -48,7 +49,19 @@ export function calculateScore(
     rate: { score: 0, max: WEIGHTS.rate, caseRange: "", userRange: "", active: false },
     location: { score: 0, max: WEIGHTS.location, details: "", active: false },
     occupancy: { score: 0, max: WEIGHTS.occupancy, details: "", active: false },
+    must_have: { fulfillment: 1, matched: [], required: [], active: false },
   };
+
+  // 0. Must-have requirements evaluation
+  if (caseData.must_req) {
+    const mustHaveResult = matchMustHaveRequirements(allSkills, caseData.must_req);
+    factors.must_have = {
+      fulfillment: mustHaveResult.fulfillment,
+      matched: mustHaveResult.matched,
+      required: mustHaveResult.required,
+      active: mustHaveResult.required.length > 0,
+    };
+  }
 
   // 1. Skills Match (30pts) — active only if user has skills
   const caseText = [
@@ -186,15 +199,23 @@ export function calculateScore(
   }
 
   // Total score — only from active (user-filled) factors
-  const activeFactors = Object.values(factors).filter((f) => f.active);
-  const activeMaxWeight = activeFactors.reduce((sum, f) => sum + f.max, 0);
-  const activeScore = activeFactors.reduce((sum, f) => sum + f.score, 0);
+  // must_have is not a weighted factor; it's a gate, so exclude from scoring sum
+  const scoringFactors = Object.entries(factors)
+    .filter(([key, f]) => key !== "must_have" && f.active)
+    .map(([, f]) => f);
+  const activeMaxWeight = scoringFactors.reduce((sum, f) => sum + (f.max ?? 0), 0);
+  const activeScore = scoringFactors.reduce((sum, f) => sum + f.score, 0);
 
   // Normalize: score out of 100 based on active factors only
   // If no factors are active (empty profile), score = 0
-  const normalizedScore = activeMaxWeight > 0
+  let normalizedScore = activeMaxWeight > 0
     ? Math.round((activeScore / activeMaxWeight) * 100)
     : 0;
+
+  // Must-have gate: if fulfillment < 80%, cap score at 30% of original
+  if (factors.must_have.active && factors.must_have.fulfillment < 0.8) {
+    normalizedScore = Math.round(normalizedScore * 0.3);
+  }
 
   const profileCompleteness = activeMaxWeight / 100;
 
