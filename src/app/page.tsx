@@ -1,5 +1,6 @@
 export const revalidate = 3600; // ISR: revalidate home page every hour
 
+import dynamic from "next/dynamic";
 import { BASE_URL, APP_URL } from "@/lib/constants";
 import type { Case } from "@/lib/types";
 import Header from "@/components/Header";
@@ -8,14 +9,16 @@ import Ticker from "@/components/Ticker";
 import About from "@/components/About";
 import Banner from "@/components/Banner";
 import CasesSection from "@/components/CasesSection";
-import Strengths from "@/components/Strengths";
-import Story from "@/components/Story";
-import Firms from "@/components/Firms";
-import HomeAchievements from "@/components/HomeAchievements";
-import HomeFAQ from "@/components/HomeFAQ";
-import Register from "@/components/Register";
-import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
+
+// Below-fold components: lazy load to improve LCP / reduce initial bundle
+const Strengths = dynamic(() => import("@/components/Strengths"));
+const Story = dynamic(() => import("@/components/Story"));
+const Firms = dynamic(() => import("@/components/Firms"));
+const HomeAchievements = dynamic(() => import("@/components/HomeAchievements"));
+const HomeFAQ = dynamic(() => import("@/components/HomeFAQ"));
+const Register = dynamic(() => import("@/components/Register"));
+const Footer = dynamic(() => import("@/components/Footer"));
 
 async function getCases() {
   if (
@@ -55,6 +58,15 @@ export default async function Home() {
       "@type": "Organization",
       name: "PERSONA（ペルソナ）",
       url: BASE_URL,
+    },
+    // SearchAction — enables sitelinks search box in Google results
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${BASE_URL}/cases?q={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
     },
   };
 

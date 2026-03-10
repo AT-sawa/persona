@@ -378,11 +378,31 @@ export default async function CaseDetailPage({ params }: Props) {
                   {caseData.category}の案件を見る →
                 </Link>
               )}
+              {caseData.industry && (
+                <Link
+                  href={`/industries`}
+                  className="text-[13px] text-blue font-bold hover:underline"
+                >
+                  {caseData.industry}業界の案件を見る →
+                </Link>
+              )}
               <Link
                 href="/expertise"
                 className="text-[13px] text-blue font-bold hover:underline"
               >
                 専門領域から案件を探す →
+              </Link>
+              <Link
+                href="/industries"
+                className="text-[13px] text-blue font-bold hover:underline"
+              >
+                業界別案件一覧 →
+              </Link>
+              <Link
+                href="/case-studies"
+                className="text-[13px] text-blue font-bold hover:underline"
+              >
+                導入事例 →
               </Link>
               <Link
                 href="/blog"

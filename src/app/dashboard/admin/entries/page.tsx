@@ -496,25 +496,52 @@ export default function AdminEntriesPage() {
     }
   }
 
-  // Extract alphabetical initials from email (e.g., taro.yamada@... → TY)
-  function extractInitials(email: string | null, fullName: string | null): string {
+  // Extract alphabetical initials: registered name → resume filename → email → Japanese fallback
+  function extractInitials(
+    fullName: string | null,
+    email: string | null,
+    resumeFilename?: string | null,
+  ): string {
+    // 1. If full_name contains Latin characters, extract initials from those
+    if (fullName) {
+      const latinParts = fullName.match(/[A-Za-z]+/g);
+      if (latinParts && latinParts.length >= 2) {
+        return (latinParts[0][0] + latinParts[1][0]).toUpperCase();
+      }
+    }
+
+    // 2. Try resume filename for romanized name (e.g., "Taro_Yamada_Resume.pdf")
+    if (resumeFilename) {
+      const stem = resumeFilename.replace(/\.(pdf|docx?|xlsx?)$/i, "");
+      const skipWords = new Set(["resume", "cv", "curriculum", "vitae", "doc", "file", "経歴", "履歴", "職務"]);
+      const latinParts = (stem.match(/[A-Za-z]{2,}/g) || [])
+        .filter((w) => !skipWords.has(w.toLowerCase()));
+      if (latinParts.length >= 2) {
+        return (latinParts[0][0] + latinParts[1][0]).toUpperCase();
+      }
+    }
+
+    // 3. Try email local part (e.g., taro.yamada@... → TY)
     if (email) {
       const local = email.split("@")[0];
       const cleaned = local.replace(/[0-9]/g, "");
-      // Try patterns: first.last, first_last, first-last
       const parts = cleaned.split(/[._-]+/).filter((p) => p.length > 0);
       if (parts.length >= 2) {
-        // Given name initial + Family name initial
         return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
       }
       if (cleaned.length >= 2) {
         return cleaned.slice(0, 2).toUpperCase();
       }
     }
-    // Fallback: sequential letter from name hash
+
+    // 4. Fallback: Japanese name first characters (山田 太郎 → 太山)
     if (fullName) {
-      const code = fullName.charCodeAt(0) + (fullName.charCodeAt(1) || 0);
-      return String.fromCharCode(65 + (code % 26)) + String.fromCharCode(65 + ((code * 7) % 26));
+      const nameParts = fullName.trim().split(/\s+/);
+      if (nameParts.length >= 2) {
+        // Given name + Family name order
+        return nameParts[1][0] + nameParts[0][0];
+      }
+      return fullName.slice(0, 2);
     }
     return "XX";
   }
@@ -525,8 +552,9 @@ export default function AdminEntriesPage() {
     const c = entry.cases;
     if (!p) return "";
 
-    // Initials from email (e.g., taro.yamada@... → TY)
-    const initials = extractInitials(p.email, p.full_name);
+    // Initials: name → resume → email → Japanese fallback
+    const resumeName = entry.resumes?.[0]?.filename ?? null;
+    const initials = extractInitials(p.full_name, p.email, resumeName);
 
     const header = `○${initials}さん`;
 

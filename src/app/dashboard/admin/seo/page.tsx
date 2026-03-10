@@ -669,21 +669,24 @@ export default function AdminSeoPage() {
                 ))}
               </ul>
             </div>
-            {/* Remaining: Technical (Claude can do) */}
+            {/* Additional completed: Technical SEO */}
             <div>
-              <p className="text-[10px] font-bold text-[#8b5cf6] tracking-wide uppercase mb-2">
-                🤖 テクニカルSEO（Claude対応可）
+              <p className="text-[10px] font-bold text-[#10b981] tracking-wide uppercase mb-2">
+                追加完了（テクニカルSEO）
               </p>
               <ul className="space-y-1.5">
                 {[
-                  "主要ランディングページのCore Web Vitals改善（LCP, CLS最適化）",
-                  "ページ表示速度改善（next/image最適化、遅延読み込み、バンドルサイズ削減）",
-                  "robots.txtの最適化・不要ページのnoindex設定",
-                  "構造化データの拡充（Organization, WebSite, Breadcrumb の網羅）",
-                  "内部リンクの自動最適化（関連案件・カテゴリ間リンクの強化）",
+                  "robots.txt最適化（AI検索クローラー許可、スクレイパーbot拒否）",
+                  "不要ページにnoindex設定（プライバシー、利用規約、検索、404、ダッシュボード）",
+                  "構造化データ網羅（Organization, WebSite+SearchAction, JobPosting, BlogPosting, FAQPage, BreadcrumbList, HowTo, CollectionPage）",
+                  "next/image全ページ適用、AVIF/WebP対応済み",
+                  "ホームページ下部コンポーネントの遅延読み込み（dynamic import）導入",
+                  "案件詳細の内部リンク強化（業界別・専門領域・事例・ブログへのクロスリンク）",
+                  "フォント最適化（display:swap、preconnect設定済み）",
+                  "WebSite SearchAction追加（サイトリンク検索ボックス対応）",
                 ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-2 text-[12px] text-[#333]">
-                    <span className="mt-0.5 text-[#8b5cf6]"><Icon name="smart_toy" className="text-[14px]" /></span>
+                  <li key={i} className="flex items-start gap-2 text-[12px] text-[#999] line-through">
+                    <span className="mt-0.5 text-[#10b981]"><Icon name="check_circle" className="text-[14px]" /></span>
                     {item}
                   </li>
                 ))}
@@ -692,14 +695,14 @@ export default function AdminSeoPage() {
             {/* Content / Marketing (User action needed) */}
             <div>
               <p className="text-[10px] font-bold text-[#f59e0b] tracking-wide uppercase mb-2">
-                ✍️ コンテンツ・運用（手動対応）
+                ✍️ コンテンツ・運用（手動対応が必要）
               </p>
               <ul className="space-y-1.5">
                 {[
-                  "ブログ記事作成 → targetキーワードを設定し内部リンクで案件ページへ誘導",
-                  "事例インタビュー記事の追加（実績ページのコンテンツ拡充）",
-                  "Search Consoleでインデックスカバレッジエラーを定期確認",
-                  "外部被リンク獲得（メディア掲載、パートナーサイトからのリンク）",
+                  "ブログ記事作成 → ターゲットキーワードを設定し案件ページへ内部リンク誘導",
+                  "事例インタビュー記事の追加（導入事例ページのコンテンツ拡充）",
+                  "Search Consoleでインデックスカバレッジエラーを定期確認（月1回推奨）",
+                  "外部被リンク獲得（メディア掲載依頼、パートナーサイトからのリンク）",
                   "Googleビジネスプロフィールの登録・最適化",
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-2 text-[12px] text-[#333]">
