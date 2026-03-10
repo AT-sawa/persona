@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { analytics } from "@/lib/analytics";
 import type { Case, MatchingResult, Resume, Entry } from "@/lib/types";
+import { adjustFee } from "@/lib/matching/parseFee";
 
 export default function AppCaseDetailPage() {
   const router = useRouter();
@@ -244,7 +245,7 @@ export default function AppCaseDetailPage() {
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-[13px] mb-6">
           {[
-            { label: "報酬", value: caseData.fee },
+            { label: "報酬", value: isAdmin ? caseData.fee : adjustFee(caseData.fee, 30) },
             { label: "稼働率", value: caseData.occupancy },
             { label: "勤務地", value: caseData.location },
             { label: "勤務形態", value: caseData.work_style },

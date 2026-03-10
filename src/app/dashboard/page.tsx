@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile, Entry, MatchingResult } from "@/lib/types";
+import { adjustFee } from "@/lib/matching/parseFee";
 
 interface EntryWithCase extends Entry {
   cases?: { title: string; fee: string | null };
@@ -496,7 +497,7 @@ export default function DashboardPage() {
                       {match.cases?.title || "案件情報なし"}
                     </p>
                     <p className="text-[11px] text-[#888] mt-0.5">
-                      {match.cases?.fee || "報酬未定"}
+                      {adjustFee(match.cases?.fee ?? null, 30) || "報酬未定"}
                     </p>
                   </div>
                   <div

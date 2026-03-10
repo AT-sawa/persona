@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { analytics } from "@/lib/analytics";
 import type { MatchingResult, Case } from "@/lib/types";
+import { adjustFee } from "@/lib/matching/parseFee";
 
 type CaseSummary = Pick<Case, "id" | "title" | "fee" | "location" | "occupancy" | "category">;
 type MatchWithCase = MatchingResult & { cases: CaseSummary };
@@ -270,7 +271,7 @@ export default function MatchingPage() {
                     </p>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#888]">
                       {match.cases?.fee && (
-                        <span><Icon name="payments" className="text-[14px] align-middle" /> {match.cases.fee}</span>
+                        <span><Icon name="payments" className="text-[14px] align-middle" /> {adjustFee(match.cases.fee, 30)}</span>
                       )}
                       {match.cases?.location && (
                         <span><Icon name="location_on" className="text-[14px] align-middle" /> {match.cases.location}</span>

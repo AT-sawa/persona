@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { analytics } from "@/lib/analytics";
 import type { Case } from "@/lib/types";
+import { adjustFee } from "@/lib/matching/parseFee";
 
 function Icon({ name, className = "" }: { name: string; className?: string }) {
   return (
@@ -352,7 +353,7 @@ export default function AppCasesPage() {
                       {c.fee && (
                         <span className="flex items-center gap-1">
                           <Icon name="payments" className="text-[14px]" />
-                          {c.fee}
+                          {adjustFee(c.fee, 30)}
                         </span>
                       )}
                       {c.location && (
