@@ -14,6 +14,38 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
+async function getRelatedCases(
+  id: string,
+  category: string | null,
+  industry: string | null
+): Promise<{ id: string; title: string; fee: string | null; category: string | null }[]> {
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  ) {
+    return [];
+  }
+  try {
+    const { createClient } = await import("@/lib/supabase/server");
+    const supabase = await createClient();
+    let query = supabase
+      .from("cases")
+      .select("id, title, fee, category")
+      .eq("is_active", true)
+      .neq("id", id)
+      .order("created_at", { ascending: false })
+      .limit(6);
+
+    if (category) query = query.ilike("category", `%${category}%`);
+    else if (industry) query = query.ilike("industry", `%${industry}%`);
+
+    const { data } = await query;
+    return (data || []) as { id: string; title: string; fee: string | null; category: string | null }[];
+  } catch {
+    return [];
+  }
+}
+
 async function getCase(id: string): Promise<Case | null> {
   if (
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
@@ -71,6 +103,12 @@ export default async function CaseDetailPage({ params }: Props) {
   if (!caseData) {
     notFound();
   }
+
+  const relatedCases = await getRelatedCases(
+    id,
+    caseData.category,
+    caseData.industry
+  );
 
   // JSON-LD structured data (JobPosting)
   const jsonLd = {
@@ -297,6 +335,32 @@ export default async function CaseDetailPage({ params }: Props) {
           {caseData.is_active && <EntryForm caseId={caseData.id} />}
 
           {/* Related links for SEO internal linking */}
+          {/* Related cases */}
+          {relatedCases.length > 0 && (
+            <div className="bg-white rounded-2xl border border-[#e8e8ed] p-6 mb-5 mt-5">
+              <h2 className="text-[15px] font-bold text-navy mb-4">
+                {caseData.category ? `${caseData.category}の` : ""}関連案件
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {relatedCases.slice(0, 4).map((rc) => (
+                  <Link
+                    key={rc.id}
+                    href={`/cases/${rc.id}`}
+                    className="block p-3 rounded-lg border border-[#e8e8ed] hover:border-blue hover:bg-blue/5 transition-colors"
+                  >
+                    <p className="text-[13px] font-bold text-navy leading-[1.5] line-clamp-2">
+                      {rc.title}
+                    </p>
+                    {rc.fee && (
+                      <p className="text-[12px] text-[#888] mt-1">{rc.fee}</p>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Navigation links */}
           <div className="bg-white rounded-2xl border border-[#e8e8ed] p-6 mb-5 mt-5">
             <h2 className="text-[13px] font-semibold text-navy mb-3">関連情報</h2>
             <div className="flex flex-wrap gap-3">

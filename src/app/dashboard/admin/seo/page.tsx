@@ -52,6 +52,7 @@ export default function AdminSeoPage() {
   const [sortAsc, setSortAsc] = useState(true);
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showTodos, setShowTodos] = useState(true);
 
   // Sync status states
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
@@ -344,7 +345,10 @@ export default function AdminSeoPage() {
       const data = await res.json();
       if (!res.ok) {
         const detail = [data.error, data.message].filter(Boolean).join(" - ");
-        setSyncResult(`同期失敗: ${detail || "不明なエラー"}`);
+        const diagStr = data.diagnostics
+          ? `\n[診断] ${JSON.stringify(data.diagnostics)}`
+          : "";
+        setSyncResult(`同期失敗: ${detail || "不明なエラー"}${diagStr}`);
         return;
       }
       setSyncResult(
@@ -582,6 +586,86 @@ export default function AdminSeoPage() {
         <p className="text-[12px] text-[#888] mt-1">
           キーワード順位・クリック・表示回数の推移を管理
         </p>
+      </div>
+
+      {/* ── SEO TODO Checklist ── */}
+      <div className="bg-gradient-to-r from-[#091747]/5 to-[#1FABE9]/5 rounded-xl border border-[#1FABE9]/20 p-5 mb-6">
+        <button
+          onClick={() => setShowTodos(!showTodos)}
+          className="w-full flex items-center justify-between"
+        >
+          <h2 className="text-sm font-bold text-[#091747] flex items-center gap-2">
+            <Icon name="checklist" className="text-[18px] text-[#1FABE9]" />
+            SEO 改善TODO
+          </h2>
+          <Icon
+            name={showTodos ? "expand_less" : "expand_more"}
+            className="text-[20px] text-[#888]"
+          />
+        </button>
+        {showTodos && (
+          <div className="mt-4 space-y-4">
+            {/* High Priority */}
+            <div>
+              <p className="text-[10px] font-bold text-[#ef4444] tracking-wide uppercase mb-2">
+                HIGH PRIORITY
+              </p>
+              <ul className="space-y-1.5">
+                {[
+                  "案件詳細ページにFAQ構造化データ(JSON-LD)を追加",
+                  "カテゴリ/業界ページにパンくずリスト構造化データを追加",
+                  "案件一覧ページのmeta descriptionを動的に最適化（カテゴリ・件数を含む）",
+                  "主要ランディングページのCore Web Vitals改善（LCP, CLS）",
+                  "内部リンク構造を強化（関連案件・関連カテゴリへのリンク）",
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[12px] text-[#333]">
+                    <span className="mt-0.5 text-[#ef4444]"><Icon name="priority_high" className="text-[14px]" /></span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {/* Medium Priority */}
+            <div>
+              <p className="text-[10px] font-bold text-[#f59e0b] tracking-wide uppercase mb-2">
+                MEDIUM PRIORITY
+              </p>
+              <ul className="space-y-1.5">
+                {[
+                  "ブログ記事にtargetキーワードを設定し内部リンクで案件ページへ誘導",
+                  "OGP画像を各ページ固有のものに（案件タイトル入り動的OG画像）",
+                  "XMLサイトマップにlastmod, changefreq, priorityを正確に設定",
+                  "案件ページにcanonical URLを明示的に設定",
+                  "カテゴリページの本文コンテンツを充実（200-300文字のリード文）",
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[12px] text-[#333]">
+                    <span className="mt-0.5 text-[#f59e0b]"><Icon name="flag" className="text-[14px]" /></span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {/* Low Priority */}
+            <div>
+              <p className="text-[10px] font-bold text-[#10b981] tracking-wide uppercase mb-2">
+                LOW PRIORITY
+              </p>
+              <ul className="space-y-1.5">
+                {[
+                  "hreflangタグ追加（日本語サイトであることを明示）",
+                  "404ページのSEO最適化（関連案件・カテゴリへのリンク）",
+                  "ページ表示速度の改善（画像最適化、遅延読み込み）",
+                  "Search Consoleでインデックスカバレッジエラーを定期確認",
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[12px] text-[#333]">
+                    <span className="mt-0.5 text-[#10b981]"><Icon name="eco" className="text-[14px]" /></span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── KPI Cards ── */}

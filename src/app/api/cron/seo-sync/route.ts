@@ -79,28 +79,54 @@ async function handleSync(request: NextRequest) {
         const normalizedKeyword = row.keyword.trim().toLowerCase();
         let keywordId: string | undefined = keywordMap.get(normalizedKeyword);
 
-        // Auto-create keyword if it doesn't exist
+        // Auto-create keyword if it doesn't exist (with duplicate protection)
         if (!keywordId) {
-          const { data: newKw, error: insertError } = await supabase
+          const { data: existingKw } = await supabase
             .from("seo_keywords")
-            .insert({
-              keyword: row.keyword.trim(),
-              is_primary: false,
-              target_url: null,
-            })
             .select("id")
-            .single();
+            .ilike("keyword", normalizedKeyword)
+            .maybeSingle();
 
-          if (insertError || !newKw) {
-            errors.push(
-              `Failed to create keyword "${row.keyword}": ${insertError?.message ?? "No data returned"}`
-            );
-            continue;
+          if (existingKw) {
+            keywordId = existingKw.id as string;
+            keywordMap.set(normalizedKeyword, keywordId);
+          } else {
+            const { data: newKw, error: insertError } = await supabase
+              .from("seo_keywords")
+              .insert({
+                keyword: row.keyword.trim(),
+                is_primary: false,
+                target_url: null,
+              })
+              .select("id")
+              .single();
+
+            if (insertError) {
+              if (insertError.code === "23505") {
+                const { data: fallback } = await supabase
+                  .from("seo_keywords")
+                  .select("id")
+                  .ilike("keyword", normalizedKeyword)
+                  .maybeSingle();
+                if (fallback) {
+                  keywordId = fallback.id as string;
+                  keywordMap.set(normalizedKeyword, keywordId);
+                } else {
+                  errors.push(`Failed to resolve keyword "${row.keyword}"`);
+                  continue;
+                }
+              } else {
+                errors.push(
+                  `Failed to create keyword "${row.keyword}": ${insertError.message}`
+                );
+                continue;
+              }
+            } else if (newKw) {
+              keywordId = newKw.id as string;
+              keywordMap.set(normalizedKeyword, keywordId);
+              newKeywordsAdded++;
+            }
           }
-
-          keywordId = newKw.id as string;
-          keywordMap.set(normalizedKeyword, keywordId);
-          newKeywordsAdded++;
         }
 
         // Upsert snapshot for today (source: search_console)

@@ -41,6 +41,11 @@ export const metadata: Metadata = {
     creator: "@persona_consul",
   },
   alternates: {
+    canonical: "/",
+    languages: {
+      "ja-JP": "/",
+      "x-default": "/",
+    },
     types: {
       "application/rss+xml": "/feed.xml",
     },

@@ -8,12 +8,32 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
+const CATEGORY_LINKS = [
+  { href: "/cases/category/strategy", label: "戦略コンサル" },
+  { href: "/cases/category/dx", label: "DX・デジタル" },
+  { href: "/cases/category/pmo", label: "PMO" },
+  { href: "/cases/category/sap", label: "SAP・ERP" },
+  { href: "/cases/category/bpr", label: "業務改革" },
+  { href: "/cases/category/ma", label: "M&A・PMI" },
+  { href: "/cases/category/it-system", label: "IT戦略" },
+  { href: "/cases/category/new-business", label: "新規事業" },
+];
+
+const NAV_LINKS = [
+  { href: "/cases", label: "案件一覧" },
+  { href: "/blog", label: "ブログ" },
+  { href: "/expertise", label: "専門領域" },
+  { href: "/industries", label: "業界別案件" },
+  { href: "/for-enterprise", label: "企業向け" },
+  { href: "/case-studies", label: "導入事例" },
+];
+
 export default function NotFound() {
   return (
     <>
       <Header />
       <main className="pt-[72px] min-h-[70vh] flex items-center justify-center px-6">
-        <div className="max-w-[480px] text-center py-20">
+        <div className="max-w-[560px] text-center py-16">
           <p className="text-[80px] font-black text-blue leading-none mb-4 select-none">
             404
           </p>
@@ -39,35 +59,40 @@ export default function NotFound() {
               案件を探す
             </Link>
           </div>
-          <div className="mt-12 pt-8 border-t border-border">
-            <p className="text-[12px] text-[#999] mb-4">
-              以下のページもご覧ください
+
+          {/* Category links for SEO */}
+          <div className="mt-10 pt-8 border-t border-border">
+            <p className="text-[12px] font-bold text-[#999] mb-3">
+              案件カテゴリから探す
             </p>
-            <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
-              <Link
-                href="/blog"
-                className="text-[13px] text-blue hover:underline"
-              >
-                ブログ
-              </Link>
-              <Link
-                href="/expertise"
-                className="text-[13px] text-blue hover:underline"
-              >
-                専門領域
-              </Link>
-              <Link
-                href="/industries"
-                className="text-[13px] text-blue hover:underline"
-              >
-                業界別案件
-              </Link>
-              <Link
-                href="/for-enterprise"
-                className="text-[13px] text-blue hover:underline"
-              >
-                企業向け
-              </Link>
+            <div className="flex flex-wrap justify-center gap-2">
+              {CATEGORY_LINKS.map((cat) => (
+                <Link
+                  key={cat.href}
+                  href={cat.href}
+                  className="text-[12px] text-navy bg-[#f0f2f5] hover:bg-blue hover:text-white px-3 py-1.5 rounded-full transition-colors font-medium"
+                >
+                  {cat.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Navigation links */}
+          <div className="mt-6 pt-6 border-t border-border">
+            <p className="text-[12px] font-bold text-[#999] mb-3">
+              その他のページ
+            </p>
+            <div className="flex flex-wrap justify-center gap-x-5 gap-y-2">
+              {NAV_LINKS.map((nav) => (
+                <Link
+                  key={nav.href}
+                  href={nav.href}
+                  className="text-[13px] text-blue hover:underline"
+                >
+                  {nav.label}
+                </Link>
+              ))}
             </div>
           </div>
         </div>

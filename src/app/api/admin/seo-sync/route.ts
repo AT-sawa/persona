@@ -87,28 +87,56 @@ export async function POST() {
         const normalizedKeyword = row.keyword.trim().toLowerCase();
         let keywordId: string | undefined = keywordMap.get(normalizedKeyword);
 
-        // Auto-create keyword if it doesn't exist
+        // Auto-create keyword if it doesn't exist (upsert to avoid duplicates)
         if (!keywordId) {
-          const { data: newKw, error: insertError } = await supabase
+          // First try to find (in case another sync just created it)
+          const { data: existingKw } = await supabase
             .from("seo_keywords")
-            .insert({
-              keyword: row.keyword.trim(),
-              is_primary: false,
-              target_url: null,
-            })
             .select("id")
-            .single();
+            .ilike("keyword", normalizedKeyword)
+            .maybeSingle();
 
-          if (insertError || !newKw) {
-            errors.push(
-              `Failed to create keyword "${row.keyword}": ${insertError?.message ?? "No data returned"}`
-            );
-            continue;
+          if (existingKw) {
+            keywordId = existingKw.id as string;
+            keywordMap.set(normalizedKeyword, keywordId);
+          } else {
+            const { data: newKw, error: insertError } = await supabase
+              .from("seo_keywords")
+              .insert({
+                keyword: row.keyword.trim(),
+                is_primary: false,
+                target_url: null,
+              })
+              .select("id")
+              .single();
+
+            if (insertError) {
+              // Unique constraint violation — another sync created it
+              if (insertError.code === "23505") {
+                const { data: fallback } = await supabase
+                  .from("seo_keywords")
+                  .select("id")
+                  .ilike("keyword", normalizedKeyword)
+                  .maybeSingle();
+                if (fallback) {
+                  keywordId = fallback.id as string;
+                  keywordMap.set(normalizedKeyword, keywordId);
+                } else {
+                  errors.push(`Failed to resolve keyword "${row.keyword}"`);
+                  continue;
+                }
+              } else {
+                errors.push(
+                  `Failed to create keyword "${row.keyword}": ${insertError.message}`
+                );
+                continue;
+              }
+            } else if (newKw) {
+              keywordId = newKw.id as string;
+              keywordMap.set(normalizedKeyword, keywordId);
+              newKeywordsAdded++;
+            }
           }
-
-          keywordId = newKw.id as string;
-          keywordMap.set(normalizedKeyword, keywordId);
-          newKeywordsAdded++;
         }
 
         // Upsert snapshot for today
@@ -176,10 +204,32 @@ export async function POST() {
   } catch (err) {
     console.error("SEO sync error:", err);
     const message = err instanceof Error ? err.message : String(err);
+
+    // Diagnostic info (no secrets revealed)
+    const diag: Record<string, string | number | boolean> = {};
+    diag.hasBase64 = !!process.env.GOOGLE_CREDENTIALS_BASE64;
+    diag.hasEmail = !!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+    diag.hasKey = !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+    diag.hasSiteUrl = !!process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL;
+    if (process.env.GOOGLE_CREDENTIALS_BASE64) {
+      diag.base64Len = process.env.GOOGLE_CREDENTIALS_BASE64.length;
+    }
+    if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
+      const k = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+      diag.keyLen = k.length;
+      diag.keyStartsCorrectly = k.startsWith("-----BEGIN");
+      diag.keyContainsLiteralBackslashN = k.includes("\\n");
+      diag.keyContainsNewline = k.includes("\n");
+    }
+    if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL) {
+      diag.email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+    }
+
     return NextResponse.json(
       {
         error: "SEO sync failed",
         message,
+        diagnostics: diag,
         keywordsSynced,
         newKeywordsAdded,
         errors,

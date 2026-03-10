@@ -9,13 +9,65 @@ export interface SearchConsoleRow {
 }
 
 /**
- * Fetch search analytics data from Google Search Console.
+ * Resolve Google service account credentials.
  *
- * Uses a service account to authenticate.
- * Environment variables required:
- *   - GOOGLE_SERVICE_ACCOUNT_EMAIL
- *   - GOOGLE_SERVICE_ACCOUNT_KEY  (PEM private key, with literal \\n)
- *   - GOOGLE_SEARCH_CONSOLE_SITE_URL (e.g. "https://example.com" or "sc-domain:example.com")
+ * Supports two modes (in priority order):
+ *
+ * 1. GOOGLE_CREDENTIALS_BASE64  — the entire service-account JSON file,
+ *    base64-encoded.  This is the recommended approach because it avoids
+ *    all newline / escaping issues in environment variable storage.
+ *
+ * 2. Individual env vars (legacy):
+ *    - GOOGLE_SERVICE_ACCOUNT_EMAIL
+ *    - GOOGLE_SERVICE_ACCOUNT_KEY  (PEM private key with literal \n)
+ *
+ * In both cases GOOGLE_SEARCH_CONSOLE_SITE_URL is required.
+ */
+function resolveCredentials(): { email: string; privateKey: string; siteUrl: string } {
+  const siteUrl = process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL;
+  if (!siteUrl) {
+    throw new Error("Missing GOOGLE_SEARCH_CONSOLE_SITE_URL");
+  }
+
+  // ── Mode 1: Base64-encoded JSON (recommended) ──
+  const b64 = process.env.GOOGLE_CREDENTIALS_BASE64;
+  if (b64) {
+    try {
+      const json = Buffer.from(b64, "base64").toString("utf-8");
+      const creds = JSON.parse(json) as { client_email?: string; private_key?: string };
+      if (!creds.client_email || !creds.private_key) {
+        throw new Error("JSON missing client_email or private_key");
+      }
+      console.log("[GSC] Using GOOGLE_CREDENTIALS_BASE64, email:", creds.client_email);
+      return { email: creds.client_email, privateKey: creds.private_key, siteUrl };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`Failed to parse GOOGLE_CREDENTIALS_BASE64: ${msg}`);
+    }
+  }
+
+  // ── Mode 2: Individual env vars (legacy) ──
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const rawKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+
+  if (!email || !rawKey) {
+    throw new Error(
+      "Missing credentials: set either GOOGLE_CREDENTIALS_BASE64, or GOOGLE_SERVICE_ACCOUNT_EMAIL + GOOGLE_SERVICE_ACCOUNT_KEY"
+    );
+  }
+
+  // Handle literal \n in the PEM key
+  let privateKey = rawKey;
+  if (rawKey.includes("\\n")) {
+    privateKey = rawKey.replace(/\\n/g, "\n");
+  }
+
+  console.log("[GSC] Using individual env vars, email:", email, "keyLen:", rawKey.length);
+  return { email, privateKey, siteUrl };
+}
+
+/**
+ * Fetch search analytics data from Google Search Console.
  *
  * @param startDate  YYYY-MM-DD
  * @param endDate    YYYY-MM-DD
@@ -24,18 +76,7 @@ export async function fetchSearchConsoleData(
   startDate: string,
   endDate: string
 ): Promise<SearchConsoleRow[]> {
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const rawKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  const siteUrl = process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL;
-
-  if (!email || !rawKey || !siteUrl) {
-    throw new Error(
-      "Missing environment variables: GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_SERVICE_ACCOUNT_KEY, or GOOGLE_SEARCH_CONSOLE_SITE_URL"
-    );
-  }
-
-  // Replace literal \n with real newlines (common when storing PEM keys in env vars)
-  const privateKey = rawKey.replace(/\\n/g, "\n");
+  const { email, privateKey, siteUrl } = resolveCredentials();
 
   const auth = new google.auth.JWT({
     email,
