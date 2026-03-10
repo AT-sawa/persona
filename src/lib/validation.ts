@@ -15,6 +15,28 @@ export function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 254;
 }
 
+/**
+ * Check if an email domain is blocked (competitor domains).
+ * Blocked domains are configured via BLOCKED_EMAIL_DOMAINS env var (comma-separated).
+ * Example: BLOCKED_EMAIL_DOMAINS=competitor1.com,competitor2.co.jp
+ */
+export function isBlockedEmailDomain(email: string): boolean {
+  const blockedDomainsEnv = process.env.BLOCKED_EMAIL_DOMAINS;
+  if (!blockedDomainsEnv) return false;
+
+  const domain = email.split("@")[1]?.toLowerCase();
+  if (!domain) return false;
+
+  const blockedDomains = blockedDomainsEnv
+    .split(",")
+    .map((d) => d.trim().toLowerCase())
+    .filter(Boolean);
+
+  return blockedDomains.some(
+    (blocked) => domain === blocked || domain.endsWith(`.${blocked}`)
+  );
+}
+
 // Validate that string doesn't contain SQL injection patterns
 export function isSafeInput(input: string): boolean {
   const dangerousPatterns = [

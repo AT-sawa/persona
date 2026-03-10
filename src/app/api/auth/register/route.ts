@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createServiceClient } from "@/lib/supabase/service";
 import { logAudit } from "@/lib/audit";
-import { isValidEmail, sanitizeText, truncate } from "@/lib/validation";
+import { isValidEmail, isBlockedEmailDomain, sanitizeText, truncate } from "@/lib/validation";
 import { runMatching } from "@/lib/matching/runMatching";
 import { buildWelcomeEmail } from "@/lib/emails/welcome";
 
@@ -62,6 +62,16 @@ export async function POST(request: NextRequest) {
     if (!isValidEmail(email)) {
       return NextResponse.json(
         { error: "有効なメールアドレスを入力してください" },
+        { status: 400 }
+      );
+    }
+
+    // Block competitor email domains
+    if (isBlockedEmailDomain(email)) {
+      console.log(`[register] Blocked domain registration attempt: ${email}`);
+      // Return generic error to avoid revealing the blocklist
+      return NextResponse.json(
+        { error: "このメールアドレスでは登録できません" },
         { status: 400 }
       );
     }

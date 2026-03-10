@@ -74,12 +74,14 @@ async function fetchResendEmailBody(
   if (!apiKey) return null;
 
   try {
-    const res = await fetch(`https://api.resend.com/emails/${emailId}`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
+    // Use the Received Emails API (not the sent emails endpoint)
+    const res = await fetch(
+      `https://api.resend.com/emails/receiving/${emailId}`,
+      { headers: { Authorization: `Bearer ${apiKey}` } }
+    );
     if (!res.ok) {
       console.error(
-        `Failed to fetch Resend email ${emailId}: ${res.status}`
+        `Failed to fetch Resend inbound email ${emailId}: ${res.status}`
       );
       return null;
     }
@@ -360,6 +362,23 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // ── 元請（転送元エージェント）を抽出 ──
+    let sourceAgency = "";
+    // Pattern 1: 転送メールの "From: 会社名 <email>" から抽出
+    const fwdFromMatch = emailText.match(
+      /From:\s*(.+?)\s*<[^>]+>/
+    );
+    if (fwdFromMatch) {
+      sourceAgency = fwdFromMatch[1].trim().replace(/["']/g, "");
+    }
+    // Pattern 2: 件名から "/ 会社名" を抽出 (例: "案件の再募集/LASINVA")
+    if (!sourceAgency && emailSubject) {
+      const slashMatch = emailSubject.match(/\/([^/\s]+)\s*$/);
+      if (slashMatch) {
+        sourceAgency = slashMatch[1].trim();
+      }
+    }
+
     // ── DB登録 ──
     const casesForInsert = result.cases.map((c) => ({
       case_no: c.case_no || null,
@@ -377,7 +396,7 @@ export async function POST(request: NextRequest) {
       must_req: c.must_req || null,
       nice_to_have: c.nice_to_have || null,
       flow: c.flow || null,
-      client_company: c.client_company || null,
+      client_company: c.client_company || sourceAgency || null,
       commercial_flow: c.commercial_flow || null,
       source: "email",
       source_url: c.source_url || null,
