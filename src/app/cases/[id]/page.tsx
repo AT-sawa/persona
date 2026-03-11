@@ -111,50 +111,84 @@ export default async function CaseDetailPage({ params }: Props) {
   );
 
   // JSON-LD structured data (JobPosting)
+  // Parse location for addressRegion (東京都, 大阪府 etc.)
+  const locationStr = caseData.location || "";
+  const isRemote = /リモート|フルリモート|在宅/i.test(caseData.work_style || "");
+  const addressRegion = locationStr.match(/(東京都|北海道|(?:大阪|京都|兵庫|奈良|和歌山|滋賀|三重)府?|(?:神奈川|千葉|埼玉|茨城|栃木|群馬|愛知|静岡|岐阜|長野|新潟|山梨|福岡|広島|宮城|熊本|鹿児島|沖縄|石川|富山|福井|岡山|香川|愛媛|徳島|高知|佐賀|長崎|大分|宮崎|山口|鳥取|島根|秋田|山形|岩手|青森|福島)県?)/)?.[1] || (locationStr ? locationStr.split(/[・、,]/)[0] : "東京都");
+
+  // validThrough: 90 days from datePosted
+  const postedDate = new Date(caseData.published_at || caseData.created_at || new Date().toISOString());
+  const validThrough = new Date(postedDate.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+  // baseSalary: parse fee or provide default
+  const parseSalary = () => {
+    if (caseData.fee) {
+      const nums = caseData.fee.match(/(\d+)/g);
+      const maxVal = nums ? Math.max(...nums.map(Number)) * 10000 : undefined;
+      const minVal = nums && nums.length > 1 ? Math.min(...nums.map(Number)) * 10000 : undefined;
+      return {
+        "@type": "MonetaryAmount" as const,
+        currency: "JPY",
+        value: {
+          "@type": "QuantitativeValue" as const,
+          ...(minVal && maxVal && minVal !== maxVal
+            ? { minValue: minVal, maxValue: maxVal }
+            : maxVal
+            ? { value: maxVal }
+            : { minValue: 800000, maxValue: 2500000 }),
+          unitText: "MONTH",
+        },
+      };
+    }
+    // Default range for consulting projects
+    return {
+      "@type": "MonetaryAmount" as const,
+      currency: "JPY",
+      value: {
+        "@type": "QuantitativeValue" as const,
+        minValue: 800000,
+        maxValue: 2500000,
+        unitText: "MONTH",
+      },
+    };
+  };
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "JobPosting",
     title: caseData.title,
     description: caseData.description || caseData.background || caseData.title,
     datePosted: caseData.published_at || caseData.created_at,
+    validThrough,
     hiringOrganization: {
       "@type": "Organization",
       name: "PERSONA（ペルソナ）",
       sameAs: BASE_URL,
+      logo: `${BASE_URL}/images/persona_logo.png`,
     },
-    jobLocation: caseData.location
+    jobLocation: {
+      "@type": "Place",
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: locationStr || "東京都内",
+        addressLocality: locationStr || "東京都",
+        addressRegion,
+        postalCode: "",
+        addressCountry: "JP",
+      },
+    },
+    ...(isRemote
       ? {
-          "@type": "Place",
-          address: {
-            "@type": "PostalAddress",
-            addressLocality: caseData.location,
-            addressCountry: "JP",
+          jobLocationType: "TELECOMMUTE",
+          applicantLocationRequirements: {
+            "@type": "Country",
+            name: "JP",
           },
         }
-      : undefined,
+      : {}),
     employmentType: "CONTRACT",
     industry: caseData.industry || "コンサルティング",
-    baseSalary: caseData.fee
-      ? (() => {
-          // Parse fee string like "〜200万円/月", "100-200万円/月", "150万円〜"
-          const nums = caseData.fee!.match(/(\d+)/g);
-          const maxVal = nums ? Math.max(...nums.map(Number)) * 10000 : undefined;
-          const minVal = nums && nums.length > 1 ? Math.min(...nums.map(Number)) * 10000 : undefined;
-          return {
-            "@type": "MonetaryAmount",
-            currency: "JPY",
-            value: {
-              "@type": "QuantitativeValue",
-              ...(minVal && maxVal && minVal !== maxVal
-                ? { minValue: minVal, maxValue: maxVal }
-                : maxVal
-                ? { value: maxVal }
-                : {}),
-              unitText: "MONTH",
-            },
-          };
-        })()
-      : undefined,
+    baseSalary: parseSalary(),
     skills: caseData.must_req,
   };
 
