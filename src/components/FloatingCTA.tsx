@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { analytics } from "@/lib/analytics";
 
-const HIDDEN_PATHS = ["/auth/register", "/dashboard", "/onboarding", "/services/assessment"];
+const HIDDEN_PATHS = ["/auth/register", "/dashboard", "/onboarding", "/services/assessment", "/ai-diagnosis"];
 const SESSION_KEY = "persona_cta_dismissed";
 
 export default function FloatingCTA() {

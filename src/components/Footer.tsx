@@ -101,6 +101,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/ai-diagnosis" className="text-xs text-white/30 transition-colors hover:text-white">
+                  AI業務診断
+                </Link>
+              </li>
+              <li>
                 <Link href="/for-enterprise#contact" className="text-xs text-white/30 transition-colors hover:text-white">
                   お問い合わせ
                 </Link>

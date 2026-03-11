@@ -1,0 +1,284 @@
+"use client";
+
+import {
+  DEPARTMENTS,
+  COMPANY_SIZES,
+  SYSTEMS,
+  CHALLENGES,
+} from "./diagnosis-data";
+
+function Icon({ name, className = "" }: { name: string; className?: string }) {
+  return (
+    <span className={`material-symbols-rounded ${className}`}>{name}</span>
+  );
+}
+
+interface Props {
+  step: number;
+  department: string | null;
+  companySize: string | null;
+  systems: string[];
+  challenges: string[];
+  onSelectDepartment: (id: string) => void;
+  onSelectSize: (id: string) => void;
+  onToggleSystem: (id: string) => void;
+  onToggleChallenge: (id: string) => void;
+  onNext: () => void;
+  onBack: () => void;
+  onSubmit: () => void;
+}
+
+export default function DiagnosisWizard({
+  step,
+  department,
+  companySize,
+  systems,
+  challenges,
+  onSelectDepartment,
+  onSelectSize,
+  onToggleSystem,
+  onToggleChallenge,
+  onNext,
+  onBack,
+  onSubmit,
+}: Props) {
+  const progress = (step / 4) * 100;
+
+  return (
+    <div className="min-h-[80vh] flex flex-col">
+      {/* Progress bar */}
+      <div className="w-full max-w-[600px] mx-auto px-6 pt-6">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[11px] font-bold text-[#1FABE9] tracking-[0.2em] uppercase">
+            STEP {String(step).padStart(2, "0")} / 04
+          </span>
+          {step > 1 && (
+            <button
+              onClick={onBack}
+              className="text-[12px] text-white/50 hover:text-white flex items-center gap-1 transition-colors"
+            >
+              <Icon name="arrow_back" className="text-[14px]" />
+              戻る
+            </button>
+          )}
+        </div>
+        <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-[#1FABE9] to-[#34d399] rounded-full transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="flex-1 flex items-center justify-center px-6 py-8">
+        <div className="w-full max-w-[700px]">
+          {/* Step 1: Department */}
+          {step === 1 && (
+            <div>
+              <h2 className="text-[clamp(20px,3vw,28px)] font-black text-white text-center mb-2">
+                どの部署の業務を改善したいですか？
+              </h2>
+              <p className="text-[14px] text-white/50 text-center mb-8">
+                最も課題を感じている部署を選んでください
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {DEPARTMENTS.map((d) => (
+                  <button
+                    key={d.id}
+                    onClick={() => onSelectDepartment(d.id)}
+                    className={`group p-4 rounded-2xl border-2 transition-all duration-200 text-left hover:scale-[1.02] ${
+                      department === d.id
+                        ? "border-[#1FABE9] bg-white shadow-[0_0_20px_rgba(31,171,233,0.2)]"
+                        : "border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10"
+                    }`}
+                  >
+                    <Icon
+                      name={d.icon}
+                      className={`text-[28px] block mb-2 ${
+                        department === d.id
+                          ? "text-[#1FABE9]"
+                          : "text-white/40 group-hover:text-white/70"
+                      }`}
+                    />
+                    <p
+                      className={`text-[14px] font-bold mb-0.5 ${
+                        department === d.id ? "text-[#091747]" : "text-white"
+                      }`}
+                    >
+                      {d.label}
+                    </p>
+                    <p
+                      className={`text-[11px] ${
+                        department === d.id
+                          ? "text-[#091747]/60"
+                          : "text-white/40"
+                      }`}
+                    >
+                      {d.description}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Company Size */}
+          {step === 2 && (
+            <div>
+              <h2 className="text-[clamp(20px,3vw,28px)] font-black text-white text-center mb-2">
+                従業員規模を教えてください
+              </h2>
+              <p className="text-[14px] text-white/50 text-center mb-8">
+                会社全体の従業員数を選んでください
+              </p>
+              <div className="grid grid-cols-2 gap-4 max-w-[500px] mx-auto">
+                {COMPANY_SIZES.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => onSelectSize(s.id)}
+                    className={`p-5 rounded-2xl border-2 transition-all duration-200 text-center hover:scale-[1.02] ${
+                      companySize === s.id
+                        ? "border-[#1FABE9] bg-white shadow-[0_0_20px_rgba(31,171,233,0.2)]"
+                        : "border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10"
+                    }`}
+                  >
+                    <p
+                      className={`text-[20px] font-black mb-1 ${
+                        companySize === s.id ? "text-[#091747]" : "text-white"
+                      }`}
+                    >
+                      {s.label}
+                    </p>
+                    <p
+                      className={`text-[12px] ${
+                        companySize === s.id
+                          ? "text-[#091747]/60"
+                          : "text-white/40"
+                      }`}
+                    >
+                      {s.description}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Systems (multi-select) */}
+          {step === 3 && (
+            <div>
+              <h2 className="text-[clamp(20px,3vw,28px)] font-black text-white text-center mb-2">
+                現在利用中のシステムは？
+              </h2>
+              <p className="text-[14px] text-white/50 text-center mb-8">
+                当てはまるものをすべて選んでください
+              </p>
+              <div className="grid grid-cols-2 gap-3 max-w-[550px] mx-auto mb-6">
+                {SYSTEMS.map((s) => {
+                  const selected = systems.includes(s.id);
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => onToggleSystem(s.id)}
+                      className={`p-4 rounded-2xl border-2 transition-all duration-200 text-left flex items-center gap-3 ${
+                        selected
+                          ? "border-[#1FABE9] bg-white"
+                          : "border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10"
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded flex-shrink-0 flex items-center justify-center border-2 transition-all ${
+                          selected
+                            ? "bg-[#1FABE9] border-[#1FABE9]"
+                            : "border-white/30"
+                        }`}
+                      >
+                        {selected && (
+                          <Icon name="check" className="text-[14px] text-white" />
+                        )}
+                      </div>
+                      <span
+                        className={`text-[13px] font-bold ${
+                          selected ? "text-[#091747]" : "text-white"
+                        }`}
+                      >
+                        {s.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="text-center">
+                <button
+                  onClick={onNext}
+                  disabled={systems.length === 0}
+                  className="px-8 py-3 bg-gradient-to-r from-[#1FABE9] to-[#34d399] text-white text-[15px] font-bold rounded-xl transition-all hover:shadow-[0_4px_16px_rgba(31,171,233,0.3)] disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  次へ
+                  <Icon name="arrow_forward" className="text-[18px] ml-1 align-middle" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Challenges (multi-select) */}
+          {step === 4 && (
+            <div>
+              <h2 className="text-[clamp(20px,3vw,28px)] font-black text-white text-center mb-2">
+                特に感じている課題は？
+              </h2>
+              <p className="text-[14px] text-white/50 text-center mb-8">
+                当てはまるものをすべて選んでください
+              </p>
+              <div className="grid grid-cols-2 gap-3 max-w-[550px] mx-auto mb-6">
+                {CHALLENGES.map((c) => {
+                  const selected = challenges.includes(c.id);
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => onToggleChallenge(c.id)}
+                      className={`p-4 rounded-2xl border-2 transition-all duration-200 text-left flex items-center gap-3 ${
+                        selected
+                          ? "border-[#1FABE9] bg-white"
+                          : "border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10"
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded flex-shrink-0 flex items-center justify-center border-2 transition-all ${
+                          selected
+                            ? "bg-[#1FABE9] border-[#1FABE9]"
+                            : "border-white/30"
+                        }`}
+                      >
+                        {selected && (
+                          <Icon name="check" className="text-[14px] text-white" />
+                        )}
+                      </div>
+                      <span
+                        className={`text-[13px] font-bold ${
+                          selected ? "text-[#091747]" : "text-white"
+                        }`}
+                      >
+                        {c.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="text-center">
+                <button
+                  onClick={onSubmit}
+                  disabled={challenges.length === 0}
+                  className="px-8 py-3.5 bg-gradient-to-r from-[#1FABE9] to-[#34d399] text-white text-[16px] font-bold rounded-xl transition-all hover:shadow-[0_4px_20px_rgba(31,171,233,0.4)] hover:scale-[1.02] disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <Icon name="auto_awesome" className="text-[20px] mr-1 align-middle" />
+                  診断結果を見る
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
