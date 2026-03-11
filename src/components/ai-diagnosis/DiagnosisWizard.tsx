@@ -2,6 +2,7 @@
 
 import {
   DEPARTMENTS,
+  DEPARTMENT_FUNCTIONS,
   COMPANY_SIZES,
   SYSTEMS,
   CHALLENGES,
@@ -16,10 +17,12 @@ function Icon({ name, className = "" }: { name: string; className?: string }) {
 interface Props {
   step: number;
   department: string | null;
+  businessFunction: string | null;
   companySize: string | null;
   systems: string[];
   challenges: string[];
   onSelectDepartment: (id: string) => void;
+  onSelectFunction: (id: string) => void;
   onSelectSize: (id: string) => void;
   onToggleSystem: (id: string) => void;
   onToggleChallenge: (id: string) => void;
@@ -28,13 +31,17 @@ interface Props {
   onSubmit: () => void;
 }
 
+const TOTAL_STEPS = 5;
+
 export default function DiagnosisWizard({
   step,
   department,
+  businessFunction,
   companySize,
   systems,
   challenges,
   onSelectDepartment,
+  onSelectFunction,
   onSelectSize,
   onToggleSystem,
   onToggleChallenge,
@@ -42,7 +49,8 @@ export default function DiagnosisWizard({
   onBack,
   onSubmit,
 }: Props) {
-  const progress = (step / 4) * 100;
+  const progress = (step / TOTAL_STEPS) * 100;
+  const functions = department ? (DEPARTMENT_FUNCTIONS[department] || []) : [];
 
   return (
     <div className="min-h-[80vh] flex flex-col">
@@ -50,7 +58,7 @@ export default function DiagnosisWizard({
       <div className="w-full max-w-[600px] mx-auto px-6 pt-6">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[11px] font-bold text-[#1FABE9] tracking-[0.2em] uppercase">
-            STEP {String(step).padStart(2, "0")} / 04
+            STEP {String(step).padStart(2, "0")} / {String(TOTAL_STEPS).padStart(2, "0")}
           </span>
           {step > 1 && (
             <button
@@ -122,8 +130,61 @@ export default function DiagnosisWizard({
             </div>
           )}
 
-          {/* Step 2: Company Size */}
+          {/* Step 2: Business Function (depends on department) */}
           {step === 2 && (
+            <div>
+              <h2 className="text-[clamp(20px,3vw,28px)] font-black text-white text-center mb-2">
+                どの業務を改善したいですか？
+              </h2>
+              <p className="text-[14px] text-white/50 text-center mb-8">
+                具体的な業務領域を選んでください
+              </p>
+              <div className={`grid gap-3 max-w-[550px] mx-auto ${
+                functions.length <= 3 ? "grid-cols-1 sm:grid-cols-3" :
+                functions.length <= 4 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"
+              }`}>
+                {functions.map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => onSelectFunction(f.id)}
+                    className={`group p-4 rounded-2xl border-2 transition-all duration-200 text-left hover:scale-[1.02] ${
+                      businessFunction === f.id
+                        ? "border-[#1FABE9] bg-white shadow-[0_0_20px_rgba(31,171,233,0.2)]"
+                        : "border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10"
+                    }`}
+                  >
+                    <Icon
+                      name={f.icon}
+                      className={`text-[28px] block mb-2 ${
+                        businessFunction === f.id
+                          ? "text-[#1FABE9]"
+                          : "text-white/40 group-hover:text-white/70"
+                      }`}
+                    />
+                    <p
+                      className={`text-[14px] font-bold mb-0.5 ${
+                        businessFunction === f.id ? "text-[#091747]" : "text-white"
+                      }`}
+                    >
+                      {f.label}
+                    </p>
+                    <p
+                      className={`text-[11px] ${
+                        businessFunction === f.id
+                          ? "text-[#091747]/60"
+                          : "text-white/40"
+                      }`}
+                    >
+                      {f.description}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Company Size */}
+          {step === 3 && (
             <div>
               <h2 className="text-[clamp(20px,3vw,28px)] font-black text-white text-center mb-2">
                 従業員規模を教えてください
@@ -164,8 +225,8 @@ export default function DiagnosisWizard({
             </div>
           )}
 
-          {/* Step 3: Systems (multi-select) */}
-          {step === 3 && (
+          {/* Step 4: Systems (multi-select) */}
+          {step === 4 && (
             <div>
               <h2 className="text-[clamp(20px,3vw,28px)] font-black text-white text-center mb-2">
                 現在利用中のシステムは？
@@ -221,8 +282,8 @@ export default function DiagnosisWizard({
             </div>
           )}
 
-          {/* Step 4: Challenges (multi-select) */}
-          {step === 4 && (
+          {/* Step 5: Challenges (multi-select) */}
+          {step === 5 && (
             <div>
               <h2 className="text-[clamp(20px,3vw,28px)] font-black text-white text-center mb-2">
                 特に感じている課題は？

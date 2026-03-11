@@ -60,7 +60,11 @@ export default function DiagnosisResultView({
             DIAGNOSIS RESULT
           </p>
           <h2 className="text-[clamp(22px,4vw,36px)] font-black text-white mb-2 leading-tight">
-            {result.departmentLabel}でAIを活用すると
+            {result.departmentLabel}
+            {result.functionLabel && (
+              <span className="text-[#1FABE9]">（{result.functionLabel}）</span>
+            )}
+            でAIを活用すると
           </h2>
           <p className="text-[clamp(28px,5vw,48px)] font-black mb-8">
             <span className="bg-gradient-to-r from-[#1FABE9] to-[#34d399] bg-clip-text" style={{ WebkitTextFillColor: "transparent" }}>

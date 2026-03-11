@@ -15,6 +15,7 @@ function Icon({ name, className = "" }: { name: string; className?: string }) {
 interface Props {
   result: DiagnosisResult;
   department: string;
+  businessFunction: string;
   companySize: string;
   systems: string[];
   challenges: string[];
@@ -22,7 +23,7 @@ interface Props {
 
 const DiagnosisContactForm = forwardRef<HTMLDivElement, Props>(
   function DiagnosisContactForm(
-    { result, department, companySize, systems, challenges },
+    { result, department, businessFunction, companySize, systems, challenges },
     ref
   ) {
     const [formData, setFormData] = useState({
@@ -58,6 +59,7 @@ const DiagnosisContactForm = forwardRef<HTMLDivElement, Props>(
         const diagnosisSummary = [
           `【AI業務診断結果】`,
           `部署: ${result.departmentLabel}`,
+          `業務: ${result.functionLabel}`,
           `規模: ${result.companySizeLabel}`,
           `利用システム: ${systems.join(", ")}`,
           `課題: ${challenges.join(", ")}`,

@@ -10,6 +10,7 @@ import {
   calculateDiagnosis,
   SYSTEMS,
   CHALLENGES,
+  DEPARTMENT_FUNCTIONS,
   type DiagnosisResult,
 } from "./diagnosis-data";
 
@@ -25,6 +26,7 @@ export default function AIDiagnosisLP() {
   const [phase, setPhase] = useState<Phase>("intro");
   const [step, setStep] = useState(1);
   const [department, setDepartment] = useState<string | null>(null);
+  const [businessFunction, setBusinessFunction] = useState<string | null>(null);
   const [companySize, setCompanySize] = useState<string | null>(null);
   const [systems, setSystems] = useState<string[]>([]);
   const [challenges, setChallenges] = useState<string[]>([]);
@@ -43,12 +45,19 @@ export default function AIDiagnosisLP() {
 
   function handleSelectDepartment(id: string) {
     setDepartment(id);
+    // 部署が変わったら業務もリセット
+    setBusinessFunction(null);
     setStep(2);
+  }
+
+  function handleSelectFunction(id: string) {
+    setBusinessFunction(id);
+    setStep(3);
   }
 
   function handleSelectSize(id: string) {
     setCompanySize(id);
-    setStep(3);
+    setStep(4);
   }
 
   function handleToggleSystem(id: string) {
@@ -72,12 +81,13 @@ export default function AIDiagnosisLP() {
   }
 
   function handleSubmit() {
-    if (!department || !companySize) return;
+    if (!department || !businessFunction || !companySize) return;
     setPhase("calculating");
     // Brief animation delay
     setTimeout(() => {
       const r = calculateDiagnosis({
         department,
+        businessFunction,
         companySize,
         systems,
         challenges,
@@ -92,6 +102,7 @@ export default function AIDiagnosisLP() {
     setPhase("intro");
     setStep(1);
     setDepartment(null);
+    setBusinessFunction(null);
     setCompanySize(null);
     setSystems([]);
     setChallenges([]);
@@ -104,6 +115,11 @@ export default function AIDiagnosisLP() {
     .map((id) => SYSTEMS.find((s) => s.id === id)?.label || id);
   const challengeLabels = challenges
     .map((id) => CHALLENGES.find((c) => c.id === id)?.label || id);
+
+  // Function label for the contact form
+  const functionLabel = department && businessFunction
+    ? (DEPARTMENT_FUNCTIONS[department]?.find((f) => f.id === businessFunction)?.label || "")
+    : "";
 
   return (
     <>
@@ -136,7 +152,7 @@ export default function AIDiagnosisLP() {
                   を無料診断
                 </h1>
                 <p className="text-[clamp(14px,1.8vw,17px)] text-white/60 leading-[1.8] mb-8 max-w-[600px] mx-auto">
-                  4つの質問に答えるだけで、AIによる業務効率化の可能性を即座に分析。
+                  5つの質問に答えるだけで、AIによる業務効率化の可能性を即座に分析。
                   <br className="hidden md:block" />
                   削減時間・推奨ツール・ワークフロー改善案をその場でレポートします。
                 </p>
@@ -169,14 +185,14 @@ export default function AIDiagnosisLP() {
 
             {/* How it works */}
             <section className="py-16 px-6 bg-[#f8f9fb]">
-              <div className="max-w-[800px] mx-auto">
+              <div className="max-w-[900px] mx-auto">
                 <p className="text-[11px] font-bold text-[#1FABE9] tracking-[0.2em] uppercase mb-2 text-center">
                   HOW IT WORKS
                 </p>
                 <h2 className="text-[clamp(18px,2.5vw,26px)] font-black text-[#091747] text-center mb-10">
                   診断の流れ
                 </h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                   {[
                     {
                       step: "01",
@@ -186,18 +202,24 @@ export default function AIDiagnosisLP() {
                     },
                     {
                       step: "02",
+                      icon: "work",
+                      title: "業務を選択",
+                      desc: "具体的な業務領域を選ぶ",
+                    },
+                    {
+                      step: "03",
                       icon: "groups",
                       title: "規模を選択",
                       desc: "従業員規模を選ぶ",
                     },
                     {
-                      step: "03",
+                      step: "04",
                       icon: "devices",
                       title: "システムを選択",
                       desc: "利用中のシステムを選ぶ",
                     },
                     {
-                      step: "04",
+                      step: "05",
                       icon: "priority_high",
                       title: "課題を選択",
                       desc: "感じている課題を選ぶ",
@@ -205,19 +227,19 @@ export default function AIDiagnosisLP() {
                   ].map((s) => (
                     <div
                       key={s.step}
-                      className="bg-white rounded-2xl border border-[#e8e8ed] p-5 text-center"
+                      className="bg-white rounded-2xl border border-[#e8e8ed] p-4 text-center"
                     >
                       <span className="text-[10px] font-black text-[#1FABE9]">
                         STEP {s.step}
                       </span>
                       <Icon
                         name={s.icon}
-                        className="text-[32px] text-[#091747] block mx-auto my-2"
+                        className="text-[28px] text-[#091747] block mx-auto my-2"
                       />
-                      <p className="text-[14px] font-bold text-[#091747] mb-0.5">
+                      <p className="text-[13px] font-bold text-[#091747] mb-0.5">
                         {s.title}
                       </p>
-                      <p className="text-[11px] text-[#888]">{s.desc}</p>
+                      <p className="text-[10px] text-[#888]">{s.desc}</p>
                     </div>
                   ))}
                 </div>
@@ -241,10 +263,12 @@ export default function AIDiagnosisLP() {
             <DiagnosisWizard
               step={step}
               department={department}
+              businessFunction={businessFunction}
               companySize={companySize}
               systems={systems}
               challenges={challenges}
               onSelectDepartment={handleSelectDepartment}
+              onSelectFunction={handleSelectFunction}
               onSelectSize={handleSelectSize}
               onToggleSystem={handleToggleSystem}
               onToggleChallenge={handleToggleChallenge}
@@ -285,6 +309,7 @@ export default function AIDiagnosisLP() {
               ref={contactRef}
               result={result}
               department={department || ""}
+              businessFunction={functionLabel}
               companySize={companySize || ""}
               systems={systemLabels}
               challenges={challengeLabels}
