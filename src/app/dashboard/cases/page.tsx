@@ -8,6 +8,18 @@ import { analytics } from "@/lib/analytics";
 import type { Case } from "@/lib/types";
 import { adjustFee } from "@/lib/matching/parseFee";
 
+/** occupancy文字列から最小パーセンテージを抽出（例: "50%-100%" → 50, "80%" → 80） */
+function parseOccupancyMin(occ: string | null): number | null {
+  if (!occ) return null;
+  const normalized = occ.replace(/％/g, "%").replace(/～/g, "~").replace(/〜/g, "~");
+  const match = normalized.match(/(\d+)/);
+  if (!match) return null;
+  const num = parseInt(match[1], 10);
+  return num > 0 && num <= 100 ? num : null;
+}
+
+const OCCUPANCY_STEPS = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+
 function Icon({ name, className = "" }: { name: string; className?: string }) {
   return (
     <span className={`material-symbols-rounded ${className}`}>{name}</span>
@@ -59,6 +71,8 @@ export default function AppCasesPage() {
   const [subCategory, setSubCategory] = useState<string | null>(null);
   const [feeMin, setFeeMin] = useState("");
   const [location, setLocation] = useState("");
+  const [occMin, setOccMin] = useState(0);
+  const [occMax, setOccMax] = useState(100);
   const [matchScores, setMatchScores] = useState<Record<string, number>>({});
 
   const fetchData = useCallback(async () => {
@@ -145,8 +159,17 @@ export default function AppCasesPage() {
       result = result.filter((c) => c.location?.includes(location));
     }
 
+    // 稼働率フィルター
+    if (occMin > 0 || occMax < 100) {
+      result = result.filter((c) => {
+        const minPct = parseOccupancyMin(c.occupancy);
+        if (minPct === null) return false;
+        return minPct >= occMin && minPct <= occMax;
+      });
+    }
+
     setFiltered(result);
-  }, [cases, keyword, mainCategory, subCategory, feeMin, location]);
+  }, [cases, keyword, mainCategory, subCategory, feeMin, location, occMin, occMax]);
 
   function clearFilters() {
     setKeyword("");
@@ -154,10 +177,12 @@ export default function AppCasesPage() {
     setSubCategory(null);
     setFeeMin("");
     setLocation("");
+    setOccMin(0);
+    setOccMax(100);
   }
 
   const hasFilters =
-    keyword || mainCategory || subCategory || feeMin || location;
+    keyword || mainCategory || subCategory || feeMin || location || occMin > 0 || occMax < 100;
 
   if (loading) {
     return (
@@ -247,7 +272,7 @@ export default function AppCasesPage() {
 
       {/* Search Filters */}
       <div className="bg-white rounded-2xl border border-border/60 p-4 mb-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="relative">
             <Icon
               name="search"
@@ -287,6 +312,42 @@ export default function AppCasesPage() {
               placeholder="勤務地"
               className="w-full pl-10 pr-3 py-2.5 border border-border/60 text-[13px] text-text outline-none rounded-xl bg-[#fafafa] focus:border-blue focus:bg-white transition-colors"
             />
+          </div>
+          {/* 稼働率フィルター */}
+          <div className="flex items-center gap-1.5">
+            <Icon
+              name="schedule"
+              className="text-[18px] text-[#bbb] shrink-0"
+            />
+            <select
+              value={occMin}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setOccMin(v);
+                if (v > occMax) setOccMax(v);
+              }}
+              className="flex-1 py-2.5 pl-2 pr-6 border border-border/60 text-[13px] text-text outline-none rounded-xl bg-[#fafafa] focus:border-blue focus:bg-white transition-colors appearance-none cursor-pointer"
+              style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 8px center" }}
+            >
+              {OCCUPANCY_STEPS.map((v) => (
+                <option key={v} value={v}>{v}%</option>
+              ))}
+            </select>
+            <span className="text-[12px] text-[#bbb]">〜</span>
+            <select
+              value={occMax}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setOccMax(v);
+                if (v < occMin) setOccMin(v);
+              }}
+              className="flex-1 py-2.5 pl-2 pr-6 border border-border/60 text-[13px] text-text outline-none rounded-xl bg-[#fafafa] focus:border-blue focus:bg-white transition-colors appearance-none cursor-pointer"
+              style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 8px center" }}
+            >
+              {OCCUPANCY_STEPS.map((v) => (
+                <option key={v} value={v}>{v}%</option>
+              ))}
+            </select>
           </div>
         </div>
       </div>
