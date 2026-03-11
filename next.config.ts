@@ -30,15 +30,26 @@ const nextConfig: NextConfig = {
       // Old consultant-facing top
       { source: "/free-consultant", destination: "/", permanent: true },
       { source: "/free-consultant/", destination: "/", permanent: true },
-      // Old project detail pages → new case pages
+      // Old project detail pages → cases list (old numeric IDs don't match new UUIDs)
       {
         source: "/free-consultant/projects/:id",
-        destination: "/cases/:id",
+        destination: "/cases",
         permanent: true,
       },
       {
         source: "/project_detail/:id",
-        destination: "/cases/:id",
+        destination: "/cases",
+        permanent: true,
+      },
+      // Old blog project pages → blog
+      {
+        source: "/blog/project/:slug",
+        destination: "/blog",
+        permanent: true,
+      },
+      {
+        source: "/blog/project/:slug/",
+        destination: "/blog",
         permanent: true,
       },
       // Old company page → for-enterprise
