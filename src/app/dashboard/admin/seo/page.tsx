@@ -275,6 +275,166 @@ export default function AdminSeoPage() {
   );
   const irrelevantCount = keywords.length - relevantCount;
 
+  /* ─── Dynamic SEO Recommendations ─── */
+
+  type SeoRecommendation = {
+    type: "article" | "ctr" | "declining" | "opportunity" | "quick_win";
+    priority: "high" | "medium" | "low";
+    keyword: string;
+    message: string;
+    detail: string;
+    metric?: string;
+  };
+
+  const recommendations = useMemo<SeoRecommendation[]>(() => {
+    const recs: SeoRecommendation[] = [];
+    const relevantKws = keywords.filter(
+      (kw) => kw.is_primary || isRelevantKeyword(kw.keyword)
+    );
+
+    for (const kw of relevantKws) {
+      const latest = latestByKeyword[kw.id];
+      const weekAgo = weekAgoByKeyword[kw.id];
+      if (!latest) continue;
+
+      const pos = latest.position ?? 999;
+      const clicks = latest.clicks ?? 0;
+      const impressions = latest.impressions ?? 0;
+      const ctr = latest.ctr ?? 0;
+      const prevPos = weekAgo?.position ?? null;
+
+      // 1) 順位11-30位 + 表示回数が多い → 記事作成推奨
+      if (pos >= 11 && pos <= 30 && impressions >= 5) {
+        recs.push({
+          type: "article",
+          priority: impressions >= 20 ? "high" : "medium",
+          keyword: kw.keyword,
+          message: `「${kw.keyword}」の専用記事を作成`,
+          detail: `現在${pos}位・表示${impressions}回。専用記事を書いて10位以内を目指しましょう。`,
+          metric: `${pos}位 / ${impressions}表示`,
+        });
+      }
+
+      // 2) 順位1-10位だがCTRが低い → メタ説明文・タイトル改善
+      if (pos >= 1 && pos <= 10 && ctr < 3.0 && impressions >= 10) {
+        recs.push({
+          type: "ctr",
+          priority: pos <= 5 ? "high" : "medium",
+          keyword: kw.keyword,
+          message: `「${kw.keyword}」のtitle/descriptionを改善`,
+          detail: `${pos}位でCTR ${ctr.toFixed(1)}%は低め。タイトルやmeta descriptionを魅力的にしてクリック率を上げましょう。`,
+          metric: `CTR ${ctr.toFixed(1)}% / ${pos}位`,
+        });
+      }
+
+      // 3) 7日間で順位が3以上下がった → アラート
+      if (prevPos !== null && pos - prevPos >= 3) {
+        recs.push({
+          type: "declining",
+          priority: pos - prevPos >= 5 ? "high" : "medium",
+          keyword: kw.keyword,
+          message: `「${kw.keyword}」が${pos - prevPos}位下降 → 要対応`,
+          detail: `${prevPos}位→${pos}位に下降。コンテンツの更新・内部リンクの追加を検討してください。`,
+          metric: `${prevPos}位→${pos}位（-${pos - prevPos}）`,
+        });
+      }
+
+      // 4) 表示はあるがクリック0 → 潜在キーワード
+      if (impressions >= 10 && clicks === 0 && pos <= 50) {
+        recs.push({
+          type: "opportunity",
+          priority: impressions >= 30 ? "high" : "low",
+          keyword: kw.keyword,
+          message: `「${kw.keyword}」で表示はあるがクリック0`,
+          detail: `${impressions}回表示されているのにクリックされていません。記事を作成するか、既存ページのタイトルにこのキーワードを含めましょう。`,
+          metric: `${impressions}表示 / 0クリック`,
+        });
+      }
+
+      // 5) 順位31-50位 + 表示回数が多い → 伸ばせる余地あり
+      if (pos >= 31 && pos <= 50 && impressions >= 10) {
+        recs.push({
+          type: "quick_win",
+          priority: "low",
+          keyword: kw.keyword,
+          message: `「${kw.keyword}」はコンテンツ強化で上位狙える`,
+          detail: `${pos}位で${impressions}表示。関連する記事に内部リンクを追加し、コンテンツを充実させましょう。`,
+          metric: `${pos}位 / ${impressions}表示`,
+        });
+      }
+    }
+
+    // Sort by priority
+    const priorityOrder = { high: 0, medium: 1, low: 2 };
+    recs.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+    return recs;
+  }, [keywords, latestByKeyword, weekAgoByKeyword]);
+
+  // Content gap analysis: keywords that exist in patterns but no blog post covers
+  const contentGaps = useMemo(() => {
+    const gaps: { topic: string; suggestion: string; reason: string }[] = [];
+    const relevantKws = keywords.filter(
+      (kw) => kw.is_primary || isRelevantKeyword(kw.keyword)
+    );
+    // Cluster related keywords by topic
+    const topicClusters: Record<string, { keywords: string[]; totalImpressions: number; bestPosition: number }> = {};
+    const topicPatterns: [RegExp, string][] = [
+      [/副業/i, "副業コンサル"],
+      [/年収|単価|報酬/i, "フリーコンサル報酬"],
+      [/sap/i, "SAP案件"],
+      [/pmo/i, "PMO案件"],
+      [/dx|デジタル/i, "DX案件"],
+      [/戦略/i, "戦略コンサル"],
+      [/金融/i, "金融業界"],
+      [/セキュリティ/i, "セキュリティ"],
+      [/servicenow/i, "ServiceNow"],
+      [/erp/i, "ERP導入"],
+      [/マーケティング/i, "マーケティング"],
+      [/公共/i, "公共セクター"],
+      [/業務改善|業務改革|bpr/i, "業務改革"],
+      [/独立/i, "コンサル独立"],
+      [/エージェント|マッチング/i, "エージェント比較"],
+    ];
+
+    for (const kw of relevantKws) {
+      const latest = latestByKeyword[kw.id];
+      if (!latest) continue;
+      for (const [pattern, topic] of topicPatterns) {
+        if (pattern.test(kw.keyword)) {
+          if (!topicClusters[topic]) {
+            topicClusters[topic] = { keywords: [], totalImpressions: 0, bestPosition: 999 };
+          }
+          topicClusters[topic].keywords.push(kw.keyword);
+          topicClusters[topic].totalImpressions += latest.impressions ?? 0;
+          const pos = latest.position ?? 999;
+          if (pos < topicClusters[topic].bestPosition) {
+            topicClusters[topic].bestPosition = pos;
+          }
+        }
+      }
+    }
+
+    // Suggest content for clusters with poor position or high impressions
+    for (const [topic, data] of Object.entries(topicClusters)) {
+      if (data.bestPosition > 15 && data.totalImpressions >= 5) {
+        gaps.push({
+          topic,
+          suggestion: `「${topic}」に関する専門記事を追加`,
+          reason: `関連KW ${data.keywords.length}件、合計${data.totalImpressions}表示、最高${data.bestPosition}位`,
+        });
+      }
+    }
+
+    // Sort by totalImpressions
+    gaps.sort((a, b) => {
+      const aCluster = topicClusters[a.topic];
+      const bCluster = topicClusters[b.topic];
+      return (bCluster?.totalImpressions ?? 0) - (aCluster?.totalImpressions ?? 0);
+    });
+
+    return gaps;
+  }, [keywords, latestByKeyword]);
+
   /* ─── Actions ─── */
 
   function handleSort(field: SortField) {
@@ -715,6 +875,270 @@ export default function AdminSeoPage() {
           </div>
         )}
       </div>
+
+      {/* ── Daily SEO Actions (Dynamic Recommendations) ── */}
+      {(recommendations.length > 0 || contentGaps.length > 0) && (
+        <div className="bg-white rounded-xl border border-[#e3e6eb] p-6 mb-6">
+          <h2 className="text-sm font-bold text-[#091747] mb-1 flex items-center gap-2">
+            <Icon name="auto_awesome" className="text-[18px] text-[#f59e0b]" />
+            今日のSEOアクション
+          </h2>
+          <p className="text-[11px] text-[#666] mb-4">
+            キーワードデータを分析して自動生成された改善アクション
+          </p>
+
+          {/* Declining alerts (highest priority) */}
+          {recommendations.filter((r) => r.type === "declining").length > 0 && (
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="inline-block w-2 h-2 rounded-full bg-[#ef4444]" />
+                <p className="text-[11px] font-bold text-[#ef4444] tracking-wide uppercase">
+                  順位下降アラート
+                </p>
+              </div>
+              <div className="space-y-2">
+                {recommendations
+                  .filter((r) => r.type === "declining")
+                  .map((r, i) => (
+                    <div
+                      key={`declining-${i}`}
+                      className="bg-[#fef2f2] border border-[#fecaca] rounded-lg px-4 py-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <p className="text-[12px] font-bold text-[#991b1b]">
+                            {r.message}
+                          </p>
+                          <p className="text-[11px] text-[#b91c1c] mt-0.5">
+                            {r.detail}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-[10px] font-bold px-2 py-1 rounded bg-[#ef4444]/10 text-[#ef4444]">
+                          {r.metric}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Article creation suggestions */}
+          {recommendations.filter((r) => r.type === "article").length > 0 && (
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="inline-block w-2 h-2 rounded-full bg-[#1FABE9]" />
+                <p className="text-[11px] font-bold text-[#1FABE9] tracking-wide uppercase">
+                  記事作成の推奨
+                </p>
+                <span className="text-[10px] text-[#888]">
+                  — 11位以下で表示回数が多いKW
+                </span>
+              </div>
+              <div className="space-y-2">
+                {recommendations
+                  .filter((r) => r.type === "article")
+                  .slice(0, 8)
+                  .map((r, i) => (
+                    <div
+                      key={`article-${i}`}
+                      className="bg-[#f0f9ff] border border-[#bae6fd] rounded-lg px-4 py-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-[12px] font-bold text-[#0c4a6e]">
+                              {r.message}
+                            </p>
+                            {r.priority === "high" && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#ef4444] text-white">
+                                HIGH
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-[#0369a1] mt-0.5">
+                            {r.detail}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-[10px] font-bold px-2 py-1 rounded bg-[#1FABE9]/10 text-[#1FABE9]">
+                          {r.metric}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* CTR improvement suggestions */}
+          {recommendations.filter((r) => r.type === "ctr").length > 0 && (
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="inline-block w-2 h-2 rounded-full bg-[#f59e0b]" />
+                <p className="text-[11px] font-bold text-[#f59e0b] tracking-wide uppercase">
+                  CTR改善
+                </p>
+                <span className="text-[10px] text-[#888]">
+                  — 10位以内だがCTRが低いKW
+                </span>
+              </div>
+              <div className="space-y-2">
+                {recommendations
+                  .filter((r) => r.type === "ctr")
+                  .slice(0, 5)
+                  .map((r, i) => (
+                    <div
+                      key={`ctr-${i}`}
+                      className="bg-[#fffbeb] border border-[#fde68a] rounded-lg px-4 py-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-[12px] font-bold text-[#78350f]">
+                              {r.message}
+                            </p>
+                            {r.priority === "high" && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#f59e0b] text-white">
+                                HIGH
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-[#92400e] mt-0.5">
+                            {r.detail}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-[10px] font-bold px-2 py-1 rounded bg-[#f59e0b]/10 text-[#f59e0b]">
+                          {r.metric}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Zero-click opportunities */}
+          {recommendations.filter((r) => r.type === "opportunity").length > 0 && (
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="inline-block w-2 h-2 rounded-full bg-[#8b5cf6]" />
+                <p className="text-[11px] font-bold text-[#8b5cf6] tracking-wide uppercase">
+                  潜在キーワード
+                </p>
+                <span className="text-[10px] text-[#888]">
+                  — 表示されているがクリックされていない
+                </span>
+              </div>
+              <div className="space-y-2">
+                {recommendations
+                  .filter((r) => r.type === "opportunity")
+                  .slice(0, 5)
+                  .map((r, i) => (
+                    <div
+                      key={`opp-${i}`}
+                      className="bg-[#f5f3ff] border border-[#ddd6fe] rounded-lg px-4 py-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <p className="text-[12px] font-bold text-[#4c1d95]">
+                            {r.message}
+                          </p>
+                          <p className="text-[11px] text-[#6d28d9] mt-0.5">
+                            {r.detail}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-[10px] font-bold px-2 py-1 rounded bg-[#8b5cf6]/10 text-[#8b5cf6]">
+                          {r.metric}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Content gap analysis */}
+          {contentGaps.length > 0 && (
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="inline-block w-2 h-2 rounded-full bg-[#10b981]" />
+                <p className="text-[11px] font-bold text-[#10b981] tracking-wide uppercase">
+                  コンテンツギャップ
+                </p>
+                <span className="text-[10px] text-[#888]">
+                  — トピック別に記事が不足している領域
+                </span>
+              </div>
+              <div className="space-y-2">
+                {contentGaps.slice(0, 6).map((gap, i) => (
+                  <div
+                    key={`gap-${i}`}
+                    className="bg-[#ecfdf5] border border-[#a7f3d0] rounded-lg px-4 py-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <p className="text-[12px] font-bold text-[#064e3b]">
+                          {gap.suggestion}
+                        </p>
+                        <p className="text-[11px] text-[#047857] mt-0.5">
+                          {gap.reason}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-[10px] font-bold px-2 py-1 rounded bg-[#10b981]/10 text-[#10b981]">
+                        {gap.topic}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Quick wins */}
+          {recommendations.filter((r) => r.type === "quick_win").length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="inline-block w-2 h-2 rounded-full bg-[#6366f1]" />
+                <p className="text-[11px] font-bold text-[#6366f1] tracking-wide uppercase">
+                  コンテンツ強化で伸びる余地
+                </p>
+                <span className="text-[10px] text-[#888]">
+                  — 31-50位で表示回数があるKW
+                </span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {recommendations
+                  .filter((r) => r.type === "quick_win")
+                  .slice(0, 6)
+                  .map((r, i) => (
+                    <div
+                      key={`qw-${i}`}
+                      className="bg-[#eef2ff] border border-[#c7d2fe] rounded-lg px-3 py-2.5"
+                    >
+                      <p className="text-[11px] font-bold text-[#3730a3]">
+                        {r.keyword}
+                      </p>
+                      <p className="text-[10px] text-[#4338ca] mt-0.5">
+                        {r.metric}
+                      </p>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Summary */}
+          <div className="mt-4 pt-3 border-t border-[#e3e6eb]">
+            <p className="text-[11px] text-[#888]">
+              検出されたアクション: {recommendations.length}件
+              {contentGaps.length > 0 && ` / コンテンツギャップ: ${contentGaps.length}件`}
+              <span className="ml-2 text-[10px]">
+                （キーワードデータが更新されると自動で再分析されます）
+              </span>
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── KPI Cards ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
