@@ -11,6 +11,7 @@ import {
   SYSTEMS,
   CHALLENGES,
   DEPARTMENT_FUNCTIONS,
+  FUNCTION_TASKS,
   type DiagnosisResult,
 } from "./diagnosis-data";
 
@@ -27,6 +28,7 @@ export default function AIDiagnosisLP() {
   const [step, setStep] = useState(1);
   const [department, setDepartment] = useState<string | null>(null);
   const [businessFunction, setBusinessFunction] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<string[]>([]);
   const [companySize, setCompanySize] = useState<string | null>(null);
   const [systems, setSystems] = useState<string[]>([]);
   const [challenges, setChallenges] = useState<string[]>([]);
@@ -45,19 +47,28 @@ export default function AIDiagnosisLP() {
 
   function handleSelectDepartment(id: string) {
     setDepartment(id);
-    // 部署が変わったら業務もリセット
+    // 部署が変わったら業務・タスクもリセット
     setBusinessFunction(null);
+    setTasks([]);
     setStep(2);
   }
 
   function handleSelectFunction(id: string) {
     setBusinessFunction(id);
+    // 業務が変わったらタスクリセット
+    setTasks([]);
     setStep(3);
+  }
+
+  function handleToggleTask(id: string) {
+    setTasks((prev) =>
+      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
+    );
   }
 
   function handleSelectSize(id: string) {
     setCompanySize(id);
-    setStep(4);
+    setStep(5);
   }
 
   function handleToggleSystem(id: string) {
@@ -88,6 +99,7 @@ export default function AIDiagnosisLP() {
       const r = calculateDiagnosis({
         department,
         businessFunction,
+        tasks,
         companySize,
         systems,
         challenges,
@@ -103,6 +115,7 @@ export default function AIDiagnosisLP() {
     setStep(1);
     setDepartment(null);
     setBusinessFunction(null);
+    setTasks([]);
     setCompanySize(null);
     setSystems([]);
     setChallenges([]);
@@ -120,6 +133,11 @@ export default function AIDiagnosisLP() {
   const functionLabel = department && businessFunction
     ? (DEPARTMENT_FUNCTIONS[department]?.find((f) => f.id === businessFunction)?.label || "")
     : "";
+
+  // Task labels for the contact form
+  const taskLabels = businessFunction
+    ? tasks.map((id) => FUNCTION_TASKS[businessFunction]?.find((t) => t.id === id)?.label || id)
+    : [];
 
   return (
     <>
@@ -152,7 +170,7 @@ export default function AIDiagnosisLP() {
                   を無料診断
                 </h1>
                 <p className="text-[clamp(14px,1.8vw,17px)] text-white/60 leading-[1.8] mb-8 max-w-[600px] mx-auto">
-                  5つの質問に答えるだけで、AIによる業務効率化の可能性を即座に分析。
+                  6つの質問に答えるだけで、AIによる業務効率化の可能性を即座に分析。
                   <br className="hidden md:block" />
                   削減時間・推奨ツール・ワークフロー改善案をその場でレポートします。
                 </p>
@@ -192,37 +210,43 @@ export default function AIDiagnosisLP() {
                 <h2 className="text-[clamp(18px,2.5vw,26px)] font-black text-[#091747] text-center mb-10">
                   診断の流れ
                 </h2>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
                   {[
                     {
                       step: "01",
                       icon: "apartment",
                       title: "部署を選択",
-                      desc: "改善したい部署を選ぶ",
+                      desc: "改善したい部署",
                     },
                     {
                       step: "02",
                       icon: "work",
-                      title: "業務を選択",
-                      desc: "具体的な業務領域を選ぶ",
+                      title: "業務領域を選択",
+                      desc: "業務カテゴリ",
                     },
                     {
                       step: "03",
-                      icon: "groups",
-                      title: "規模を選択",
-                      desc: "従業員規模を選ぶ",
+                      icon: "checklist",
+                      title: "具体業務を選択",
+                      desc: "改善したい業務",
                     },
                     {
                       step: "04",
-                      icon: "devices",
-                      title: "システムを選択",
-                      desc: "利用中のシステムを選ぶ",
+                      icon: "groups",
+                      title: "規模を選択",
+                      desc: "従業員規模",
                     },
                     {
                       step: "05",
+                      icon: "devices",
+                      title: "システムを選択",
+                      desc: "利用中のツール",
+                    },
+                    {
+                      step: "06",
                       icon: "priority_high",
                       title: "課題を選択",
-                      desc: "感じている課題を選ぶ",
+                      desc: "感じている課題",
                     },
                   ].map((s) => (
                     <div
@@ -236,7 +260,7 @@ export default function AIDiagnosisLP() {
                         name={s.icon}
                         className="text-[28px] text-[#091747] block mx-auto my-2"
                       />
-                      <p className="text-[13px] font-bold text-[#091747] mb-0.5">
+                      <p className="text-[12px] font-bold text-[#091747] mb-0.5">
                         {s.title}
                       </p>
                       <p className="text-[10px] text-[#888]">{s.desc}</p>
@@ -264,11 +288,13 @@ export default function AIDiagnosisLP() {
               step={step}
               department={department}
               businessFunction={businessFunction}
+              tasks={tasks}
               companySize={companySize}
               systems={systems}
               challenges={challenges}
               onSelectDepartment={handleSelectDepartment}
               onSelectFunction={handleSelectFunction}
+              onToggleTask={handleToggleTask}
               onSelectSize={handleSelectSize}
               onToggleSystem={handleToggleSystem}
               onToggleChallenge={handleToggleChallenge}

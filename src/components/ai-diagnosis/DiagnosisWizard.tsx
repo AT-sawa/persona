@@ -3,6 +3,7 @@
 import {
   DEPARTMENTS,
   DEPARTMENT_FUNCTIONS,
+  FUNCTION_TASKS,
   COMPANY_SIZES,
   SYSTEMS,
   CHALLENGES,
@@ -18,11 +19,13 @@ interface Props {
   step: number;
   department: string | null;
   businessFunction: string | null;
+  tasks: string[];
   companySize: string | null;
   systems: string[];
   challenges: string[];
   onSelectDepartment: (id: string) => void;
   onSelectFunction: (id: string) => void;
+  onToggleTask: (id: string) => void;
   onSelectSize: (id: string) => void;
   onToggleSystem: (id: string) => void;
   onToggleChallenge: (id: string) => void;
@@ -31,17 +34,32 @@ interface Props {
   onSubmit: () => void;
 }
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
+
+/** 戻るボタン（次への下に表示） */
+function BackButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="mt-3 text-[13px] text-white/40 hover:text-white/80 flex items-center gap-1 transition-colors mx-auto"
+    >
+      <Icon name="arrow_back" className="text-[16px]" />
+      前のステップに戻る
+    </button>
+  );
+}
 
 export default function DiagnosisWizard({
   step,
   department,
   businessFunction,
+  tasks,
   companySize,
   systems,
   challenges,
   onSelectDepartment,
   onSelectFunction,
+  onToggleTask,
   onSelectSize,
   onToggleSystem,
   onToggleChallenge,
@@ -51,6 +69,7 @@ export default function DiagnosisWizard({
 }: Props) {
   const progress = (step / TOTAL_STEPS) * 100;
   const functions = department ? (DEPARTMENT_FUNCTIONS[department] || []) : [];
+  const taskOptions = businessFunction ? (FUNCTION_TASKS[businessFunction] || []) : [];
 
   return (
     <div className="min-h-[80vh] flex flex-col">
@@ -60,15 +79,6 @@ export default function DiagnosisWizard({
           <span className="text-[11px] font-bold text-[#1FABE9] tracking-[0.2em] uppercase">
             STEP {String(step).padStart(2, "0")} / {String(TOTAL_STEPS).padStart(2, "0")}
           </span>
-          {step > 1 && (
-            <button
-              onClick={onBack}
-              className="text-[12px] text-white/50 hover:text-white flex items-center gap-1 transition-colors"
-            >
-              <Icon name="arrow_back" className="text-[14px]" />
-              戻る
-            </button>
-          )}
         </div>
         <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
           <div
@@ -80,7 +90,7 @@ export default function DiagnosisWizard({
 
       <div className="flex-1 flex items-center justify-center px-6 py-8">
         <div className="w-full max-w-[700px]">
-          {/* Step 1: Department */}
+          {/* Step 1: Department (単一選択 → 即次へ) */}
           {step === 1 && (
             <div>
               <h2 className="text-[clamp(20px,3vw,28px)] font-black text-white text-center mb-2">
@@ -130,11 +140,11 @@ export default function DiagnosisWizard({
             </div>
           )}
 
-          {/* Step 2: Business Function (depends on department) */}
+          {/* Step 2: Business Function (単一選択 → 即次へ) */}
           {step === 2 && (
             <div>
               <h2 className="text-[clamp(20px,3vw,28px)] font-black text-white text-center mb-2">
-                どの業務を改善したいですか？
+                どの業務領域を改善したいですか？
               </h2>
               <p className="text-[14px] text-white/50 text-center mb-8">
                 具体的な業務領域を選んでください
@@ -180,11 +190,72 @@ export default function DiagnosisWizard({
                   </button>
                 ))}
               </div>
+              <div className="text-center mt-6">
+                <BackButton onClick={onBack} />
+              </div>
             </div>
           )}
 
-          {/* Step 3: Company Size */}
+          {/* Step 3: Specific Tasks (複数選択) */}
           {step === 3 && (
+            <div>
+              <h2 className="text-[clamp(20px,3vw,28px)] font-black text-white text-center mb-2">
+                改善したい具体的な業務は？
+              </h2>
+              <p className="text-[14px] text-white/50 text-center mb-8">
+                当てはまるものをすべて選んでください
+              </p>
+              <div className="grid grid-cols-2 gap-3 max-w-[550px] mx-auto mb-6">
+                {taskOptions.map((t) => {
+                  const selected = tasks.includes(t.id);
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => onToggleTask(t.id)}
+                      className={`p-4 rounded-2xl border-2 transition-all duration-200 text-left flex items-center gap-3 ${
+                        selected
+                          ? "border-[#1FABE9] bg-white"
+                          : "border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10"
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded flex-shrink-0 flex items-center justify-center border-2 transition-all ${
+                          selected
+                            ? "bg-[#1FABE9] border-[#1FABE9]"
+                            : "border-white/30"
+                        }`}
+                      >
+                        {selected && (
+                          <Icon name="check" className="text-[14px] text-white" />
+                        )}
+                      </div>
+                      <span
+                        className={`text-[13px] font-bold ${
+                          selected ? "text-[#091747]" : "text-white"
+                        }`}
+                      >
+                        {t.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="text-center">
+                <button
+                  onClick={onNext}
+                  disabled={tasks.length === 0}
+                  className="px-8 py-3 bg-gradient-to-r from-[#1FABE9] to-[#34d399] text-white text-[15px] font-bold rounded-xl transition-all hover:shadow-[0_4px_16px_rgba(31,171,233,0.3)] disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  次へ
+                  <Icon name="arrow_forward" className="text-[18px] ml-1 align-middle" />
+                </button>
+                <BackButton onClick={onBack} />
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Company Size (単一選択 → 即次へ) */}
+          {step === 4 && (
             <div>
               <h2 className="text-[clamp(20px,3vw,28px)] font-black text-white text-center mb-2">
                 従業員規模を教えてください
@@ -222,11 +293,14 @@ export default function DiagnosisWizard({
                   </button>
                 ))}
               </div>
+              <div className="text-center mt-4">
+                <BackButton onClick={onBack} />
+              </div>
             </div>
           )}
 
-          {/* Step 4: Systems (multi-select) */}
-          {step === 4 && (
+          {/* Step 5: Systems (複数選択) */}
+          {step === 5 && (
             <div>
               <h2 className="text-[clamp(20px,3vw,28px)] font-black text-white text-center mb-2">
                 現在利用中のシステムは？
@@ -278,12 +352,13 @@ export default function DiagnosisWizard({
                   次へ
                   <Icon name="arrow_forward" className="text-[18px] ml-1 align-middle" />
                 </button>
+                <BackButton onClick={onBack} />
               </div>
             </div>
           )}
 
-          {/* Step 5: Challenges (multi-select) */}
-          {step === 5 && (
+          {/* Step 6: Challenges (複数選択) */}
+          {step === 6 && (
             <div>
               <h2 className="text-[clamp(20px,3vw,28px)] font-black text-white text-center mb-2">
                 特に感じている課題は？
@@ -335,6 +410,7 @@ export default function DiagnosisWizard({
                   <Icon name="auto_awesome" className="text-[20px] mr-1 align-middle" />
                   診断結果を見る
                 </button>
+                <BackButton onClick={onBack} />
               </div>
             </div>
           )}
