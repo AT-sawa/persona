@@ -9,23 +9,14 @@ const PER_PAGE = 18;
 /** occupancy文字列から最小パーセンテージを抽出（例: "50%-100%" → 50, "80%" → 80） */
 function parseOccupancyMin(occ: string | null): number | null {
   if (!occ) return null;
-  // 全角→半角変換
   const normalized = occ.replace(/％/g, "%").replace(/～/g, "~").replace(/〜/g, "~");
-  // 最初に見つかった数値を取得
   const match = normalized.match(/(\d+)/);
   if (!match) return null;
   const num = parseInt(match[1], 10);
-  // "100" のような % なしの値も対応（100 = 100%）
   return num > 0 && num <= 100 ? num : null;
 }
 
-const OCCUPANCY_OPTIONS = [
-  { key: "all", label: "すべて" },
-  { key: "low", label: "〜30%", max: 30 },
-  { key: "mid", label: "〜50%", max: 50 },
-  { key: "high", label: "〜80%", max: 80 },
-  { key: "full", label: "100%", min: 80 },
-] as const;
+const OCCUPANCY_STEPS = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
 
 interface CaseFiltersProps {
   cases: Case[];
@@ -40,7 +31,8 @@ export default function CaseFilters({
 }: CaseFiltersProps) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState(defaultStatus || "all");
-  const [occupancy, setOccupancy] = useState("all");
+  const [occMin, setOccMin] = useState(0);
+  const [occMax, setOccMax] = useState(100);
   const [page, setPage] = useState(1);
 
   const activeCount = useMemo(
@@ -65,18 +57,14 @@ export default function CaseFilters({
         if (!searchable.includes(q)) return false;
       }
       // 稼働率フィルター
-      if (occupancy !== "all") {
-        const opt = OCCUPANCY_OPTIONS.find((o) => o.key === occupancy);
-        if (opt && opt.key !== "all") {
-          const minPct = parseOccupancyMin(c.occupancy);
-          if (minPct === null) return false; // 稼働率不明は除外
-          if ("max" in opt && minPct > opt.max) return false;
-          if ("min" in opt && minPct < opt.min) return false;
-        }
+      if (occMin > 0 || occMax < 100) {
+        const minPct = parseOccupancyMin(c.occupancy);
+        if (minPct === null) return false;
+        if (minPct < occMin || minPct > occMax) return false;
       }
       return true;
     });
-  }, [cases, search, status, occupancy]);
+  }, [cases, search, status, occMin, occMax]);
 
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const currentPage = Math.min(page, totalPages || 1);
@@ -95,12 +83,19 @@ export default function CaseFilters({
     setPage(1);
   }
 
-  function handleOccupancy(value: string) {
-    setOccupancy(value);
+  function handleOccMin(value: number) {
+    setOccMin(value);
+    if (value > occMax) setOccMax(value);
     setPage(1);
   }
 
-  const hasFilter = search || status !== "all" || occupancy !== "all";
+  function handleOccMax(value: number) {
+    setOccMax(value);
+    if (value < occMin) setOccMin(value);
+    setPage(1);
+  }
+
+  const hasFilter = search || status !== "all" || occMin > 0 || occMax < 100;
 
   return (
     <>
@@ -131,24 +126,30 @@ export default function CaseFilters({
             ))}
           </div>
 
-          {/* Occupancy filter */}
+          {/* Occupancy range filter */}
           <div className="flex items-center gap-1.5">
             <span className="text-[11px] text-[#999] whitespace-nowrap">稼働率</span>
-            <div className="flex items-center gap-0.5 bg-[#f2f2f7] rounded-full p-0.5">
-              {OCCUPANCY_OPTIONS.map((opt) => (
-                <button
-                  key={opt.key}
-                  onClick={() => handleOccupancy(opt.key)}
-                  className={`px-2.5 py-[5px] text-[11px] rounded-full transition-all whitespace-nowrap ${
-                    occupancy === opt.key
-                      ? "bg-white text-navy font-semibold shadow-[0_1px_4px_rgba(0,0,0,0.1)]"
-                      : "text-[#888] hover:text-[#555]"
-                  }`}
-                >
-                  {opt.label}
-                </button>
+            <select
+              value={occMin}
+              onChange={(e) => handleOccMin(Number(e.target.value))}
+              className="bg-[#f2f2f7] text-[12px] text-navy font-medium pl-2.5 pr-6 py-[6px] rounded-full outline-none appearance-none cursor-pointer hover:bg-[#eaeaef] transition-colors"
+              style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 8px center" }}
+            >
+              {OCCUPANCY_STEPS.map((v) => (
+                <option key={v} value={v}>{v}%</option>
               ))}
-            </div>
+            </select>
+            <span className="text-[11px] text-[#bbb]">〜</span>
+            <select
+              value={occMax}
+              onChange={(e) => handleOccMax(Number(e.target.value))}
+              className="bg-[#f2f2f7] text-[12px] text-navy font-medium pl-2.5 pr-6 py-[6px] rounded-full outline-none appearance-none cursor-pointer hover:bg-[#eaeaef] transition-colors"
+              style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 8px center" }}
+            >
+              {OCCUPANCY_STEPS.map((v) => (
+                <option key={v} value={v}>{v}%</option>
+              ))}
+            </select>
           </div>
 
           {/* Search */}
@@ -182,7 +183,8 @@ export default function CaseFilters({
               onClick={() => {
                 setSearch("");
                 setStatus("all");
-                setOccupancy("all");
+                setOccMin(0);
+                setOccMax(100);
                 setPage(1);
               }}
               className="text-[12px] text-blue hover:text-blue-dark transition-colors"
@@ -241,9 +243,17 @@ export default function CaseFilters({
                 </h3>
 
                 {/* Description */}
-                {c.description && (
+                {c.description ? (
                   <p className="text-[12px] text-[#888] leading-[1.65] mb-3 line-clamp-2">
                     {c.description}
+                  </p>
+                ) : c.must_req ? (
+                  <p className="text-[12px] text-[#888] leading-[1.65] mb-3 line-clamp-2">
+                    {c.must_req}
+                  </p>
+                ) : (
+                  <p className="text-[12px] text-[#ccc] leading-[1.65] mb-3">
+                    詳細はお問い合わせください
                   </p>
                 )}
 
