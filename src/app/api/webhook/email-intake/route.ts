@@ -424,8 +424,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── DB登録 ──
-    const casesForInsert = result.cases.map((c) => ({
+    // ── DB登録（既存案件のマージ更新 + 新規挿入） ──
+    const MERGE_FIELDS = [
+      "category", "background", "description", "industry", "start_date",
+      "fee", "occupancy", "location", "work_style", "office_days",
+      "must_req", "nice_to_have", "flow", "client_company", "commercial_flow",
+    ] as const;
+
+    const casesForUpsert = result.cases.map((c) => ({
       case_no: c.case_no || null,
       title: c.title,
       category: c.category || null,
@@ -443,43 +449,93 @@ export async function POST(request: NextRequest) {
       flow: c.flow || null,
       client_company: c.client_company || sourceAgency || null,
       commercial_flow: c.commercial_flow || null,
-      source: "email",
+      source: "email" as const,
       source_url: c.source_url || null,
       status: "active",
       is_active: true,
     }));
 
-    // 重複チェック
-    const titles = casesForInsert.map((c) => c.title.trim());
-    const caseNos = casesForInsert
+    // 既存案件を取得（タイトル + case_no で照合、全フィールド取得）
+    const titles = casesForUpsert.map((c) => c.title.trim());
+    const caseNos = casesForUpsert
       .map((c) => c.case_no)
       .filter(Boolean) as string[];
 
     const { data: existingByTitle } = await supabase
       .from("cases")
-      .select("title")
+      .select("*")
       .in("title", titles);
 
     const { data: existingByCaseNo } =
       caseNos.length > 0
-        ? await supabase.from("cases").select("case_no").in("case_no", caseNos)
+        ? await supabase.from("cases").select("*").in("case_no", caseNos)
         : { data: [] };
 
-    const existingTitles = new Set(
-      (existingByTitle ?? []).map((c: { title: string }) => c.title.trim())
-    );
-    const existingCaseNos = new Set(
-      (existingByCaseNo ?? []).map((c: { case_no: string }) => c.case_no)
-    );
+    // 既存案件をマップ化（title → Case, case_no → Case）
+    const existingByTitleMap = new Map<string, Case>();
+    for (const c of (existingByTitle ?? []) as Case[]) {
+      existingByTitleMap.set(c.title.trim(), c);
+    }
+    const existingByCaseNoMap = new Map<string, Case>();
+    for (const c of (existingByCaseNo ?? []) as Case[]) {
+      if (c.case_no) existingByCaseNoMap.set(c.case_no, c);
+    }
 
-    const newCases = casesForInsert.filter((c) => {
-      if (c.case_no && existingCaseNos.has(c.case_no)) return false;
-      if (existingTitles.has(c.title.trim())) return false;
-      return true;
-    });
+    // 新規 vs 既存を振り分け、既存はマージ更新
+    const newCases: typeof casesForUpsert = [];
+    let updatedCount = 0;
+    const updatedCaseIds: string[] = [];
 
-    const duplicates = casesForInsert.length - newCases.length;
+    for (const incoming of casesForUpsert) {
+      // 既存案件を検索
+      const existing =
+        (incoming.case_no ? existingByCaseNoMap.get(incoming.case_no) : null) ||
+        existingByTitleMap.get(incoming.title.trim()) ||
+        null;
 
+      if (!existing) {
+        // 新規案件
+        newCases.push(incoming);
+        continue;
+      }
+
+      // 既存案件を更新: 空フィールドを新データで埋める + is_active を true に復帰
+      const updates: Record<string, string | boolean | null> = {};
+      let hasUpdates = false;
+
+      for (const field of MERGE_FIELDS) {
+        const existingVal = (existing as unknown as Record<string, unknown>)[field];
+        const incomingVal = incoming[field];
+        // 既存が空で、新規に値がある場合のみ更新
+        if (
+          (!existingVal || (typeof existingVal === "string" && existingVal.trim() === "")) &&
+          incomingVal &&
+          (typeof incomingVal !== "string" || incomingVal.trim() !== "")
+        ) {
+          updates[field] = incomingVal;
+          hasUpdates = true;
+        }
+      }
+
+      // 非公開 → 公開に復帰
+      if (!existing.is_active) {
+        updates.is_active = true;
+        hasUpdates = true;
+      }
+
+      if (hasUpdates) {
+        await supabase
+          .from("cases")
+          .update(updates)
+          .eq("id", existing.id);
+        updatedCount++;
+        updatedCaseIds.push(existing.id);
+      }
+    }
+
+    const duplicates = casesForUpsert.length - newCases.length - updatedCount;
+
+    // 新規案件を挿入
     let imported = 0;
     let insertedCaseIds: string[] = [];
     if (newCases.length > 0) {
@@ -489,32 +545,38 @@ export async function POST(request: NextRequest) {
         .select("*");
       imported = data?.length ?? 0;
       insertedCaseIds = (data as Case[] ?? []).map((c) => c.id);
+    }
 
-      // Generate embeddings for newly inserted cases (best effort)
-      if (data && data.length > 0) {
-        for (const c of data as Case[]) {
-          try {
-            const text = buildCaseEmbeddingText(c);
-            if (!text.trim()) continue;
-            const embedding = await generateEmbedding(text);
-            if (embedding) {
-              await supabase
-                .from("cases")
-                .update({ embedding: JSON.stringify(embedding) })
-                .eq("id", c.id);
-            }
-          } catch {
-            // Best effort — hourly cron will catch any missed cases
+    // 新規 + 更新された案件の embedding を生成
+    const allAffectedIds = [...insertedCaseIds, ...updatedCaseIds];
+    if (allAffectedIds.length > 0) {
+      const { data: affectedCases } = await supabase
+        .from("cases")
+        .select("*")
+        .in("id", allAffectedIds);
+
+      for (const c of (affectedCases as Case[] ?? [])) {
+        try {
+          const text = buildCaseEmbeddingText(c);
+          if (!text.trim()) continue;
+          const embedding = await generateEmbedding(text);
+          if (embedding) {
+            await supabase
+              .from("cases")
+              .update({ embedding: JSON.stringify(embedding) })
+              .eq("id", c.id);
           }
+        } catch {
+          // Best effort
         }
       }
     }
 
-    // Queue matching for newly created cases
-    if (insertedCaseIds.length > 0) {
+    // Queue matching for new + updated cases
+    if (allAffectedIds.length > 0) {
       try {
-        if (insertedCaseIds.length <= 5) {
-          for (const caseId of insertedCaseIds) {
+        if (allAffectedIds.length <= 5) {
+          for (const caseId of allAffectedIds) {
             await queueMatchingRun({
               triggerType: "case_create",
               targetCaseId: caseId,
@@ -524,7 +586,7 @@ export async function POST(request: NextRequest) {
           await queueMatchingRun({ triggerType: "sync" });
         }
       } catch {
-        // Best effort — don't fail the intake
+        // Best effort
       }
     }
 
@@ -568,11 +630,14 @@ export async function POST(request: NextRequest) {
       )
       .join("\n");
 
+    const summaryParts = [`新規: ${imported}件`];
+    if (updatedCount > 0) summaryParts.push(`更新: ${updatedCount}件`);
+    if (duplicates > 0) summaryParts.push(`変更なし: ${duplicates}件`);
+    if (attachmentsSaved > 0) summaryParts.push(`添付: ${attachmentsSaved}件`);
+
     await notifyAdmin(
-      `✅ 案件メール転送: ${imported}件登録${attachmentsSaved > 0 ? ` / 添付${attachmentsSaved}件保存` : ""}`,
-      `From: ${emailFrom}\nSubject: ${emailSubject}\n\n登録: ${imported}件 / 重複スキップ: ${duplicates}件${
-        attachmentsSaved > 0 ? ` / 添付ファイル: ${attachmentsSaved}件保存` : ""
-      }\n\n--- 抽出された案件 ---\n${caseList}${
+      `✅ 案件メール転送: ${summaryParts.join(" / ")}`,
+      `From: ${emailFrom}\nSubject: ${emailSubject}\n\n${summaryParts.join(" / ")}\n\n--- 抽出された案件 ---\n${caseList}${
         result.errors.length > 0
           ? `\n\n--- パースエラー ---\n${result.errors.join("\n")}`
           : ""
@@ -581,6 +646,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       imported,
+      updated: updatedCount,
       duplicates,
       total: result.cases.length,
       attachments_saved: attachmentsSaved,
