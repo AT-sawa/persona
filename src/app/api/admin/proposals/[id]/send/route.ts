@@ -7,17 +7,17 @@ async function checkAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return { user: null, error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+    return { user: null, profile: null, error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   }
   const { data: profile } = await supabase
     .from("profiles")
-    .select("is_admin")
+    .select("is_admin, email, full_name")
     .eq("id", user.id)
     .single();
   if (!profile?.is_admin) {
-    return { user: null, error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+    return { user: null, profile: null, error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
   }
-  return { user, error: null };
+  return { user, profile, error: null };
 }
 
 interface Props {
@@ -25,12 +25,23 @@ interface Props {
 }
 
 // POST — send proposal to client
-export async function POST(_request: Request, { params }: Props) {
+export async function POST(request: Request, { params }: Props) {
   const supabase = await createClient();
-  const { error: authError } = await checkAdmin(supabase);
+  const { profile: adminProfile, error: authError } = await checkAdmin(supabase);
   if (authError) return authError;
 
   const { id } = await params;
+
+  // Parse optional body params
+  let toEmail: string | undefined;
+  let customMessage: string | undefined;
+  try {
+    const body = await request.json();
+    toEmail = body.to_email;
+    customMessage = body.message;
+  } catch {
+    // No body or invalid JSON — use defaults
+  }
 
   // Fetch proposal with client info and talent count
   const { data: proposal, error: fetchError } = await supabase
@@ -73,6 +84,7 @@ export async function POST(_request: Request, { params }: Props) {
       status: "sent",
       sent_at: now,
       updated_at: now,
+      ...(customMessage !== undefined ? { message: customMessage } : {}),
     })
     .eq("id", id);
 
@@ -83,25 +95,37 @@ export async function POST(_request: Request, { params }: Props) {
   // Send email notification
   let emailSent = false;
   const client = proposal.profiles as { email: string; company_name: string | null } | null;
-  if (process.env.RESEND_API_KEY && client?.email) {
+  const recipientEmail = toEmail || client?.email;
+
+  if (process.env.RESEND_API_KEY && recipientEmail) {
     try {
       const { Resend } = await import("resend");
       const resend = new Resend(process.env.RESEND_API_KEY);
+
+      const messageToSend = customMessage ?? proposal.message;
+
       const { subject, html } = buildProposalNotificationEmail({
-        companyName: client.company_name || "お客様",
+        companyName: client?.company_name || "お客様",
         proposalTitle: proposal.title,
         proposalId: id,
         talentCount,
-        message: proposal.message,
+        message: messageToSend,
+        coordinatorName: adminProfile?.full_name || undefined,
       });
 
+      const fromEmail =
+        process.env.RESEND_FROM_EMAIL ||
+        "PERSONA <noreply@persona-consultant.com>";
+
+      // Reply-To: 管理者のメールアドレス（返信が管理者に届く）
+      const replyTo = adminProfile?.email || undefined;
+
       await resend.emails.send({
-        from:
-          process.env.RESEND_FROM_EMAIL ||
-          "PERSONA <noreply@persona-consultant.com>",
-        to: client.email,
+        from: fromEmail,
+        to: recipientEmail,
         subject,
         html,
+        ...(replyTo ? { reply_to: replyTo } : {}),
       });
       emailSent = true;
     } catch (e) {
@@ -112,5 +136,6 @@ export async function POST(_request: Request, { params }: Props) {
   return NextResponse.json({
     success: true,
     email_sent: emailSent,
+    sent_to: recipientEmail || null,
   });
 }

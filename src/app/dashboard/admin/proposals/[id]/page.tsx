@@ -63,6 +63,11 @@ export default function AdminProposalDetailPage() {
   const [newMessage, setNewMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
 
+  // Send panel
+  const [showSendPanel, setShowSendPanel] = useState(false);
+  const [sendToEmail, setSendToEmail] = useState("");
+  const [sendMessage, setSendMessage] = useState("");
+
   // Talent add panel
   const [showAddPanel, setShowAddPanel] = useState(false);
   const [talentTab, setTalentTab] = useState<"profile" | "external">("profile");
@@ -254,13 +259,33 @@ export default function AdminProposalDetailPage() {
     fetchProposal();
   }
 
+  function openSendPanel() {
+    // Pre-fill with client email and proposal message
+    const client = proposal?.profiles as { email?: string } | null;
+    setSendToEmail(client?.email || "");
+    setSendMessage(proposal?.message || "");
+    setShowSendPanel(true);
+  }
+
   async function handleSend() {
+    if (!sendToEmail.trim()) { alert("宛先メールアドレスを入力してください"); return; }
     setSending(true);
     try {
-      const res = await fetch(`/api/admin/proposals/${id}/send`, { method: "POST" });
+      const res = await fetch(`/api/admin/proposals/${id}/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to_email: sendToEmail.trim(),
+          message: sendMessage.trim() || null,
+        }),
+      });
       const data = await res.json();
-      if (res.ok) fetchProposal();
-      else alert(data.error || "送信に失敗しました");
+      if (res.ok) {
+        setShowSendPanel(false);
+        fetchProposal();
+      } else {
+        alert(data.error || "送信に失敗しました");
+      }
     } catch { alert("送信に失敗しました"); }
     finally { setSending(false); }
   }
@@ -353,9 +378,9 @@ export default function AdminProposalDetailPage() {
         </div>
         <div className="flex gap-2">
           {isDraft && (
-            <button onClick={handleSend} disabled={sending || talents.length === 0}
+            <button onClick={openSendPanel} disabled={talents.length === 0}
               className="px-5 py-2 bg-green-600 text-white text-[13px] font-bold transition-colors hover:bg-green-700 disabled:opacity-50 flex items-center gap-1.5">
-              {sending ? "送信中..." : <><Icon name="send" className="text-[16px]" />クライアントに送信</>}
+              <Icon name="mail" className="text-[16px]" />招待メール送信
             </button>
           )}
           {proposal.status !== "closed" && !isDraft && (
@@ -372,6 +397,92 @@ export default function AdminProposalDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Send Panel */}
+      {showSendPanel && isDraft && (
+        <div className="bg-white border-2 border-green-300 p-6 mb-4">
+          <div className="flex items-center gap-2 mb-4 pb-3 border-b-2 border-green-500">
+            <Icon name="mail" className="text-[20px] text-green-600" />
+            <h2 className="text-sm font-bold text-navy">招待メール送信</h2>
+          </div>
+
+          <div className="space-y-4">
+            {/* From (display only) */}
+            <div>
+              <label className="block text-[11px] font-bold text-[#888] mb-1">送信元（From）</label>
+              <div className="px-4 py-2.5 bg-[#f8f9fb] border border-border text-[13px] text-[#666]">
+                PERSONA &lt;noreply@persona-consultant.com&gt;
+                <span className="text-[11px] text-blue ml-2">※ 返信はあなたのアドレスに届きます</span>
+              </div>
+            </div>
+
+            {/* To (editable) */}
+            <div>
+              <label className="block text-[11px] font-bold text-[#888] mb-1">宛先（To）<span className="text-red-500 ml-0.5">*</span></label>
+              <input
+                type="email"
+                value={sendToEmail}
+                onChange={(e) => setSendToEmail(e.target.value)}
+                placeholder="client@example.com"
+                className="w-full px-4 py-2.5 border border-border text-[13px] text-navy focus:outline-none focus:border-blue"
+              />
+            </div>
+
+            {/* Subject (auto-generated, display only) */}
+            <div>
+              <label className="block text-[11px] font-bold text-[#888] mb-1">件名</label>
+              <div className="px-4 py-2.5 bg-[#f8f9fb] border border-border text-[13px] text-[#666]">
+                【PERSONA】新しい人材提案が届きました｜{proposal.title}
+              </div>
+            </div>
+
+            {/* Message */}
+            <div>
+              <label className="block text-[11px] font-bold text-[#888] mb-1">メッセージ（コーディネーターから一言）</label>
+              <textarea
+                value={sendMessage}
+                onChange={(e) => setSendMessage(e.target.value)}
+                rows={4}
+                placeholder="例: ご要望いただいたスキルセットに近い候補者をご提案いたします。ぜひご確認ください。"
+                className="w-full px-4 py-2.5 border border-border text-[13px] text-navy resize-none focus:outline-none focus:border-blue"
+              />
+            </div>
+
+            {/* Summary */}
+            <div className="bg-[#f8f9fb] border border-border p-4">
+              <p className="text-[12px] text-[#888] mb-1">送信内容</p>
+              <div className="flex gap-6 text-[13px]">
+                <span className="text-navy font-bold">{proposal.title}</span>
+                <span className="text-blue font-bold">{talents.length}名の候補人材</span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={handleSend}
+                disabled={sending || !sendToEmail.trim()}
+                className="px-6 py-2.5 bg-green-600 text-white text-[13px] font-bold transition-colors hover:bg-green-700 disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {sending ? (
+                  "送信中..."
+                ) : (
+                  <>
+                    <Icon name="send" className="text-[16px]" />
+                    メールを送信する
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setShowSendPanel(false)}
+                className="px-4 py-2.5 bg-white text-[#888] border border-border text-[13px] font-bold transition-colors hover:bg-[#fafafa]"
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Talent section */}
       <div className="bg-white border border-border p-6 mb-4">

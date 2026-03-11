@@ -10,11 +10,12 @@ export function buildProposalNotificationEmail(opts: {
   proposalId: string;
   talentCount: number;
   message?: string | null;
+  coordinatorName?: string;
 }): {
   subject: string;
   html: string;
 } {
-  const { companyName, proposalTitle, proposalId, talentCount, message } = opts;
+  const { companyName, proposalTitle, proposalId, talentCount, message, coordinatorName } = opts;
   const proposalUrl = `${APP_URL}/dashboard/portal/${proposalId}`;
 
   const subject = `【PERSONA】新しい人材提案が届きました｜${proposalTitle}`;
@@ -99,7 +100,7 @@ export function buildProposalNotificationEmail(opts: {
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fffbeb;border-radius:12px;border:1px solid #fef3c7;">
                 <tr>
                   <td style="padding:20px 24px;">
-                    <p style="margin:0 0 8px;font-size:12px;font-weight:bold;color:#92400e;">担当コーディネーターより</p>
+                    <p style="margin:0 0 8px;font-size:12px;font-weight:bold;color:#92400e;">担当コーディネーター${coordinatorName ? `（${coordinatorName}）` : ""}より</p>
                     <p style="margin:0;font-size:14px;color:#78350f;line-height:1.8;">${message}</p>
                   </td>
                 </tr>
