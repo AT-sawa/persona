@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -24,6 +24,21 @@ function Icon({ name, className = "" }: { name: string; className?: string }) {
   return (
     <span className={`material-symbols-rounded ${className}`}>{name}</span>
   );
+}
+
+function formatDate(dateStr: string | null) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return null;
+  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** 日付からの経過日数に応じて「新着」バッジを表示するか判定 */
+function isNew(dateStr: string | null, days = 7) {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  const now = new Date();
+  return now.getTime() - d.getTime() < days * 24 * 60 * 60 * 1000;
 }
 
 const CATEGORY_TREE: Record<string, string[]> = {
@@ -75,6 +90,12 @@ export default function AppCasesPage() {
   const [occMax, setOccMax] = useState(100);
   const [matchScores, setMatchScores] = useState<Record<string, number>>({});
 
+  // Drawer
+  const [drawerCaseId, setDrawerCaseId] = useState<string | null>(null);
+  const [drawerCase, setDrawerCase] = useState<Case | null>(null);
+  const [drawerLoading, setDrawerLoading] = useState(false);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+
   const fetchData = useCallback(async () => {
     const supabase = createClient();
     const {
@@ -88,7 +109,7 @@ export default function AppCasesPage() {
     const [casesRes, matchRes] = await Promise.all([
       supabase
         .from("cases")
-        .select("id, title, fee, location, occupancy, category, industry, is_active, status, description, must_req, published_at")
+        .select("id, title, fee, location, occupancy, category, industry, is_active, status, description, must_req, published_at, created_at")
         .eq("is_active", true)
         .order("published_at", { ascending: false }),
       supabase
@@ -129,7 +150,6 @@ export default function AppCasesPage() {
     }
 
     if (mainCategory) {
-      // Match cases where category field contains the main or sub category keywords
       const subs = CATEGORY_TREE[mainCategory] ?? [];
       const searchTerms = [mainCategory, ...subs];
       result = result.filter((c) => {
@@ -171,6 +191,48 @@ export default function AppCasesPage() {
     setFiltered(result);
   }, [cases, keyword, mainCategory, subCategory, feeMin, location, occMin, occMax]);
 
+  // ドロワーを開く
+  async function openDrawer(caseId: string) {
+    setDrawerCaseId(caseId);
+    setDrawerLoading(true);
+    setDrawerCase(null);
+    // アニメーション: まずマウント → 次フレームでvisible
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setDrawerVisible(true));
+    });
+
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("cases")
+      .select("id, case_no, title, category, background, description, industry, start_date, extendable, occupancy, fee, work_style, office_days, location, must_req, nice_to_have, flow, status, published_at, created_at, is_active")
+      .eq("id", caseId)
+      .single();
+
+    if (data) {
+      setDrawerCase({ ...data, client_company: null, commercial_flow: null, email_intake_id: null } as Case);
+    }
+    setDrawerLoading(false);
+  }
+
+  // ドロワーを閉じる
+  function closeDrawer() {
+    setDrawerVisible(false);
+    setTimeout(() => {
+      setDrawerCaseId(null);
+      setDrawerCase(null);
+    }, 300); // アニメーション後にクリア
+  }
+
+  // ESCキーでドロワーを閉じる
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && drawerCaseId) closeDrawer();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawerCaseId]);
+
   function clearFilters() {
     setKeyword("");
     setMainCategory(null);
@@ -194,6 +256,8 @@ export default function AppCasesPage() {
       </div>
     );
   }
+
+  const drawerScore = drawerCaseId ? matchScores[drawerCaseId] : undefined;
 
   return (
     <div className="py-6">
@@ -366,11 +430,12 @@ export default function AppCasesPage() {
         <div className="flex flex-col gap-3">
           {filtered.map((c) => {
             const score = matchScores[c.id];
+            const dateStr = formatDate(c.published_at || c.created_at);
             return (
-              <Link
+              <button
                 key={c.id}
-                href={`/dashboard/cases/${c.id}`}
-                className="group bg-white rounded-2xl border border-border/60 p-5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:border-blue/20 transition-all block"
+                onClick={() => openDrawer(c.id)}
+                className="group bg-white rounded-2xl border border-border/60 p-5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:border-blue/20 transition-all block w-full text-left"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -406,6 +471,11 @@ export default function AppCasesPage() {
                           マッチ {score}%
                         </span>
                       )}
+                      {isNew(c.published_at || c.created_at) && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded text-[#3b82f6] bg-[#eff6ff]">
+                          NEW
+                        </span>
+                      )}
                     </div>
                     <p className="text-[14px] font-bold text-navy mb-2 group-hover:text-blue transition-colors">
                       {c.title}
@@ -435,6 +505,12 @@ export default function AppCasesPage() {
                           {c.industry}
                         </span>
                       )}
+                      {dateStr && (
+                        <span className="flex items-center gap-1">
+                          <Icon name="calendar_today" className="text-[14px]" />
+                          {dateStr}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <span className="flex items-center gap-1 text-[12px] text-blue font-bold shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -442,9 +518,200 @@ export default function AppCasesPage() {
                     <Icon name="arrow_forward" className="text-[16px]" />
                   </span>
                 </div>
-              </Link>
+              </button>
             );
           })}
+        </div>
+      )}
+
+      {/* ====== Right Drawer ====== */}
+      {drawerCaseId && (
+        <div className="fixed inset-0 z-[100]">
+          {/* Backdrop */}
+          <div
+            className={`absolute inset-0 bg-black/30 transition-opacity duration-300 ${drawerVisible ? "opacity-100" : "opacity-0"}`}
+            onClick={closeDrawer}
+          />
+          {/* Drawer panel */}
+          <div
+            className={`absolute top-0 right-0 h-full w-full max-w-[560px] bg-white shadow-[-8px_0_32px_rgba(0,0,0,0.1)] transition-transform duration-300 ease-out ${drawerVisible ? "translate-x-0" : "translate-x-full"}`}
+          >
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-border/60 px-6 py-4 flex items-center justify-between z-10">
+              <h2 className="text-[15px] font-black text-navy truncate pr-4">
+                案件詳細
+              </h2>
+              <button
+                onClick={closeDrawer}
+                className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-[#f5f7fa] transition-colors shrink-0"
+              >
+                <Icon name="close" className="text-[20px] text-[#888]" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="overflow-y-auto h-[calc(100%-65px)]">
+              {drawerLoading ? (
+                <div className="flex items-center justify-center py-20">
+                  <div className="flex items-center gap-3 text-[#999]">
+                    <Icon name="progress_activity" className="text-[24px] animate-spin" />
+                    <span className="text-sm">読み込み中...</span>
+                  </div>
+                </div>
+              ) : drawerCase ? (
+                <div className="px-6 py-5">
+                  {/* Title & badges */}
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                        drawerCase.is_active
+                          ? "text-[#10b981] bg-[#ecfdf5]"
+                          : "text-[#888] bg-[#f5f5f5]"
+                      }`}
+                    >
+                      {drawerCase.is_active
+                        ? drawerCase.status === "最注力" ? "最注力" : "募集中"
+                        : "クローズ"}
+                    </span>
+                    {drawerCase.category && (
+                      <span className="text-[10px] text-[#888] bg-[#f5f7fa] px-2 py-0.5 rounded">
+                        {drawerCase.category}
+                      </span>
+                    )}
+                    {drawerCase.case_no && (
+                      <span className="text-[10px] text-[#aaa]">
+                        {drawerCase.case_no}
+                      </span>
+                    )}
+                    {drawerScore !== undefined && (
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                          drawerScore >= 70
+                            ? "text-[#10b981] bg-[#ecfdf5]"
+                            : drawerScore >= 40
+                            ? "text-[#f59e0b] bg-[#fffbeb]"
+                            : "text-[#888] bg-[#f5f5f5]"
+                        }`}
+                      >
+                        マッチ {drawerScore}%
+                      </span>
+                    )}
+                  </div>
+
+                  <h3 className="text-[18px] font-black text-navy leading-[1.5] mb-4">
+                    {drawerCase.title}
+                  </h3>
+
+                  {/* Meta grid */}
+                  <div className="grid grid-cols-2 gap-3 mb-5">
+                    {[
+                      { icon: "payments", label: "報酬", value: adjustFee(drawerCase.fee, 30) },
+                      { icon: "schedule", label: "稼働率", value: drawerCase.occupancy },
+                      { icon: "location_on", label: "勤務地", value: drawerCase.location },
+                      { icon: "home_work", label: "勤務形態", value: drawerCase.work_style },
+                      { icon: "apartment", label: "出社日数", value: drawerCase.office_days },
+                      { icon: "business", label: "業界", value: drawerCase.industry },
+                      { icon: "event", label: "開始日", value: drawerCase.start_date },
+                      { icon: "autorenew", label: "延長", value: drawerCase.extendable },
+                      { icon: "calendar_today", label: "登録日", value: formatDate(drawerCase.published_at || drawerCase.created_at) },
+                    ]
+                      .filter((item) => item.value)
+                      .map((item) => (
+                        <div key={item.label} className="flex items-start gap-2 py-2 px-3 bg-[#fafafa] rounded-lg">
+                          <Icon name={item.icon} className="text-[16px] text-[#bbb] mt-0.5 shrink-0" />
+                          <div>
+                            <span className="text-[10px] font-bold text-[#999] block">
+                              {item.label}
+                            </span>
+                            <span className="text-[13px] text-navy font-medium">
+                              {item.value}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+
+                  {/* Sections */}
+                  {drawerCase.background && (
+                    <div className="mb-4">
+                      <h4 className="text-[12px] font-bold text-[#888] mb-1.5 flex items-center gap-1">
+                        <Icon name="info" className="text-[14px]" />
+                        案件背景
+                      </h4>
+                      <p className="text-[13px] text-text whitespace-pre-line leading-[1.8] pl-0.5">
+                        {drawerCase.background}
+                      </p>
+                    </div>
+                  )}
+
+                  {drawerCase.description && (
+                    <div className="mb-4">
+                      <h4 className="text-[12px] font-bold text-[#888] mb-1.5 flex items-center gap-1">
+                        <Icon name="description" className="text-[14px]" />
+                        業務内容
+                      </h4>
+                      <p className="text-[13px] text-text whitespace-pre-line leading-[1.8] pl-0.5">
+                        {drawerCase.description}
+                      </p>
+                    </div>
+                  )}
+
+                  {drawerCase.must_req && (
+                    <div className="mb-4">
+                      <h4 className="text-[12px] font-bold text-[#888] mb-1.5 flex items-center gap-1">
+                        <Icon name="check_circle" className="text-[14px]" />
+                        必須要件
+                      </h4>
+                      <p className="text-[13px] text-text whitespace-pre-line leading-[1.8] pl-0.5">
+                        {drawerCase.must_req}
+                      </p>
+                    </div>
+                  )}
+
+                  {drawerCase.nice_to_have && (
+                    <div className="mb-4">
+                      <h4 className="text-[12px] font-bold text-[#888] mb-1.5 flex items-center gap-1">
+                        <Icon name="add_circle" className="text-[14px]" />
+                        歓迎要件
+                      </h4>
+                      <p className="text-[13px] text-text whitespace-pre-line leading-[1.8] pl-0.5">
+                        {drawerCase.nice_to_have}
+                      </p>
+                    </div>
+                  )}
+
+                  {drawerCase.flow && (
+                    <div className="mb-4">
+                      <h4 className="text-[12px] font-bold text-[#888] mb-1.5 flex items-center gap-1">
+                        <Icon name="route" className="text-[14px]" />
+                        選考フロー
+                      </h4>
+                      <p className="text-[13px] text-text whitespace-pre-line leading-[1.8] pl-0.5">
+                        {drawerCase.flow}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="mt-6 pt-5 border-t border-border/60 flex flex-col gap-3">
+                    <Link
+                      href={`/dashboard/cases/${drawerCase.id}`}
+                      className="w-full py-3.5 bg-blue text-white text-[14px] font-bold text-center rounded-xl hover:bg-blue-dark transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Icon name="edit_note" className="text-[18px]" />
+                      この案件にエントリーする
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-20">
+                  <p className="text-[13px] text-[#888]">
+                    案件データを取得できませんでした
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
