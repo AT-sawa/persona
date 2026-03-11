@@ -27,6 +27,17 @@ interface ExternalTalent {
   name: string | null;
   project_type: string | null;
   personnel_info: string | null;
+  resume_file_path: string | null;
+}
+
+interface ResumeInfo {
+  id: string;
+  user_id: string;
+  filename: string;
+  file_path: string;
+  file_size: number | null;
+  mime_type: string | null;
+  is_primary: boolean;
 }
 
 function Icon({ name, className = "" }: { name: string; className?: string }) {
@@ -64,6 +75,11 @@ export default function AdminProposalDetailPage() {
   const [editingTalent, setEditingTalent] = useState<string | null>(null);
   const [editFields, setEditFields] = useState<Record<string, unknown>>({});
 
+  // Resume data
+  const [resumeMap, setResumeMap] = useState<Record<string, ResumeInfo[]>>({});
+  const [externalResumeMap, setExternalResumeMap] = useState<Record<string, string>>({});
+  const [loadingResume, setLoadingResume] = useState<string | null>(null);
+
   useEffect(() => { init(); }, [id]);
 
   async function init() {
@@ -79,8 +95,73 @@ export default function AdminProposalDetailPage() {
     setLoading(true);
     try {
       const res = await fetch(`/api/admin/proposals/${id}`);
-      if (res.ok) { setProposal((await res.json()).proposal); }
+      if (res.ok) {
+        const p = (await res.json()).proposal;
+        setProposal(p);
+        if (p?.proposal_talents?.length) {
+          fetchResumes(p.proposal_talents);
+        }
+      }
     } catch { /* ignore */ } finally { setLoading(false); }
+  }
+
+  async function fetchResumes(talents: ProposalTalent[]) {
+    // Fetch resumes for profile-linked talents
+    const profileIds = talents.filter((t) => t.profile_id).map((t) => t.profile_id!);
+    const externalIds = talents.filter((t) => t.external_talent_id).map((t) => t.external_talent_id!);
+
+    if (profileIds.length > 0) {
+      const { data } = await supabase
+        .from("resumes")
+        .select("id, user_id, filename, file_path, file_size, mime_type, is_primary")
+        .in("user_id", profileIds)
+        .order("is_primary", { ascending: false });
+      if (data) {
+        const map: Record<string, ResumeInfo[]> = {};
+        for (const r of data as ResumeInfo[]) {
+          if (!map[r.user_id]) map[r.user_id] = [];
+          map[r.user_id].push(r);
+        }
+        setResumeMap(map);
+      }
+    }
+
+    if (externalIds.length > 0) {
+      const { data } = await supabase
+        .from("external_talents")
+        .select("id, resume_file_path")
+        .in("id", externalIds);
+      if (data) {
+        const map: Record<string, string> = {};
+        for (const et of data as { id: string; resume_file_path: string | null }[]) {
+          if (et.resume_file_path) map[et.id] = et.resume_file_path;
+        }
+        setExternalResumeMap(map);
+      }
+    }
+  }
+
+  async function handleResumeDownload(type: "profile" | "external", resumeIdOrPath: string) {
+    setLoadingResume(resumeIdOrPath);
+    try {
+      let url: string;
+      if (type === "profile") {
+        const res = await fetch(`/api/admin/resumes/${resumeIdOrPath}`);
+        if (!res.ok) { alert("レジュメの取得に失敗しました"); return; }
+        const data = await res.json();
+        url = data.url;
+      } else {
+        const res = await fetch(`/api/admin/talents/resume-url?path=${encodeURIComponent(resumeIdOrPath)}`);
+        if (!res.ok) { alert("レジュメの取得に失敗しました"); return; }
+        const data = await res.json();
+        url = data.url;
+      }
+      window.open(url, "_blank");
+    } catch {
+      alert("レジュメの取得に失敗しました");
+    } finally {
+      setLoadingResume(null);
+    }
   }
 
   async function loadTalentSources() {
@@ -90,7 +171,7 @@ export default function AdminProposalDetailPage() {
         .eq("is_admin", false).eq("is_client", false)
         .order("created_at", { ascending: false }).limit(200),
       supabase.from("external_talents")
-        .select("id, name, project_type, personnel_info")
+        .select("id, name, project_type, personnel_info, resume_file_path")
         .eq("is_active", true)
         .order("last_synced_at", { ascending: false }).limit(200),
     ]);
@@ -499,6 +580,42 @@ export default function AdminProposalDetailPage() {
                       {t.summary_background && (
                         <p className="text-[12px] text-[#666] leading-[1.6] mb-2">{t.summary_background}</p>
                       )}
+
+                      {/* Resume links */}
+                      {(() => {
+                        const profileResumes = t.profile_id ? resumeMap[t.profile_id] : undefined;
+                        const externalResumePath = t.external_talent_id ? externalResumeMap[t.external_talent_id] : undefined;
+                        if (!profileResumes?.length && !externalResumePath) return null;
+                        return (
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <Icon name="description" className="text-[14px] text-[#aaa]" />
+                            <span className="text-[11px] text-[#888] font-bold">レジュメ:</span>
+                            {profileResumes?.map((r) => (
+                              <button
+                                key={r.id}
+                                onClick={() => handleResumeDownload("profile", r.id)}
+                                disabled={loadingResume === r.id}
+                                className="inline-flex items-center gap-1 text-[11px] text-blue font-bold hover:underline disabled:opacity-50"
+                              >
+                                <Icon name="open_in_new" className="text-[13px]" />
+                                {r.filename}
+                                {r.is_primary && <span className="text-[9px] bg-blue/10 text-blue px-1 py-0.5">主</span>}
+                                {r.file_size && <span className="text-[10px] text-[#aaa] font-normal">({(r.file_size / 1024).toFixed(0)}KB)</span>}
+                              </button>
+                            ))}
+                            {externalResumePath && (
+                              <button
+                                onClick={() => handleResumeDownload("external", externalResumePath)}
+                                disabled={loadingResume === externalResumePath}
+                                className="inline-flex items-center gap-1 text-[11px] text-blue font-bold hover:underline disabled:opacity-50"
+                              >
+                                <Icon name="open_in_new" className="text-[13px]" />
+                                レジュメを開く
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {t.internal_note && (
                         <div className="bg-red-50/30 border border-red-100 px-3 py-1.5 mb-2">
