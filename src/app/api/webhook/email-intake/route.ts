@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { parseEmailCases } from "@/lib/parse-email-cases";
+import { aiParseCases, caseHasContent } from "@/lib/ai-parse-cases";
 import { Resend } from "resend";
 import { generateEmbedding, buildCaseEmbeddingText } from "@/lib/embedding";
 import { queueMatchingRun } from "@/lib/matching/runMatching";
@@ -332,11 +333,54 @@ export async function POST(request: NextRequest) {
     // ── パース ──
     const result = parseEmailCases(emailText);
 
+    // ── 空案件チェック + AIフォールバック ──
+    // 通常パーサーで内容が取れなかった場合、Claude AIで再パースを試みる
+    const emptyCases = result.cases.filter((c) => !caseHasContent(c));
+    const hasContentCases = result.cases.filter((c) => caseHasContent(c));
+
+    if (emptyCases.length > 0 || result.cases.length === 0) {
+      try {
+        const aiCases = await aiParseCases(emailText);
+        if (aiCases.length > 0) {
+          // AIで取れた案件を使う（タイトルマッチで空案件を置換、または新規追加）
+          const existingTitleSet = new Set(hasContentCases.map((c) => c.title.trim()));
+          for (const aiCase of aiCases) {
+            if (!caseHasContent(aiCase)) continue; // AIでも空なら除外
+            // 空だった案件をタイトルで照合して置換
+            const matchIdx = emptyCases.findIndex(
+              (ec) => ec.title.trim() === aiCase.title.trim()
+            );
+            if (matchIdx >= 0) {
+              hasContentCases.push(aiCase);
+              emptyCases.splice(matchIdx, 1);
+            } else if (!existingTitleSet.has(aiCase.title.trim())) {
+              // タイトルが一致しない場合も追加（AIが別タイトルで抽出した可能性）
+              hasContentCases.push(aiCase);
+              existingTitleSet.add(aiCase.title.trim());
+            }
+          }
+        }
+      } catch {
+        // AIフォールバック失敗はベストエフォート
+        result.errors.push("AIフォールバック解析に失敗しました");
+      }
+    }
+
+    // 最終的に本文のある案件のみを使用
+    result.cases = hasContentCases;
+    const skippedEmpty = emptyCases.length;
+    if (skippedEmpty > 0) {
+      const skippedTitles = emptyCases.map((c) => c.title).join("、");
+      result.errors.push(
+        `${skippedEmpty}件の案件を本文なしのためスキップ: ${skippedTitles}`
+      );
+    }
+
     if (result.cases.length === 0) {
       // パースできなかった場合、管理者に通知
       await notifyAdmin(
         "⚠️ 案件メール転送: パース失敗",
-        `案件を抽出できませんでした。\n\nFrom: ${emailFrom}\nSubject: ${emailSubject}\n\n--- メール本文（先頭500文字） ---\n${emailText.substring(0, 500)}`
+        `案件を抽出できませんでした（${skippedEmpty > 0 ? `${skippedEmpty}件は本文なしでスキップ` : "抽出ゼロ"})。\n\nFrom: ${emailFrom}\nSubject: ${emailSubject}\n\n--- メール本文（先頭500文字） ---\n${emailText.substring(0, 500)}`
       );
       const noParseLogId = await logIntakeEvent(supabase, {
         fromAddress: emailFrom,
@@ -357,7 +401,8 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         imported: 0,
-        message: "No cases found in email",
+        skipped_empty: skippedEmpty,
+        message: "No cases with content found in email",
         errors: result.errors,
       });
     }

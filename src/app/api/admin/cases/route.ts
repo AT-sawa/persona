@@ -66,14 +66,21 @@ export async function POST(request: NextRequest) {
     // サニタイズ（元請け連絡先・提案注意書き等を除去）
     const sanitized = cleaned.map((c) => sanitizeCaseRecord(c));
 
-    // Filter out entries without title
+    // Filter out entries without title or content (description/must_req)
     const valid = sanitized.filter(
-      (c) => c.title && typeof c.title === "string" && c.title.trim() !== ""
+      (c) =>
+        c.title &&
+        typeof c.title === "string" &&
+        c.title.trim() !== "" &&
+        (
+          (c.description && typeof c.description === "string" && c.description.trim() !== "") ||
+          (c.must_req && typeof c.must_req === "string" && c.must_req.trim() !== "")
+        )
     );
 
     if (valid.length === 0) {
       return NextResponse.json(
-        { error: "有効な案件データがありませんでした（タイトル必須）" },
+        { error: "有効な案件データがありませんでした（タイトル + 業務内容 or 必須要件が必須）" },
         { status: 400 }
       );
     }
