@@ -6,6 +6,27 @@ import type { Case } from "@/lib/types";
 
 const PER_PAGE = 18;
 
+/** occupancy文字列から最小パーセンテージを抽出（例: "50%-100%" → 50, "80%" → 80） */
+function parseOccupancyMin(occ: string | null): number | null {
+  if (!occ) return null;
+  // 全角→半角変換
+  const normalized = occ.replace(/％/g, "%").replace(/～/g, "~").replace(/〜/g, "~");
+  // 最初に見つかった数値を取得
+  const match = normalized.match(/(\d+)/);
+  if (!match) return null;
+  const num = parseInt(match[1], 10);
+  // "100" のような % なしの値も対応（100 = 100%）
+  return num > 0 && num <= 100 ? num : null;
+}
+
+const OCCUPANCY_OPTIONS = [
+  { key: "all", label: "すべて" },
+  { key: "low", label: "〜30%", max: 30 },
+  { key: "mid", label: "〜50%", max: 50 },
+  { key: "high", label: "〜80%", max: 80 },
+  { key: "full", label: "100%", min: 80 },
+] as const;
+
 interface CaseFiltersProps {
   cases: Case[];
   defaultStatus?: string;
@@ -19,6 +40,7 @@ export default function CaseFilters({
 }: CaseFiltersProps) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState(defaultStatus || "all");
+  const [occupancy, setOccupancy] = useState("all");
   const [page, setPage] = useState(1);
 
   const activeCount = useMemo(
@@ -42,9 +64,19 @@ export default function CaseFilters({
           .toLowerCase();
         if (!searchable.includes(q)) return false;
       }
+      // 稼働率フィルター
+      if (occupancy !== "all") {
+        const opt = OCCUPANCY_OPTIONS.find((o) => o.key === occupancy);
+        if (opt && opt.key !== "all") {
+          const minPct = parseOccupancyMin(c.occupancy);
+          if (minPct === null) return false; // 稼働率不明は除外
+          if ("max" in opt && minPct > opt.max) return false;
+          if ("min" in opt && minPct < opt.min) return false;
+        }
+      }
       return true;
     });
-  }, [cases, search, status]);
+  }, [cases, search, status, occupancy]);
 
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const currentPage = Math.min(page, totalPages || 1);
@@ -63,7 +95,12 @@ export default function CaseFilters({
     setPage(1);
   }
 
-  const hasFilter = search || status !== "all";
+  function handleOccupancy(value: string) {
+    setOccupancy(value);
+    setPage(1);
+  }
+
+  const hasFilter = search || status !== "all" || occupancy !== "all";
 
   return (
     <>
@@ -92,6 +129,26 @@ export default function CaseFilters({
                 </span>
               </button>
             ))}
+          </div>
+
+          {/* Occupancy filter */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-[#999] whitespace-nowrap">稼働率</span>
+            <div className="flex items-center gap-0.5 bg-[#f2f2f7] rounded-full p-0.5">
+              {OCCUPANCY_OPTIONS.map((opt) => (
+                <button
+                  key={opt.key}
+                  onClick={() => handleOccupancy(opt.key)}
+                  className={`px-2.5 py-[5px] text-[11px] rounded-full transition-all whitespace-nowrap ${
+                    occupancy === opt.key
+                      ? "bg-white text-navy font-semibold shadow-[0_1px_4px_rgba(0,0,0,0.1)]"
+                      : "text-[#888] hover:text-[#555]"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Search */}
@@ -125,6 +182,7 @@ export default function CaseFilters({
               onClick={() => {
                 setSearch("");
                 setStatus("all");
+                setOccupancy("all");
                 setPage(1);
               }}
               className="text-[12px] text-blue hover:text-blue-dark transition-colors"
