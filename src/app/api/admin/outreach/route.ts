@@ -33,8 +33,8 @@ async function requireAdmin(req: NextRequest) {
   return profile?.is_admin ? user : null;
 }
 
-/* ── HTML email template ── */
-function buildEmailHtml(utm: string): string {
+/* ── Default HTML template (AI Assessment) ── */
+function buildDefaultTemplate(utm: string): string {
   const LP_URL = `https://persona-consultant.com/services/assessment${utm}`;
   return `<!DOCTYPE html>
 <html lang="ja">
@@ -43,13 +43,9 @@ function buildEmailHtml(utm: string): string {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:32px 16px">
 <tr><td align="center">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
-
-<!-- HEADER -->
 <tr><td style="background:#0f0f0f;padding:28px 40px;text-align:center">
   <span style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:18px;font-weight:800;letter-spacing:3px;color:#ffffff">PERSONA</span>
 </td></tr>
-
-<!-- HERO -->
 <tr><td style="padding:48px 40px 32px;text-align:center">
   <p style="margin:0 0 12px;font-size:10px;font-weight:700;letter-spacing:3px;color:#e8390e;text-transform:uppercase">AI導入効果アセスメント</p>
   <h1 style="margin:0 0 20px;font-size:24px;font-weight:900;color:#0f0f0f;line-height:1.4">AIで、どの業務が、<br>どれだけ削減できるか。</h1>
@@ -58,8 +54,6 @@ function buildEmailHtml(utm: string): string {
     どの業務にどのAIツールを入れれば、どれだけ工数が減るか——具体的な数値でレポートします。
   </p>
 </td></tr>
-
-<!-- STATS -->
 <tr><td style="padding:0 40px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0f0f0f;border-radius:10px;overflow:hidden">
 <tr>
@@ -82,8 +76,6 @@ function buildEmailHtml(utm: string): string {
 </tr>
 </table>
 </td></tr>
-
-<!-- BEFORE / AFTER EXAMPLE -->
 <tr><td style="padding:32px 40px">
   <p style="margin:0 0 16px;font-size:10px;font-weight:700;letter-spacing:2px;color:#a8a8a8">▼ レポートサンプル（経理部の一例）</p>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e8e8e8;border-radius:8px;overflow:hidden">
@@ -103,44 +95,27 @@ function buildEmailHtml(utm: string): string {
     </tr>
   </table>
 </td></tr>
-
-<!-- WHAT YOU GET -->
 <tr><td style="padding:0 40px 32px">
   <p style="margin:0 0 16px;font-size:10px;font-weight:700;letter-spacing:2px;color:#e8390e">DELIVERABLES</p>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-    <tr>
-      <td style="padding:8px 0;font-size:13px;color:#2d2d2d;line-height:1.6;border-bottom:1px solid #f3f3f3">✓&nbsp; 業務棚卸シート（全部署 × 全業務）</td>
-    </tr>
-    <tr>
-      <td style="padding:8px 0;font-size:13px;color:#2d2d2d;line-height:1.6;border-bottom:1px solid #f3f3f3">✓&nbsp; Before/After業務フロー図</td>
-    </tr>
-    <tr>
-      <td style="padding:8px 0;font-size:13px;color:#2d2d2d;line-height:1.6;border-bottom:1px solid #f3f3f3">✓&nbsp; 施策一覧 + 削減効果 + ROI試算</td>
-    </tr>
-    <tr>
-      <td style="padding:8px 0;font-size:13px;color:#2d2d2d;line-height:1.6;border-bottom:1px solid #f3f3f3">✓&nbsp; 優先順位マトリクス</td>
-    </tr>
-    <tr>
-      <td style="padding:8px 0;font-size:13px;color:#2d2d2d;line-height:1.6">✓&nbsp; 12ヶ月導入ロードマップ</td>
-    </tr>
+    <tr><td style="padding:8px 0;font-size:13px;color:#2d2d2d;line-height:1.6;border-bottom:1px solid #f3f3f3">✓&nbsp; 業務棚卸シート（全部署 × 全業務）</td></tr>
+    <tr><td style="padding:8px 0;font-size:13px;color:#2d2d2d;line-height:1.6;border-bottom:1px solid #f3f3f3">✓&nbsp; Before/After業務フロー図</td></tr>
+    <tr><td style="padding:8px 0;font-size:13px;color:#2d2d2d;line-height:1.6;border-bottom:1px solid #f3f3f3">✓&nbsp; 施策一覧 + 削減効果 + ROI試算</td></tr>
+    <tr><td style="padding:8px 0;font-size:13px;color:#2d2d2d;line-height:1.6;border-bottom:1px solid #f3f3f3">✓&nbsp; 優先順位マトリクス</td></tr>
+    <tr><td style="padding:8px 0;font-size:13px;color:#2d2d2d;line-height:1.6">✓&nbsp; 12ヶ月導入ロードマップ</td></tr>
   </table>
 </td></tr>
-
-<!-- CTA BUTTON -->
 <tr><td style="padding:0 40px 40px;text-align:center">
   <a href="${LP_URL}" style="display:inline-block;background:#e8390e;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:16px 48px;border-radius:8px;letter-spacing:0.5px">
     詳細を見る →
   </a>
   <p style="margin:16px 0 0;font-size:12px;color:#a8a8a8">まずはお気軽にご相談ください（無料）</p>
 </td></tr>
-
-<!-- FOOTER -->
 <tr><td style="background:#fafafa;padding:28px 40px;border-top:1px solid #e8e8e8;text-align:center">
   <p style="margin:0 0 4px;font-size:13px;font-weight:800;letter-spacing:2px;color:#0f0f0f">PERSONA</p>
   <p style="margin:0 0 4px;font-size:11px;color:#a8a8a8">Activated Trigger株式会社 | プロフェッショナルクラウド「PERSONA」</p>
   <p style="margin:0;font-size:11px;color:#a8a8a8">&copy; 2026 Activated Trigger Inc.</p>
 </td></tr>
-
 </table>
 </td></tr>
 </table>
@@ -148,125 +123,300 @@ function buildEmailHtml(utm: string): string {
 </html>`;
 }
 
-/* ── POST: send outreach emails ── */
-export async function POST(req: NextRequest) {
-  const admin = await requireAdmin(req);
-  if (!admin) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  if (!process.env.RESEND_API_KEY) {
-    return NextResponse.json(
-      { error: "RESEND_API_KEY is not configured" },
-      { status: 500 },
-    );
-  }
-
-  const { emails, subject, utmSource, utmCampaign } = await req.json();
-
-  if (!emails || !Array.isArray(emails) || emails.length === 0) {
-    return NextResponse.json(
-      { error: "emails array is required" },
-      { status: 400 },
-    );
-  }
-
-  // Build UTM parameters
-  const utmParts = [];
-  if (utmSource) utmParts.push(`utm_source=${encodeURIComponent(utmSource)}`);
-  if (utmCampaign) utmParts.push(`utm_campaign=${encodeURIComponent(utmCampaign)}`);
-  utmParts.push("utm_medium=email");
-  const utmString = utmParts.length > 0 ? `?${utmParts.join("&")}` : "";
-
-  const emailSubject =
-    subject || "【PERSONA】AI導入効果アセスメントのご案内";
-
-  const html = buildEmailHtml(utmString);
-
-  // Validate & deduplicate emails
-  const validEmails = [
-    ...new Set(
-      emails
-        .map((e: string) => e.trim().toLowerCase())
-        .filter((e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)),
-    ),
-  ];
-
-  if (validEmails.length === 0) {
-    return NextResponse.json(
-      { error: "No valid email addresses provided" },
-      { status: 400 },
-    );
-  }
-
-  // Send in batches of 50 (Resend batch limit is 100)
-  const BATCH_SIZE = 50;
-  let sent = 0;
-  let failed = 0;
-  const errors: string[] = [];
-
-  for (let i = 0; i < validEmails.length; i += BATCH_SIZE) {
-    const batch = validEmails.slice(i, i + BATCH_SIZE);
-    const batchPayload = batch.map((to: string) => ({
-      from: `PERSONA <${FROM_EMAIL}>`,
-      to,
-      subject: emailSubject,
-      html,
-    }));
-
-    try {
-      const result = await resend.batch.send(batchPayload);
-      if (result.error) {
-        errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${result.error.message}`);
-        failed += batch.length;
-      } else {
-        sent += batch.length;
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${msg}`);
-      failed += batch.length;
-    }
-
-    // Small delay between batches to avoid rate limiting
-    if (i + BATCH_SIZE < validEmails.length) {
-      await new Promise((r) => setTimeout(r, 500));
-    }
-  }
-
-  // Log outreach activity
-  try {
-    await supabaseAdmin.from("outreach_log").insert({
-      sent_by: admin.id,
-      total_emails: validEmails.length,
-      sent_count: sent,
-      failed_count: failed,
-      subject: emailSubject,
-      utm_source: utmSource || null,
-      utm_campaign: utmCampaign || null,
-    });
-  } catch {
-    // Log table may not exist yet — that's OK
-  }
-
-  return NextResponse.json({
-    ok: true,
-    sent,
-    failed,
-    total: validEmails.length,
-    errors: errors.length > 0 ? errors : undefined,
-  });
-}
-
-/* ── GET: preview email template ── */
+/* ── GET: list campaigns or get campaign detail ── */
 export async function GET(req: NextRequest) {
   const admin = await requireAdmin(req);
   if (!admin) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const html = buildEmailHtml("?utm_source=preview&utm_medium=email");
-  return new NextResponse(html, {
-    headers: { "Content-Type": "text/html; charset=utf-8" },
-  });
+  const { searchParams } = new URL(req.url);
+  const campaignId = searchParams.get("id");
+  const preview = searchParams.get("preview");
+
+  // HTML preview for default template
+  if (preview === "default") {
+    const html = buildDefaultTemplate("?utm_source=preview&utm_medium=email");
+    return new NextResponse(html, {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  }
+
+  // Campaign detail
+  if (campaignId) {
+    const { data: campaign, error } = await supabaseAdmin
+      .from("email_campaigns")
+      .select("*")
+      .eq("id", campaignId)
+      .single();
+
+    if (error || !campaign) {
+      return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+    }
+
+    // Get all sends for this campaign with user names
+    const { data: sends } = await supabaseAdmin
+      .from("email_sends")
+      .select("*")
+      .eq("campaign_id", campaignId)
+      .order("created_at", { ascending: false });
+
+    // Get send counts
+    const sentCount = (sends || []).filter((s: { status: string }) => s.status === "sent").length;
+    const failedCount = (sends || []).filter((s: { status: string }) => s.status === "failed").length;
+
+    return NextResponse.json({
+      campaign: {
+        ...campaign,
+        total_sends: (sends || []).length,
+        sent_count: sentCount,
+        failed_count: failedCount,
+      },
+      sends: sends || [],
+    });
+  }
+
+  // Campaign list with counts
+  const { data: campaigns, error } = await supabaseAdmin
+    .from("email_campaigns")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Get send counts per campaign
+  const campaignsWithCounts = await Promise.all(
+    (campaigns || []).map(async (c: { id: string }) => {
+      const { data: sends } = await supabaseAdmin
+        .from("email_sends")
+        .select("status")
+        .eq("campaign_id", c.id);
+
+      const total = (sends || []).length;
+      const sent = (sends || []).filter((s: { status: string }) => s.status === "sent").length;
+      const failed = (sends || []).filter((s: { status: string }) => s.status === "failed").length;
+
+      return { ...c, total_sends: total, sent_count: sent, failed_count: failed };
+    }),
+  );
+
+  return NextResponse.json({ campaigns: campaignsWithCounts });
+}
+
+/* ── POST: campaign CRUD + send emails ── */
+export async function POST(req: NextRequest) {
+  const admin = await requireAdmin(req);
+  if (!admin) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = await req.json();
+  const { action } = body;
+
+  // ── Create campaign ──
+  if (action === "create_campaign") {
+    const { name, subject, html_body, utm_source, utm_campaign } = body;
+    if (!name || !subject || !html_body) {
+      return NextResponse.json(
+        { error: "name, subject, html_body are required" },
+        { status: 400 },
+      );
+    }
+
+    const { data: campaign, error } = await supabaseAdmin
+      .from("email_campaigns")
+      .insert({
+        name,
+        subject,
+        html_body,
+        utm_source: utm_source || "outreach",
+        utm_campaign: utm_campaign || "",
+        created_by: admin.id,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true, campaign });
+  }
+
+  // ── Update campaign ──
+  if (action === "update_campaign") {
+    const { campaign_id, ...updates } = body;
+    if (!campaign_id) {
+      return NextResponse.json({ error: "campaign_id is required" }, { status: 400 });
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { action: _a, ...fieldsToUpdate } = updates;
+    const { error } = await supabaseAdmin
+      .from("email_campaigns")
+      .update({ ...fieldsToUpdate, updated_at: new Date().toISOString() })
+      .eq("id", campaign_id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true });
+  }
+
+  // ── Delete campaign ──
+  if (action === "delete_campaign") {
+    const { campaign_id } = body;
+    if (!campaign_id) {
+      return NextResponse.json({ error: "campaign_id is required" }, { status: 400 });
+    }
+
+    const { error } = await supabaseAdmin
+      .from("email_campaigns")
+      .delete()
+      .eq("id", campaign_id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true });
+  }
+
+  // ── Send emails ──
+  if (action === "send_emails") {
+    const { campaign_id, user_ids } = body;
+    if (!campaign_id || !user_ids || !Array.isArray(user_ids) || user_ids.length === 0) {
+      return NextResponse.json(
+        { error: "campaign_id and user_ids are required" },
+        { status: 400 },
+      );
+    }
+
+    if (!process.env.RESEND_API_KEY) {
+      return NextResponse.json(
+        { error: "RESEND_API_KEY is not configured" },
+        { status: 500 },
+      );
+    }
+
+    // Get campaign
+    const { data: campaign, error: cErr } = await supabaseAdmin
+      .from("email_campaigns")
+      .select("*")
+      .eq("id", campaign_id)
+      .single();
+
+    if (cErr || !campaign) {
+      return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+    }
+
+    // Get target user emails
+    const { data: users, error: uErr } = await supabaseAdmin
+      .from("profiles")
+      .select("id, email, full_name")
+      .in("id", user_ids);
+
+    if (uErr || !users || users.length === 0) {
+      return NextResponse.json({ error: "No valid users found" }, { status: 400 });
+    }
+
+    // Build UTM
+    const utmParts = [];
+    if (campaign.utm_source) utmParts.push(`utm_source=${encodeURIComponent(campaign.utm_source)}`);
+    if (campaign.utm_campaign) utmParts.push(`utm_campaign=${encodeURIComponent(campaign.utm_campaign)}`);
+    utmParts.push("utm_medium=email");
+    const utmString = utmParts.length > 0 ? `?${utmParts.join("&")}` : "";
+
+    // Apply UTM to HTML (replace {{UTM}} placeholder if present)
+    const html = campaign.html_body.includes("{{UTM}}")
+      ? campaign.html_body.replace(/\{\{UTM\}\}/g, utmString)
+      : campaign.html_body;
+
+    // Upsert pending records
+    const sendRecords = users
+      .filter((u: { email: string | null }) => u.email)
+      .map((u: { id: string; email: string }) => ({
+        campaign_id,
+        user_id: u.id,
+        email: u.email,
+        status: "pending",
+      }));
+
+    await supabaseAdmin
+      .from("email_sends")
+      .upsert(sendRecords, { onConflict: "campaign_id,user_id" });
+
+    // Send in batches
+    const BATCH_SIZE = 50;
+    let sent = 0;
+    let failed = 0;
+    const errors: string[] = [];
+
+    const validUsers = users.filter((u: { email: string | null }) => u.email);
+
+    for (let i = 0; i < validUsers.length; i += BATCH_SIZE) {
+      const batch = validUsers.slice(i, i + BATCH_SIZE);
+      const batchPayload = batch.map((u: { email: string }) => ({
+        from: `PERSONA <${FROM_EMAIL}>`,
+        to: u.email,
+        subject: campaign.subject,
+        html,
+      }));
+
+      try {
+        const result = await resend.batch.send(batchPayload);
+        if (result.error) {
+          errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${result.error.message}`);
+          // Mark batch as failed
+          for (const u of batch) {
+            await supabaseAdmin
+              .from("email_sends")
+              .update({ status: "failed", error: result.error.message })
+              .eq("campaign_id", campaign_id)
+              .eq("user_id", u.id);
+          }
+          failed += batch.length;
+        } else {
+          // Mark batch as sent
+          for (const u of batch) {
+            await supabaseAdmin
+              .from("email_sends")
+              .update({ status: "sent", sent_at: new Date().toISOString() })
+              .eq("campaign_id", campaign_id)
+              .eq("user_id", u.id);
+          }
+          sent += batch.length;
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Unknown error";
+        errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${msg}`);
+        for (const u of batch) {
+          await supabaseAdmin
+            .from("email_sends")
+            .update({ status: "failed", error: msg })
+            .eq("campaign_id", campaign_id)
+            .eq("user_id", u.id);
+        }
+        failed += batch.length;
+      }
+
+      // Rate limit delay
+      if (i + BATCH_SIZE < validUsers.length) {
+        await new Promise((r) => setTimeout(r, 500));
+      }
+    }
+
+    return NextResponse.json({
+      ok: true,
+      sent,
+      failed,
+      total: validUsers.length,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  }
+
+  return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 }

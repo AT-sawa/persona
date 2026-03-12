@@ -264,3 +264,36 @@ export interface ProposalMessage {
   // Joined relations (optional)
   profiles?: Pick<Profile, "id" | "full_name" | "company_name">;
 }
+
+// ============================================
+// Email Campaign types
+// ============================================
+
+export interface EmailCampaign {
+  id: string;
+  name: string;
+  subject: string;
+  html_body: string;
+  utm_source: string;
+  utm_campaign: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  // Aggregated (from API join)
+  total_sends?: number;
+  sent_count?: number;
+  failed_count?: number;
+}
+
+export interface EmailSend {
+  id: string;
+  campaign_id: string;
+  user_id: string;
+  email: string;
+  status: "pending" | "sent" | "failed";
+  error: string | null;
+  sent_at: string | null;
+  created_at: string;
+  // Joined
+  user_name?: string;
+}
