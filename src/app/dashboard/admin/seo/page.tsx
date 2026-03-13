@@ -82,6 +82,23 @@ export default function AdminSeoPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
 
+  // Blog article creation dialog
+  const [showArticleDialog, setShowArticleDialog] = useState(false);
+  const [articleTitle, setArticleTitle] = useState("");
+  const [articleSlug, setArticleSlug] = useState("");
+  const [articleDate, setArticleDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
+  const [articleDescription, setArticleDescription] = useState("");
+  const [articleCategory, setArticleCategory] = useState("ノウハウ");
+  const [articleContent, setArticleContent] = useState("");
+  const [articleSaving, setArticleSaving] = useState(false);
+  const [articleResult, setArticleResult] = useState<{
+    ok: boolean;
+    url?: string;
+    error?: string;
+  } | null>(null);
+
   /* ─── Fetch data ─── */
   const fetchData = useCallback(async () => {
     try {
@@ -785,6 +802,34 @@ export default function AdminSeoPage() {
         <p className="text-[12px] text-[#888] mt-1">
           キーワード順位・クリック・表示回数の推移を管理
         </p>
+      </div>
+
+      {/* ── Create article button ── */}
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={() => {
+            setArticleTitle("");
+            setArticleSlug("");
+            setArticleDate(new Date().toISOString().split("T")[0]);
+            setArticleDescription("");
+            setArticleCategory("ノウハウ");
+            setArticleContent("");
+            setArticleResult(null);
+            setShowArticleDialog(true);
+          }}
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#1FABE9] text-white text-[13px] font-bold hover:bg-[#1890c8] transition-colors rounded-lg"
+        >
+          <Icon name="edit_note" className="text-[20px]" />
+          ブログ記事を作成
+        </button>
+        <Link
+          href="/blog"
+          target="_blank"
+          className="flex items-center gap-1 text-[12px] text-[#888] hover:text-[#1FABE9] transition-colors"
+        >
+          <Icon name="open_in_new" className="text-[14px]" />
+          ブログを見る
+        </Link>
       </div>
 
       {/* ── SEO TODO Checklist ── */}
@@ -1722,6 +1767,237 @@ export default function AdminSeoPage() {
           </form>
         </div>
       </div>
+
+      {/* ═══════════════ Blog Article Creation Dialog ═══════════════ */}
+      {showArticleDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => !articleSaving && setShowArticleDialog(false)}
+          />
+
+          {/* Dialog */}
+          <div className="relative bg-white w-[95vw] max-w-[1100px] h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-[#fafafa]">
+              <div>
+                <p className="text-[10px] font-bold text-[#1FABE9] tracking-[0.18em] uppercase">
+                  NEW ARTICLE
+                </p>
+                <h2 className="text-lg font-black text-navy">
+                  ブログ記事を作成
+                </h2>
+              </div>
+              <button
+                onClick={() => !articleSaving && setShowArticleDialog(false)}
+                className="text-[#888] hover:text-navy transition-colors"
+              >
+                <Icon name="close" className="text-[24px]" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left: meta fields */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#888] mb-1">
+                      タイトル <span className="text-[#E15454]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={articleTitle}
+                      onChange={(e) => setArticleTitle(e.target.value)}
+                      placeholder="例: フリーコンサルのPMO案件で求められるスキルとは？"
+                      className="w-full p-3 border border-border text-[13px] rounded-lg focus:outline-none focus:border-[#1FABE9]"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#888] mb-1">
+                        公開日
+                      </label>
+                      <input
+                        type="date"
+                        value={articleDate}
+                        onChange={(e) => setArticleDate(e.target.value)}
+                        className="w-full p-3 border border-border text-[13px] rounded-lg focus:outline-none focus:border-[#1FABE9]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#888] mb-1">
+                        カテゴリ
+                      </label>
+                      <select
+                        value={articleCategory}
+                        onChange={(e) => setArticleCategory(e.target.value)}
+                        className="w-full p-3 border border-border text-[13px] rounded-lg focus:outline-none focus:border-[#1FABE9] bg-white"
+                      >
+                        <option value="ノウハウ">ノウハウ</option>
+                        <option value="キャリア">キャリア</option>
+                        <option value="業界トレンド">業界トレンド</option>
+                        <option value="企業向け">企業向け</option>
+                        <option value="サービス紹介">サービス紹介</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#888] mb-1">
+                      スラッグ（空欄でタイトルから自動生成）
+                    </label>
+                    <input
+                      type="text"
+                      value={articleSlug}
+                      onChange={(e) => setArticleSlug(e.target.value)}
+                      placeholder="例: pmo-skills-for-freelance-consultants"
+                      className="w-full p-3 border border-border text-[13px] font-mono rounded-lg focus:outline-none focus:border-[#1FABE9]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#888] mb-1">
+                      メタディスクリプション（SEO用）
+                    </label>
+                    <textarea
+                      value={articleDescription}
+                      onChange={(e) => setArticleDescription(e.target.value)}
+                      placeholder="検索結果に表示される説明文（120-160文字推奨）"
+                      rows={3}
+                      className="w-full p-3 border border-border text-[13px] rounded-lg resize-none focus:outline-none focus:border-[#1FABE9]"
+                    />
+                    <p className="text-[10px] text-[#aaa] mt-1">
+                      {articleDescription.length}文字
+                      {articleDescription.length > 0 && articleDescription.length < 120 && (
+                        <span className="text-[#f59e0b]"> — もう少し長くすると効果的です</span>
+                      )}
+                      {articleDescription.length >= 120 && articleDescription.length <= 160 && (
+                        <span className="text-[#10b981]"> — 適切な長さです</span>
+                      )}
+                      {articleDescription.length > 160 && (
+                        <span className="text-[#E15454]"> — 少し長すぎます</span>
+                      )}
+                    </p>
+                  </div>
+
+                  {/* Tips */}
+                  <div className="bg-[#f0f9ff] border border-[#bae6fd] rounded-lg p-4">
+                    <p className="text-[11px] font-bold text-[#0c4a6e] mb-2">
+                      <Icon name="lightbulb" className="text-[14px] align-middle mr-1" />
+                      ライティングのコツ
+                    </p>
+                    <ul className="text-[11px] text-[#0369a1] space-y-1">
+                      <li>・Markdown形式で記述できます（## 見出し、- リスト、**太字**）</li>
+                      <li>・H2見出しが3つ以上で目次が自動生成されます</li>
+                      <li>・内部リンクを含めるとSEO効果が高まります</li>
+                      <li>・2,000〜4,000文字が推奨です</li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Right: content editor */}
+                <div className="flex flex-col">
+                  <label className="block text-[11px] font-bold text-[#888] mb-1">
+                    本文（Markdown） <span className="text-[#E15454]">*</span>
+                    <span className="text-[10px] font-normal text-[#aaa] ml-2">
+                      {articleContent.length}文字
+                    </span>
+                  </label>
+                  <textarea
+                    value={articleContent}
+                    onChange={(e) => setArticleContent(e.target.value)}
+                    placeholder={`ここにMarkdown形式で記事を書いてください。\n\n例:\nフリーコンサルとして活躍するために...\n\n---\n\n## PMO案件とは？\n\nPMO（Project Management Office）は...\n\n## 求められるスキル\n\n- プロジェクト管理経験\n- ステークホルダー調整力\n- ...`}
+                    className="flex-1 min-h-[400px] p-4 border border-border text-[13px] font-mono leading-relaxed rounded-lg resize-none focus:outline-none focus:border-[#1FABE9] placeholder:text-[#ccc]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-border bg-[#fafafa] flex items-center gap-3">
+              {articleResult && (
+                <div className={`flex-1 text-[13px] font-bold ${articleResult.ok ? "text-[#10b981]" : "text-[#E15454]"}`}>
+                  {articleResult.ok ? (
+                    <>
+                      <Icon name="check_circle" className="text-[16px] align-middle mr-1" />
+                      記事を保存しました！
+                      <a
+                        href={articleResult.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-2 text-[#1FABE9] hover:underline font-normal text-[12px]"
+                      >
+                        プレビュー →
+                      </a>
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="error" className="text-[16px] align-middle mr-1" />
+                      {articleResult.error}
+                    </>
+                  )}
+                </div>
+              )}
+              {!articleResult && <div className="flex-1" />}
+              <button
+                onClick={() => setShowArticleDialog(false)}
+                disabled={articleSaving}
+                className="px-5 py-2.5 border border-border text-[13px] text-[#888] rounded-lg hover:border-navy hover:text-navy transition-colors"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={async () => {
+                  if (!articleTitle || !articleContent) return;
+                  setArticleSaving(true);
+                  setArticleResult(null);
+                  try {
+                    const res = await fetch("/api/admin/blog", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        title: articleTitle,
+                        slug: articleSlug || undefined,
+                        date: articleDate,
+                        description: articleDescription,
+                        category: articleCategory,
+                        content: articleContent,
+                      }),
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.ok) {
+                      setArticleResult({ ok: true, url: data.url });
+                    } else {
+                      setArticleResult({ ok: false, error: data.error || "保存に失敗しました" });
+                    }
+                  } catch {
+                    setArticleResult({ ok: false, error: "ネットワークエラーが発生しました" });
+                  } finally {
+                    setArticleSaving(false);
+                  }
+                }}
+                disabled={articleSaving || !articleTitle || !articleContent}
+                className="px-6 py-2.5 bg-[#1FABE9] text-white text-[13px] font-bold rounded-lg hover:bg-[#1890c8] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {articleSaving ? (
+                  <>
+                    <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    保存中...
+                  </>
+                ) : (
+                  <>
+                    <Icon name="publish" className="text-[18px]" />
+                    記事を保存
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
