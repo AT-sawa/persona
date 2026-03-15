@@ -5,6 +5,9 @@ import {
   findRelatedArticles,
   buildArticleGenerationPrompt,
   ARTICLE_SYSTEM_PROMPT,
+  loadContentMaster,
+  buildSystemPrompt,
+  checkNgWords,
   type WizardAnswers,
 } from "@/lib/article-generator";
 
@@ -84,6 +87,15 @@ export async function POST(req: NextRequest) {
     // 競合分析
     const relatedArticles = findRelatedArticles(keyword);
 
+    // マスタープロンプト読み込み
+    const master = await loadContentMaster();
+    const systemPrompt =
+      master.brand_voice.length > 0 ||
+      master.facts.length > 0 ||
+      master.instructions.length > 0
+        ? buildSystemPrompt(master)
+        : ARTICLE_SYSTEM_PROMPT;
+
     // ユーザープロンプト組み立て
     const userPrompt = buildArticleGenerationPrompt(
       keyword,
@@ -97,7 +109,7 @@ export async function POST(req: NextRequest) {
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 8192,
-      system: ARTICLE_SYSTEM_PROMPT,
+      system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     });
 
@@ -136,6 +148,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // NGワードチェック
+    const fullText = `${article.title} ${article.description || ""} ${article.content}`;
+    const ngCheck = checkNgWords(fullText, master.ng_words);
+
     return NextResponse.json({
       ok: true,
       article: {
@@ -145,6 +161,14 @@ export async function POST(req: NextRequest) {
         content: article.content,
       },
       relatedArticles,
+      ngCheck: ngCheck.passed
+        ? null
+        : {
+            violations: ngCheck.violations.map((v) => ({
+              word: v.word,
+              context: v.context,
+            })),
+          },
     });
   } catch (err) {
     console.error("Article generation error:", err);

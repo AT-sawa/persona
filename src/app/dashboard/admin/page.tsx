@@ -250,6 +250,13 @@ export default function AdminPage() {
             <span className="text-[13px] font-bold text-navy">クライアント管理</span>
           </Link>
           <Link
+            href="/dashboard/admin/content"
+            className="p-4 border border-border text-center hover:bg-[#fafafa] transition-colors"
+          >
+            <span className="text-2xl block mb-1"><Icon name="auto_awesome" className="text-[24px]" /></span>
+            <span className="text-[13px] font-bold text-navy">コンテンツ管理</span>
+          </Link>
+          <Link
             href="/dashboard/admin/proposals"
             className="p-4 border border-border text-center hover:bg-[#fafafa] transition-colors"
           >

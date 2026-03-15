@@ -137,3 +137,112 @@ export async function POST(req: NextRequest) {
     url: `/blog/${postSlug}`,
   });
 }
+
+/* ── PUT: 既存記事のフロントマター更新（メタタイトル/ディスクリプション） ── */
+export async function PUT(req: NextRequest) {
+  const admin = await requireAdmin(req);
+  if (!admin) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { filename, title, description, category, thumbnail, reason } =
+    await req.json();
+
+  if (!filename) {
+    return NextResponse.json(
+      { error: "filename is required" },
+      { status: 400 },
+    );
+  }
+
+  const filepath = path.join(BLOG_DIR, filename);
+  if (!fs.existsSync(filepath)) {
+    return NextResponse.json(
+      { error: "File not found" },
+      { status: 404 },
+    );
+  }
+
+  const raw = fs.readFileSync(filepath, "utf8");
+  const fmMatch = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  if (!fmMatch) {
+    return NextResponse.json(
+      { error: "Invalid markdown format" },
+      { status: 400 },
+    );
+  }
+
+  // 既存のフロントマターをパース
+  const meta: Record<string, string> = {};
+  for (const line of fmMatch[1].split("\n")) {
+    const m = line.match(/^(\w+):\s*"?(.+?)"?\s*$/);
+    if (m) meta[m[1]] = m[2];
+  }
+
+  // 変更前の値を保存（ログ用）
+  const beforeTitle = meta.title || "";
+  const beforeDescription = meta.description || "";
+
+  // 指定されたフィールドのみ上書き
+  if (title !== undefined) meta.title = title;
+  if (description !== undefined) meta.description = description;
+  if (category !== undefined) meta.category = category;
+  if (thumbnail !== undefined) meta.thumbnail = thumbnail;
+
+  // フロントマターを再構築
+  const newFm = [
+    "---",
+    `title: "${meta.title?.replace(/"/g, '\\"') || ""}"`,
+    `date: "${meta.date || ""}"`,
+  ];
+  if (meta.description)
+    newFm.push(`description: "${meta.description.replace(/"/g, '\\"')}"`);
+  if (meta.category) newFm.push(`category: "${meta.category}"`);
+  if (meta.thumbnail) newFm.push(`thumbnail: "${meta.thumbnail}"`);
+  newFm.push("---");
+
+  const newMarkdown = newFm.join("\n") + "\n" + fmMatch[2];
+  fs.writeFileSync(filepath, newMarkdown, "utf8");
+
+  // content_updates にログ記録（service client 使用）
+  try {
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    );
+
+    const slug = filename
+      .replace(/^\d{4}-\d{2}-\d{2}-/, "")
+      .replace(".md", "");
+
+    if (title !== undefined && title !== beforeTitle) {
+      await supabaseAdmin.from("content_updates").insert({
+        update_type: "meta_title",
+        target_slug: slug,
+        before_content: beforeTitle,
+        after_content: title,
+        reason: reason || "管理者による手動更新",
+        auto_generated: false,
+      });
+    }
+    if (description !== undefined && description !== beforeDescription) {
+      await supabaseAdmin.from("content_updates").insert({
+        update_type: "meta_description",
+        target_slug: slug,
+        before_content: beforeDescription,
+        after_content: description,
+        reason: reason || "管理者による手動更新",
+        auto_generated: false,
+      });
+    }
+  } catch (logErr) {
+    console.error("Failed to log content update:", logErr);
+    // ログ記録失敗は更新処理のエラーにしない
+  }
+
+  return NextResponse.json({
+    ok: true,
+    filename,
+    updated: { title: meta.title, description: meta.description },
+  });
+}

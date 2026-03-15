@@ -19,6 +19,10 @@
     {
       "path": "/api/cron/embed-cases",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/content-optimizer",
+      "schedule": "0 4 * * *"
     }
   ]
 }

@@ -3,7 +3,219 @@
  *
  * 既存ブログ記事の競合分析と、Claude API用プロンプト生成を
  * フロントエンド（SEO管理画面）とバックエンド（API）の両方で利用。
+ *
+ * content_master によるマスタープロンプト読み込み・NGチェック機能を含む。
  */
+
+import { createClient } from "@supabase/supabase-js";
+
+// ─── マスタープロンプト型 ───
+
+export interface ContentMasterEntry {
+  id: string;
+  category: string;
+  title: string;
+  content: string;
+  is_active: boolean;
+  sort_order: number;
+}
+
+export interface ContentMasterData {
+  brand_voice: ContentMasterEntry[];
+  facts: ContentMasterEntry[];
+  instructions: ContentMasterEntry[];
+  ng_words: ContentMasterEntry[];
+  keywords: ContentMasterEntry[];
+  qa: ContentMasterEntry[];
+}
+
+// ─── NGチェック結果型 ───
+
+export interface NgCheckResult {
+  passed: boolean;
+  violations: { word: string; context: string }[];
+}
+
+/**
+ * content_master テーブルからアクティブなエントリを全件取得し、
+ * カテゴリ別に分類して返す。
+ * サーバーサイド専用（SUPABASE_SERVICE_ROLE_KEY 必須）。
+ */
+export async function loadContentMaster(): Promise<ContentMasterData> {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  );
+
+  const { data, error } = await supabase
+    .from("content_master")
+    .select("*")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+
+  if (error) {
+    console.error("Failed to load content_master:", error);
+    return {
+      brand_voice: [],
+      facts: [],
+      instructions: [],
+      ng_words: [],
+      keywords: [],
+      qa: [],
+    };
+  }
+
+  const result: ContentMasterData = {
+    brand_voice: [],
+    facts: [],
+    instructions: [],
+    ng_words: [],
+    keywords: [],
+    qa: [],
+  };
+
+  for (const entry of data ?? []) {
+    const cat = entry.category as keyof ContentMasterData;
+    if (result[cat]) result[cat].push(entry);
+  }
+
+  return result;
+}
+
+/**
+ * content_master のデータからシステムプロンプトを動的に生成する。
+ * マスターデータがない場合はデフォルトの ARTICLE_SYSTEM_PROMPT を返す。
+ */
+export function buildSystemPrompt(master: ContentMasterData): string {
+  const sections: string[] = [
+    "あなたはPERSONA（persona-consultant.com）のSEO記事ライターです。",
+    "フリーランスコンサルタント向けの案件紹介プラットフォームのブログ記事を作成します。",
+  ];
+
+  // ブランドボイス
+  if (master.brand_voice.length > 0) {
+    sections.push("\n## ブランドボイス");
+    for (const e of master.brand_voice) {
+      sections.push(`- ${e.title}: ${e.content}`);
+    }
+  }
+
+  // 事実データ
+  if (master.facts.length > 0) {
+    sections.push("\n## サイト情報（事実データ）");
+    for (const e of master.facts) {
+      sections.push(`- ${e.title}: ${e.content}`);
+    }
+  } else {
+    sections.push(`\n## サイト情報
+- 大手ファーム出身者1,200名以上が登録
+- 月額報酬125万円〜の高単価案件中心
+- PMO/戦略/IT/DX/SAP/生成AIなどのコンサル案件
+- 提携エージェント30社以上`);
+  }
+
+  // 記事作成ルール
+  if (master.instructions.length > 0) {
+    sections.push("\n## 記事ルール");
+    for (const e of master.instructions) {
+      sections.push(`- ${e.title}: ${e.content}`);
+    }
+  } else {
+    sections.push(`\n## 記事ルール
+- E-E-A-T（経験・専門性・権威性・信頼性）を重視
+- 3,000〜5,000文字の本格記事
+- Markdown形式（## でH2見出し、### でH3見出し）
+- 冒頭に太字で読者の課題を端的に提示（1-2文）
+- 次に --- 区切り線を入れる
+- 本文でデータや具体例を交えて解決策を提示
+- 最後のセクションでCTA（PERSONAへの誘導は最小限、/cases へのリンク1つ程度）
+- 内部リンクを2-4本配置（関連記事URLは /blog/{slug} 形式）
+- 「PERSONAでは〜」のような直接的宣伝は最後のCTAセクションのみ`);
+  }
+
+  // NG表現
+  if (master.ng_words.length > 0) {
+    sections.push("\n## NG表現（以下の表現は絶対に使用禁止）");
+    for (const e of master.ng_words) {
+      sections.push(`- ${e.title}: ${e.content}`);
+    }
+  }
+
+  // 重要キーワード
+  if (master.keywords.length > 0) {
+    sections.push("\n## 重要キーワード（自然に含めること）");
+    for (const e of master.keywords) {
+      sections.push(`- ${e.title}: ${e.content}`);
+    }
+  }
+
+  // Q&Aから蓄積されたナレッジ
+  if (master.qa.length > 0) {
+    sections.push("\n## 追加ナレッジ（Q&Aから蓄積）");
+    for (const e of master.qa) {
+      sections.push(`### Q: ${e.title}\nA: ${e.content}`);
+    }
+  }
+
+  // 出力形式
+  sections.push(`\n## 出力形式
+以下のJSON形式で出力してください。JSON以外のテキストを含めないでください。
+
+{
+  "title": "SEO最適化されたタイトル（50-65文字、キーワードを含む）",
+  "description": "メタディスクリプション（120-160文字、検索ユーザーがクリックしたくなる内容）",
+  "category": "カテゴリ名",
+  "content": "Markdown形式の記事本文"
+}
+
+カテゴリは以下から選択:
+- ノウハウ: フリーコンサルとしての実務テクニック
+- キャリア: 独立・転身・キャリアパス関連
+- 業界トレンド: 市場動向・将来展望
+- 企業向け: フリーコンサル活用の企業側視点
+- サービス紹介: PERSONAサービス・機能紹介`);
+
+  return sections.join("\n");
+}
+
+/**
+ * 生成テキストにNG表現が含まれていないかチェック。
+ * content_master の ng_words カテゴリを使用。
+ */
+export function checkNgWords(
+  text: string,
+  ngEntries: ContentMasterEntry[],
+): NgCheckResult {
+  const violations: { word: string; context: string }[] = [];
+  const textLower = text.toLowerCase();
+
+  for (const entry of ngEntries) {
+    // content からNG語を抽出（/ 区切り）
+    const words = entry.content
+      .split(/[/／\n]/)
+      .map((w) => w.trim())
+      .filter((w) => w.length > 0);
+
+    for (const word of words) {
+      const wordLower = word.toLowerCase();
+      const idx = textLower.indexOf(wordLower);
+      if (idx !== -1) {
+        // 前後50文字を切り出してコンテキストを提供
+        const start = Math.max(0, idx - 50);
+        const end = Math.min(text.length, idx + word.length + 50);
+        violations.push({
+          word,
+          context: text.slice(start, end),
+        });
+      }
+    }
+  }
+
+  return {
+    passed: violations.length === 0,
+    violations,
+  };
+}
 
 // ─── 既存ブログ記事リスト ───
 
