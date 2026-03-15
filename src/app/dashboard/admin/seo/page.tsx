@@ -529,19 +529,61 @@ export default function AdminSeoPage() {
     });
   }
 
+  function buildDefaultAnswers(keyword: string): WizardAnswers {
+    const kw = keyword.toLowerCase();
+
+    // ターゲット読者をキーワードから推定
+    let audience = "コンサルティングファーム出身で独立を検討中、または独立1〜3年目のフリーランスコンサルタント。月額100万円以上の案件を探している。";
+    if (kw.includes("企業") || kw.includes("活用") || kw.includes("依頼") || kw.includes("外注"))
+      audience = "フリーランスコンサルタントの活用を検討している企業の経営企画・事業部門の責任者。ファームへの依頼コストに課題を感じている。";
+    if (kw.includes("独立") || kw.includes("辞め") || kw.includes("転身"))
+      audience = "現在コンサルティングファームに在籍中で、独立・フリーランスへの転身を検討しているコンサルタント。年収やキャリアへの不安がある。";
+    if (kw.includes("pmo"))
+      audience = "PMO経験のあるフリーランスコンサルタント、またはPMO案件への参画を目指すコンサルタント。";
+    if (kw.includes("sap"))
+      audience = "SAP導入・運用経験のあるフリーランスコンサルタント。SAP案件の市場動向や単価に関心がある。";
+    if (kw.includes("dx"))
+      audience = "DX推進の経験があるフリーランスコンサルタント、またはDX案件に興味のある方。";
+    if (kw.includes("年収") || kw.includes("単価") || kw.includes("報酬"))
+      audience = "フリーランスコンサルタントとしての収入を最大化したいと考えている方。ファーム時代との比較を知りたい。";
+
+    // 記事の切り口
+    let angle = "実務経験に基づく具体的なアドバイスと、データ・事例を交えた解説。読者がすぐに行動に移せる実践的な内容。";
+    if (kw.includes("企業") || kw.includes("活用"))
+      angle = "企業側の視点から、フリーコンサル活用の判断基準・ROI・成功事例を具体的に解説。";
+
+    // 差別化ポイント
+    const related = findRelatedArticles(keyword);
+    let differentiator = "PERSONAの1,200名以上の登録者データに基づく市場の実態。一般論ではなく、実際の案件事例や報酬レンジを含める。";
+    if (related.length > 0) {
+      differentiator += `\n既存の関連記事（${related.length}本）と切り口を変え、より具体的・実践的な内容にする。`;
+    }
+
+    // 必ず含めたいポイント
+    let keyPoints = "・PERSONAの案件実績（月額125万円〜、100件以上の案件）\n・具体的な数字やデータ\n・フリーコンサルとしてのキャリアの実態\n・内部リンク（関連する既存記事へ）";
+    if (kw.includes("pmo"))
+      keyPoints = "・PMO案件の具体的な業務内容と求められるスキル\n・PMO案件の報酬相場（月額120〜180万円）\n・PMO案件で成果を出すためのコツ\n・PERSONAでのPMO案件実績";
+    if (kw.includes("sap"))
+      keyPoints = "・SAP案件の種類（導入/運用/移行）と特徴\n・SAP人材不足の現状と単価推移\n・SAP案件で求められるスキルセット\n・PERSONAでのSAP案件実績";
+    if (kw.includes("企業") || kw.includes("活用"))
+      keyPoints = "・フリーコンサル活用のコストメリット（ファーム比30-50%削減）\n・適した案件タイプの具体例\n・契約形態の選び方\n・PERSONAの提携エージェント30社+のネットワーク";
+
+    return {
+      audience,
+      angle,
+      differentiator,
+      keyPoints,
+      tone: "実践的",
+      additionalNotes: "",
+    };
+  }
+
   function openWizard(keyword: string, position?: number, impressions?: number) {
     setWizardKeyword(keyword);
     setWizardPosition(position);
     setWizardImpressions(impressions);
     setWizardStep(1);
-    setWizAnswers({
-      audience: "",
-      angle: "",
-      differentiator: "",
-      keyPoints: "",
-      tone: "実践的",
-      additionalNotes: "",
-    });
+    setWizAnswers(buildDefaultAnswers(keyword));
     setGeneratedArticle(null);
     setGenerateError(null);
     setGenerating(false);
