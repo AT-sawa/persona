@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { SeoKeyword, SeoSnapshot } from "@/lib/types";
+import {
+  EXISTING_ARTICLES,
+  findRelatedArticles,
+  buildClaudePrompt,
+  type WizardAnswers,
+} from "@/lib/article-generator";
 
 /* ─── Helpers ─── */
 
@@ -99,6 +105,58 @@ export default function AdminSeoPage() {
     error?: string;
   } | null>(null);
 
+  // Claude prompt copy states
+  const [copiedKeyword, setCopiedKeyword] = useState<string | null>(null);
+  const [promptKeyword, setPromptKeyword] = useState("");
+
+  // Claude prompt preview states
+  const [previewKeyword, setPreviewKeyword] = useState<string | null>(null);
+  const [previewPrompt, setPreviewPrompt] = useState<string>("");
+
+  // Article generation wizard states
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
+  const [wizardKeyword, setWizardKeyword] = useState("");
+  const [wizardPosition, setWizardPosition] = useState<number | undefined>();
+  const [wizardImpressions, setWizardImpressions] = useState<number | undefined>();
+  const [wizAnswers, setWizAnswers] = useState<WizardAnswers>({
+    audience: "",
+    angle: "",
+    differentiator: "",
+    keyPoints: "",
+    tone: "実践的",
+    additionalNotes: "",
+  });
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [generatedArticle, setGeneratedArticle] = useState<{
+    title: string;
+    description: string;
+    category: string;
+    content: string;
+  } | null>(null);
+
+  // SEO action tracking
+  interface SeoAction {
+    id: string;
+    action_type: string;
+    keyword: string;
+    description: string;
+    before_position: number | null;
+    before_clicks: number | null;
+    before_impressions: number | null;
+    after_position: number | null;
+    after_clicks: number | null;
+    after_impressions: number | null;
+    created_at: string;
+  }
+  const [seoActions, setSeoActions] = useState<SeoAction[]>([]);
+  const [showActionForm, setShowActionForm] = useState(false);
+  const [actionType, setActionType] = useState("article");
+  const [actionKeyword, setActionKeyword] = useState("");
+  const [actionDescription, setActionDescription] = useState("");
+  const [savingAction, setSavingAction] = useState(false);
+
   /* ─── Fetch data ─── */
   const fetchData = useCallback(async () => {
     try {
@@ -124,6 +182,15 @@ export default function AdminSeoPage() {
     } catch (err) {
       console.error("SEO data fetch error:", err);
     }
+
+    // Fetch SEO actions
+    try {
+      const actionsRes = await fetch("/api/admin/seo-actions");
+      if (actionsRes.ok) {
+        const actionsData = await actionsRes.json();
+        setSeoActions(actionsData.actions || []);
+      }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -451,6 +518,138 @@ export default function AdminSeoPage() {
 
     return gaps;
   }, [keywords, latestByKeyword]);
+
+  /* ─── Claude prompt helpers (imported from @/lib/article-generator) ─── */
+
+  function handleCopyPrompt(keyword: string, position?: number, impressions?: number) {
+    const prompt = buildClaudePrompt(keyword, position, impressions);
+    navigator.clipboard.writeText(prompt).then(() => {
+      setCopiedKeyword(keyword);
+      setTimeout(() => setCopiedKeyword(null), 2000);
+    });
+  }
+
+  function openWizard(keyword: string, position?: number, impressions?: number) {
+    setWizardKeyword(keyword);
+    setWizardPosition(position);
+    setWizardImpressions(impressions);
+    setWizardStep(1);
+    setWizAnswers({
+      audience: "",
+      angle: "",
+      differentiator: "",
+      keyPoints: "",
+      tone: "実践的",
+      additionalNotes: "",
+    });
+    setGeneratedArticle(null);
+    setGenerateError(null);
+    setGenerating(false);
+    setWizardOpen(true);
+  }
+
+  async function handleGenerateArticle() {
+    setGenerating(true);
+    setGenerateError(null);
+    setWizardStep(2);
+    try {
+      const res = await fetch("/api/admin/generate-article", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          keyword: wizardKeyword,
+          position: wizardPosition,
+          impressions: wizardImpressions,
+          answers: wizAnswers,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setGenerateError(data.error || "記事生成に失敗しました");
+        setWizardStep(1);
+        return;
+      }
+      setGeneratedArticle(data.article);
+      setWizardStep(3);
+    } catch {
+      setGenerateError("ネットワークエラーが発生しました");
+      setWizardStep(1);
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function handleSaveGeneratedArticle() {
+    if (!generatedArticle) return;
+    setArticleTitle(generatedArticle.title);
+    setArticleDescription(generatedArticle.description);
+    setArticleCategory(generatedArticle.category);
+    setArticleContent(generatedArticle.content);
+    setArticleSlug("");
+    setArticleDate(new Date().toISOString().split("T")[0]);
+    setArticleResult(null);
+    setWizardOpen(false);
+    setShowArticleDialog(true);
+  }
+
+  // ── Existing page keyword mapping ──
+  const EXISTING_PAGES: { path: string; title: string; description: string; editable: boolean }[] = [
+    { path: "/", title: "フリーコンサル案件紹介サービスPERSONA（ペルソナ）", description: "コンサルティングファーム出身のフリーランスコンサルタントに特化した案件紹介サービス", editable: false },
+    { path: "/cases", title: "フリーコンサル案件一覧", description: "戦略・DX・PMO・SAP・業務改革など100件以上のフリーコンサル案件", editable: false },
+    { path: "/expertise", title: "専門領域から探す", description: "フリーコンサル案件を専門領域別に探す", editable: false },
+    { path: "/industries", title: "業界別案件", description: "業界別のフリーコンサル案件一覧", editable: false },
+    { path: "/for-enterprise", title: "企業様向けサービス", description: "フリーランスコンサルタントの活用でプロジェクトを成功へ", editable: false },
+    { path: "/ai-diagnosis", title: "AI業務診断", description: "あなたの部署のAI活用ポテンシャルを無料診断", editable: false },
+    { path: "/blog", title: "フリーコンサルブログ", description: "フリーランスコンサルタント向けのノウハウ・キャリア情報", editable: false },
+  ];
+
+  function suggestPageOptimizations(keyword: string, position: number, impressions: number): { page: string; currentTitle: string; suggestedTitle: string; suggestedDescription: string }[] {
+    const suggestions: { page: string; currentTitle: string; suggestedTitle: string; suggestedDescription: string }[] = [];
+    const kw = keyword.toLowerCase();
+
+    for (const page of EXISTING_PAGES) {
+      const titleLower = page.title.toLowerCase();
+
+      // Skip if keyword already in title
+      if (titleLower.includes(kw)) continue;
+
+      // Check if keyword is related to page content
+      let relevant = false;
+      if (kw.includes("案件") && (page.path === "/cases" || page.path === "/")) relevant = true;
+      if (kw.includes("pmo") && (page.path === "/cases" || page.path === "/expertise")) relevant = true;
+      if (kw.includes("sap") && (page.path === "/cases" || page.path === "/expertise")) relevant = true;
+      if (kw.includes("dx") && (page.path === "/cases" || page.path === "/expertise")) relevant = true;
+      if (kw.includes("戦略") && (page.path === "/cases" || page.path === "/expertise")) relevant = true;
+      if (kw.includes("フリーコンサル") && page.path === "/") relevant = true;
+      if (kw.includes("フリーランス") && page.path === "/") relevant = true;
+      if (kw.includes("副業") && page.path === "/") relevant = true;
+      if (kw.includes("コンサル") && kw.includes("独立") && page.path === "/") relevant = true;
+      if (kw.includes("業界") && page.path === "/industries") relevant = true;
+      if (kw.includes("ai") && page.path === "/ai-diagnosis") relevant = true;
+      if (kw.includes("診断") && page.path === "/ai-diagnosis") relevant = true;
+      if (kw.includes("企業") && page.path === "/for-enterprise") relevant = true;
+      if (kw.includes("ブログ") && page.path === "/blog") relevant = true;
+      if (kw.includes("エージェント") && page.path === "/") relevant = true;
+      if (kw.includes("高単価") && (page.path === "/cases" || page.path === "/")) relevant = true;
+      if (kw.includes("年収") && page.path === "/") relevant = true;
+      if (kw.includes("マッチング") && page.path === "/") relevant = true;
+
+      if (!relevant) continue;
+
+      // Generate title suggestion that includes keyword
+      const suggestedTitle = `${page.title}｜${keyword}`;
+      const suggestedDescription = `${keyword}の情報はPERSONAで。${page.description}。`;
+
+      suggestions.push({
+        page: page.path,
+        currentTitle: page.title,
+        suggestedTitle,
+        suggestedDescription,
+      });
+    }
+
+    return suggestions;
+  }
 
   /* ─── Actions ─── */
 
@@ -984,33 +1183,82 @@ export default function AdminSeoPage() {
                 {recommendations
                   .filter((r) => r.type === "article")
                   .slice(0, 8)
-                  .map((r, i) => (
-                    <div
-                      key={`article-${i}`}
-                      className="bg-[#f0f9ff] border border-[#bae6fd] rounded-lg px-4 py-3"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="text-[12px] font-bold text-[#0c4a6e]">
-                              {r.message}
+                  .map((r, i) => {
+                    const articleKw = (r.message.match(/「(.+?)」/) || [])[1] || r.message;
+                    const articlePosMatch = r.metric?.match(/(\d+)/);
+                    const articlePos = articlePosMatch ? parseInt(articlePosMatch[1]) : undefined;
+                    return (
+                    <div key={`article-${i}`}>
+                      <div className="bg-[#f0f9ff] border border-[#bae6fd] rounded-lg px-4 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="text-[12px] font-bold text-[#0c4a6e]">
+                                {r.message}
+                              </p>
+                              {r.priority === "high" && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#ef4444] text-white">
+                                  HIGH
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-[#0369a1] mt-0.5">
+                              {r.detail}
                             </p>
-                            {r.priority === "high" && (
-                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#ef4444] text-white">
-                                HIGH
-                              </span>
-                            )}
                           </div>
-                          <p className="text-[11px] text-[#0369a1] mt-0.5">
-                            {r.detail}
-                          </p>
+                          <span className="shrink-0 text-[10px] font-bold px-2 py-1 rounded bg-[#1FABE9]/10 text-[#1FABE9]">
+                            {r.metric}
+                          </span>
+                          <button
+                            onClick={() => openWizard(articleKw, articlePos)}
+                            className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded bg-gradient-to-r from-[#8b5cf6] to-[#6d28d9] text-white hover:from-[#7c3aed] hover:to-[#5b21b6] transition-all"
+                          >
+                            <Icon name="auto_awesome" className="text-[12px]" />
+                            AI生成
+                          </button>
+                          <button
+                            onClick={() => handleCopyPrompt(articleKw, articlePos)}
+                            className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded bg-[#091747] text-white hover:bg-[#0c1e52] transition-colors"
+                          >
+                            <Icon name={copiedKeyword === articleKw ? "check" : "content_copy"} className="text-[12px]" />
+                            {copiedKeyword === articleKw ? "Copied!" : "Claude指示"}
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (previewKeyword === `article-${articleKw}`) {
+                                setPreviewKeyword(null);
+                                setPreviewPrompt("");
+                              } else {
+                                setPreviewKeyword(`article-${articleKw}`);
+                                setPreviewPrompt(buildClaudePrompt(articleKw, articlePos));
+                              }
+                            }}
+                            className={`shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded border transition-colors ${
+                              previewKeyword === `article-${articleKw}`
+                                ? "bg-[#1FABE9] text-white border-[#1FABE9]"
+                                : "bg-white text-[#1FABE9] border-[#1FABE9]/30 hover:bg-[#1FABE9]/5"
+                            }`}
+                          >
+                            <Icon name={previewKeyword === `article-${articleKw}` ? "visibility_off" : "visibility"} className="text-[12px]" />
+                            プレビュー
+                          </button>
                         </div>
-                        <span className="shrink-0 text-[10px] font-bold px-2 py-1 rounded bg-[#1FABE9]/10 text-[#1FABE9]">
-                          {r.metric}
-                        </span>
                       </div>
+                      {previewKeyword === `article-${articleKw}` && (
+                        <div className="mt-1 bg-[#f8f9fb] border border-[#e3e6eb] rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] font-bold text-[#888] uppercase tracking-wider">Claude指示プレビュー</span>
+                            <button onClick={() => handleCopyPrompt(articleKw, articlePos)} className="flex items-center gap-1 text-[10px] font-bold text-[#1FABE9] hover:text-[#0c4a6e] transition-colors">
+                              <Icon name="content_copy" className="text-[12px]" />
+                              コピー
+                            </button>
+                          </div>
+                          <pre className="text-[11px] text-[#333] whitespace-pre-wrap font-sans leading-relaxed">{previewPrompt}</pre>
+                        </div>
+                      )}
                     </div>
-                  ))}
+                    );
+                  })}
               </div>
             </div>
           )}
@@ -1078,26 +1326,96 @@ export default function AdminSeoPage() {
                 {recommendations
                   .filter((r) => r.type === "opportunity")
                   .slice(0, 5)
-                  .map((r, i) => (
-                    <div
-                      key={`opp-${i}`}
-                      className="bg-[#f5f3ff] border border-[#ddd6fe] rounded-lg px-4 py-3"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1">
-                          <p className="text-[12px] font-bold text-[#4c1d95]">
-                            {r.message}
-                          </p>
-                          <p className="text-[11px] text-[#6d28d9] mt-0.5">
-                            {r.detail}
-                          </p>
+                  .map((r, i) => {
+                    const oppKw = (r.message.match(/「(.+?)」/) || [])[1] || r.keyword;
+                    const oppPosMatch = r.metric?.match(/(\d+)/);
+                    const oppImpMatch = r.metric?.match(/(\d+)表示/);
+                    const oppPos = oppPosMatch ? parseInt(oppPosMatch[1]) : undefined;
+                    return (
+                    <div key={`opp-${i}`}>
+                      <div className="bg-[#f5f3ff] border border-[#ddd6fe] rounded-lg px-4 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <p className="text-[12px] font-bold text-[#4c1d95]">
+                              {r.message}
+                            </p>
+                            <p className="text-[11px] text-[#6d28d9] mt-0.5">
+                              {r.detail}
+                            </p>
+                            {/* Page optimization suggestions */}
+                            {(() => {
+                              const pageOpts = suggestPageOptimizations(
+                                r.keyword,
+                                oppPosMatch ? parseInt(oppPosMatch[1]) : 50,
+                                oppImpMatch ? parseInt(oppImpMatch[1]) : 0
+                              );
+                              if (pageOpts.length === 0) return null;
+                              return (
+                                <div className="mt-2 space-y-1">
+                                  {pageOpts.slice(0, 2).map((opt, j) => (
+                                    <div key={j} className="bg-white/60 rounded px-2 py-1.5 text-[10px]">
+                                      <span className="text-[#6d28d9] font-bold">{opt.page}</span>
+                                      <span className="text-[#888] mx-1">&rarr;</span>
+                                      <span className="text-[#333]">タイトルに「{r.keyword}」を追加可能</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                          <span className="shrink-0 text-[10px] font-bold px-2 py-1 rounded bg-[#8b5cf6]/10 text-[#8b5cf6]">
+                            {r.metric}
+                          </span>
+                          <button
+                            onClick={() => openWizard(oppKw, oppPos)}
+                            className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded bg-gradient-to-r from-[#8b5cf6] to-[#6d28d9] text-white hover:from-[#7c3aed] hover:to-[#5b21b6] transition-all"
+                          >
+                            <Icon name="auto_awesome" className="text-[12px]" />
+                            AI生成
+                          </button>
+                          <button
+                            onClick={() => handleCopyPrompt(oppKw, oppPos)}
+                            className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded bg-[#091747] text-white hover:bg-[#0c1e52] transition-colors"
+                          >
+                            <Icon name={copiedKeyword === oppKw ? "check" : "content_copy"} className="text-[12px]" />
+                            {copiedKeyword === oppKw ? "Copied!" : "Claude指示"}
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (previewKeyword === `opp-${oppKw}`) {
+                                setPreviewKeyword(null);
+                                setPreviewPrompt("");
+                              } else {
+                                setPreviewKeyword(`opp-${oppKw}`);
+                                setPreviewPrompt(buildClaudePrompt(oppKw, oppPos));
+                              }
+                            }}
+                            className={`shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded border transition-colors ${
+                              previewKeyword === `opp-${oppKw}`
+                                ? "bg-[#8b5cf6] text-white border-[#8b5cf6]"
+                                : "bg-white text-[#8b5cf6] border-[#8b5cf6]/30 hover:bg-[#8b5cf6]/5"
+                            }`}
+                          >
+                            <Icon name={previewKeyword === `opp-${oppKw}` ? "visibility_off" : "visibility"} className="text-[12px]" />
+                            プレビュー
+                          </button>
                         </div>
-                        <span className="shrink-0 text-[10px] font-bold px-2 py-1 rounded bg-[#8b5cf6]/10 text-[#8b5cf6]">
-                          {r.metric}
-                        </span>
                       </div>
+                      {previewKeyword === `opp-${oppKw}` && (
+                        <div className="mt-1 bg-[#f8f9fb] border border-[#e3e6eb] rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] font-bold text-[#888] uppercase tracking-wider">Claude指示プレビュー</span>
+                            <button onClick={() => handleCopyPrompt(oppKw, oppPos)} className="flex items-center gap-1 text-[10px] font-bold text-[#8b5cf6] hover:text-[#4c1d95] transition-colors">
+                              <Icon name="content_copy" className="text-[12px]" />
+                              コピー
+                            </button>
+                          </div>
+                          <pre className="text-[11px] text-[#333] whitespace-pre-wrap font-sans leading-relaxed">{previewPrompt}</pre>
+                        </div>
+                      )}
                     </div>
-                  ))}
+                    );
+                  })}
               </div>
             </div>
           )}
@@ -1185,6 +1503,56 @@ export default function AdminSeoPage() {
         </div>
       )}
 
+      {/* ── AI記事生成 & Claude指示 ── */}
+      <div className="bg-white rounded-xl border border-[#e3e6eb] p-6 mb-6">
+        <h2 className="text-sm font-bold text-[#091747] mb-1 flex items-center gap-2">
+          <Icon name="smart_toy" className="text-[18px] text-[#8b5cf6]" />
+          AI記事生成 / Claude指示
+        </h2>
+        <p className="text-[11px] text-[#666] mb-4">
+          キーワードを入力して、AIで記事を自動生成するか、Claudeへの指示をコピー
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={promptKeyword}
+            onChange={(e) => setPromptKeyword(e.target.value)}
+            placeholder="例: フリーコンサル PMO 案件"
+            className="flex-1 p-3 border border-border text-[13px] rounded-lg focus:outline-none focus:border-[#8b5cf6]"
+          />
+          <button
+            onClick={() => { if (promptKeyword.trim()) openWizard(promptKeyword.trim()); }}
+            disabled={!promptKeyword.trim()}
+            className="px-4 py-3 bg-gradient-to-r from-[#8b5cf6] to-[#6d28d9] text-white text-[13px] font-bold rounded-lg hover:from-[#7c3aed] hover:to-[#5b21b6] disabled:opacity-50 transition-all flex items-center gap-1.5 whitespace-nowrap"
+          >
+            <Icon name="auto_awesome" className="text-[16px]" />
+            AI記事生成
+          </button>
+          <button
+            onClick={() => { if (promptKeyword.trim()) handleCopyPrompt(promptKeyword.trim()); }}
+            disabled={!promptKeyword.trim()}
+            className="px-4 py-3 bg-[#8b5cf6] text-white text-[13px] font-bold rounded-lg hover:bg-[#7c3aed] disabled:opacity-50 transition-colors flex items-center gap-1.5 whitespace-nowrap"
+          >
+            <Icon name={copiedKeyword === promptKeyword.trim() ? "check" : "content_copy"} className="text-[16px]" />
+            {copiedKeyword === promptKeyword.trim() ? "コピー済み！" : "指示コピー"}
+          </button>
+        </div>
+        {promptKeyword.trim() && (
+          <div className="mt-3 bg-[#f8f9fb] border border-[#e3e6eb] rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold text-[#888] uppercase tracking-wider">Claude指示プレビュー</span>
+              <button onClick={() => handleCopyPrompt(promptKeyword.trim())} className="flex items-center gap-1 text-[10px] font-bold text-[#8b5cf6] hover:text-[#7c3aed] transition-colors">
+                <Icon name="content_copy" className="text-[12px]" />
+                コピー
+              </button>
+            </div>
+            <pre className="text-[11px] text-[#333] whitespace-pre-wrap font-sans leading-relaxed max-h-[200px] overflow-y-auto">
+              {buildClaudePrompt(promptKeyword.trim())}
+            </pre>
+          </div>
+        )}
+      </div>
+
       {/* ── KPI Cards ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <div className="bg-white rounded-xl border border-[#e3e6eb] p-5">
@@ -1256,6 +1624,220 @@ export default function AdminSeoPage() {
             {avgCtr.toFixed(2)}%
           </p>
         </div>
+      </div>
+
+      {/* ── SEO Action Tracking ── */}
+      <div className="bg-white rounded-xl border border-[#e3e6eb] p-6 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-sm font-bold text-[#091747] flex items-center gap-2">
+              <Icon name="monitoring" className="text-[18px] text-[#10b981]" />
+              施策トラッキング
+            </h2>
+            <p className="text-[11px] text-[#666] mt-0.5">
+              SEO施策の効果を記録・測定
+            </p>
+          </div>
+          <button
+            onClick={() => setShowActionForm(!showActionForm)}
+            className="px-3 py-1.5 bg-[#10b981] text-white text-[11px] font-bold rounded-lg hover:bg-[#059669] transition-colors flex items-center gap-1"
+          >
+            <Icon name="add" className="text-[14px]" />
+            施策を記録
+          </button>
+        </div>
+
+        {/* New action form */}
+        {showActionForm && (
+          <div className="bg-[#f0fdf4] border border-[#bbf7d0] rounded-lg p-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+              <div>
+                <label className="block text-[10px] font-bold text-[#666] mb-1">施策タイプ</label>
+                <select value={actionType} onChange={(e) => setActionType(e.target.value)}
+                  className="w-full p-2 border border-border text-[12px] rounded-lg bg-white">
+                  <option value="article">記事作成</option>
+                  <option value="meta_update">メタ情報更新</option>
+                  <option value="internal_link">内部リンク追加</option>
+                  <option value="content_update">コンテンツ更新</option>
+                  <option value="structured_data">構造化データ追加</option>
+                  <option value="other">その他</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-[#666] mb-1">ターゲットKW</label>
+                <input type="text" value={actionKeyword} onChange={(e) => setActionKeyword(e.target.value)}
+                  placeholder="例: フリーコンサル PMO"
+                  className="w-full p-2 border border-border text-[12px] rounded-lg" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-[#666] mb-1">施策の内容</label>
+                <input type="text" value={actionDescription} onChange={(e) => setActionDescription(e.target.value)}
+                  placeholder="例: PMO案件のブログ記事を公開"
+                  className="w-full p-2 border border-border text-[12px] rounded-lg" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowActionForm(false)}
+                className="px-3 py-1.5 text-[11px] text-[#666] hover:text-[#333]">キャンセル</button>
+              <button
+                onClick={async () => {
+                  if (!actionKeyword.trim() || !actionDescription.trim()) return;
+                  setSavingAction(true);
+                  // Find current metrics for this keyword
+                  const matchKw = keywords.find(k => k.keyword === actionKeyword.trim());
+                  const currentSnap = matchKw ? latestByKeyword[matchKw.id] : null;
+                  try {
+                    const res = await fetch("/api/admin/seo-actions", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        action_type: actionType,
+                        keyword: actionKeyword.trim(),
+                        description: actionDescription.trim(),
+                        before_position: currentSnap?.position || null,
+                        before_clicks: currentSnap?.clicks || null,
+                        before_impressions: currentSnap?.impressions || null,
+                      }),
+                    });
+                    if (res.ok) {
+                      const data = await res.json();
+                      setSeoActions(prev => [data.action, ...prev]);
+                      setActionKeyword("");
+                      setActionDescription("");
+                      setShowActionForm(false);
+                    }
+                  } catch {}
+                  setSavingAction(false);
+                }}
+                disabled={savingAction || !actionKeyword.trim() || !actionDescription.trim()}
+                className="px-4 py-1.5 bg-[#10b981] text-white text-[11px] font-bold rounded-lg hover:bg-[#059669] disabled:opacity-50 transition-colors"
+              >
+                {savingAction ? "保存中..." : "記録する"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Action timeline */}
+        {seoActions.length > 0 ? (
+          <div className="space-y-3">
+            {seoActions.slice(0, 10).map((action) => {
+              const posChange = action.after_position && action.before_position
+                ? action.before_position - action.after_position
+                : null;
+              const typeLabels: Record<string, string> = {
+                article: "記事作成",
+                meta_update: "メタ更新",
+                internal_link: "内部リンク",
+                content_update: "コンテンツ更新",
+                structured_data: "構造化データ",
+                other: "その他",
+              };
+              const typeColors: Record<string, string> = {
+                article: "bg-[#1FABE9]/10 text-[#1FABE9]",
+                meta_update: "bg-[#f59e0b]/10 text-[#f59e0b]",
+                internal_link: "bg-[#8b5cf6]/10 text-[#8b5cf6]",
+                content_update: "bg-[#10b981]/10 text-[#10b981]",
+                structured_data: "bg-[#6366f1]/10 text-[#6366f1]",
+                other: "bg-[#888]/10 text-[#888]",
+              };
+              return (
+                <div key={action.id} className="flex gap-3 p-3 rounded-lg border border-[#e3e6eb] hover:bg-[#f8f9fb] transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${typeColors[action.action_type] || typeColors.other}`}>
+                        {typeLabels[action.action_type] || action.action_type}
+                      </span>
+                      <span className="text-[11px] font-bold text-[#091747]">
+                        {action.keyword}
+                      </span>
+                      <span className="text-[10px] text-[#888]">
+                        {new Date(action.created_at).toLocaleDateString("ja-JP")}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#666] truncate">{action.description}</p>
+                    {/* Before / After metrics */}
+                    <div className="flex items-center gap-4 mt-1.5">
+                      {action.before_position && (
+                        <div className="flex items-center gap-1 text-[10px]">
+                          <span className="text-[#888]">順位:</span>
+                          <span className="font-mono text-[#888]">{action.before_position}</span>
+                          {action.after_position && (
+                            <>
+                              <span className="text-[#888]">&rarr;</span>
+                              <span className="font-mono font-bold text-[#091747]">{action.after_position}</span>
+                              {posChange !== null && posChange !== 0 && (
+                                <span className={`font-bold ${posChange > 0 ? "text-[#10b981]" : "text-[#ef4444]"}`}>
+                                  ({posChange > 0 ? `+${posChange}` : posChange})
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
+                      {action.before_impressions !== null && (
+                        <div className="flex items-center gap-1 text-[10px]">
+                          <span className="text-[#888]">表示:</span>
+                          <span className="font-mono text-[#888]">{action.before_impressions}</span>
+                          {action.after_impressions !== null && (
+                            <>
+                              <span className="text-[#888]">&rarr;</span>
+                              <span className="font-mono font-bold text-[#091747]">{action.after_impressions}</span>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {/* Update after metrics button */}
+                  {!action.after_position && (
+                    <button
+                      onClick={async () => {
+                        const matchKw = keywords.find(k => k.keyword === action.keyword);
+                        const currentSnap = matchKw ? latestByKeyword[matchKw.id] : null;
+                        if (!currentSnap) return;
+                        try {
+                          const res = await fetch("/api/admin/seo-actions", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              id: action.id,
+                              after_position: currentSnap.position,
+                              after_clicks: currentSnap.clicks,
+                              after_impressions: currentSnap.impressions,
+                            }),
+                          });
+                          if (res.ok) {
+                            setSeoActions(prev => prev.map(a =>
+                              a.id === action.id
+                                ? { ...a, after_position: currentSnap.position, after_clicks: currentSnap.clicks, after_impressions: currentSnap.impressions }
+                                : a
+                            ));
+                          }
+                        } catch {}
+                      }}
+                      className="shrink-0 self-center px-2 py-1 text-[10px] font-bold text-[#1FABE9] border border-[#1FABE9]/30 rounded hover:bg-[#1FABE9]/5 transition-colors"
+                    >
+                      効果を計測
+                    </button>
+                  )}
+                  {posChange !== null && posChange > 0 && (
+                    <div className="shrink-0 self-center">
+                      <span className="text-[14px] font-black text-[#10b981]">
+                        &uarr;{posChange}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-6 text-[12px] text-[#888]">
+            <Icon name="monitoring" className="text-[32px] text-[#ddd] block mx-auto mb-2" />
+            まだ施策が記録されていません。上の「施策を記録」から始めましょう。
+          </div>
+        )}
       </div>
 
       {/* ── Search Console Sync Status ── */}
@@ -1769,6 +2351,329 @@ export default function AdminSeoPage() {
       </div>
 
       {/* ═══════════════ Blog Article Creation Dialog ═══════════════ */}
+      {/* ── Article Generation Wizard Modal ── */}
+      {wizardOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => !generating && setWizardOpen(false)}
+          />
+          <div className="relative bg-white w-[95vw] max-w-[900px] max-h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-hidden">
+            {/* Wizard Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-gradient-to-r from-[#8b5cf6]/5 to-[#6d28d9]/5">
+              <div>
+                <p className="text-[10px] font-bold text-[#8b5cf6] tracking-[0.18em] uppercase">
+                  AI ARTICLE GENERATOR
+                </p>
+                <h2 className="text-lg font-black text-navy">
+                  AI記事生成ウィザード
+                </h2>
+                <p className="text-[11px] text-[#888] mt-0.5">
+                  キーワード: <span className="font-bold text-[#8b5cf6]">{wizardKeyword}</span>
+                  {wizardPosition && <span className="ml-2">（{wizardPosition}位）</span>}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {/* Step indicator */}
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3].map((s) => (
+                    <div
+                      key={s}
+                      className={`w-2 h-2 rounded-full transition-colors ${
+                        wizardStep === s
+                          ? "bg-[#8b5cf6] w-6"
+                          : wizardStep > s
+                            ? "bg-[#8b5cf6]/40"
+                            : "bg-[#ddd]"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <button
+                  onClick={() => !generating && setWizardOpen(false)}
+                  className="text-[#888] hover:text-navy transition-colors"
+                >
+                  <Icon name="close" className="text-[24px]" />
+                </button>
+              </div>
+            </div>
+
+            {/* Wizard Body */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {/* Step 1: Questions */}
+              {wizardStep === 1 && (
+                <div>
+                  {/* Related articles summary */}
+                  {(() => {
+                    const related = findRelatedArticles(wizardKeyword);
+                    if (related.length === 0) return null;
+                    return (
+                      <div className="mb-5 bg-[#faf5ff] border border-[#8b5cf6]/20 rounded-lg p-4">
+                        <p className="text-[11px] font-bold text-[#8b5cf6] mb-2">
+                          <Icon name="info" className="text-[14px] align-middle mr-1" />
+                          関連する既存記事 ({related.length}件) — 差別化が必要です
+                        </p>
+                        <div className="space-y-1">
+                          {related.slice(0, 5).map((a) => (
+                            <p key={a.slug} className="text-[11px] text-[#666]">
+                              <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold mr-1.5 ${
+                                a.relevance === "high"
+                                  ? "bg-[#fee2e2] text-[#dc2626]"
+                                  : "bg-[#fef3c7] text-[#d97706]"
+                              }`}>
+                                {a.relevance === "high" ? "高" : "中"}
+                              </span>
+                              {a.title}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {generateError && (
+                    <div className="mb-4 bg-[#fef2f2] border border-[#fecaca] rounded-lg p-3">
+                      <p className="text-[12px] text-[#dc2626] font-bold">
+                        <Icon name="error" className="text-[14px] align-middle mr-1" />
+                        {generateError}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[12px] font-bold text-[#333] mb-1.5">
+                        <Icon name="group" className="text-[14px] align-middle mr-1 text-[#8b5cf6]" />
+                        ターゲット読者は？
+                      </label>
+                      <textarea
+                        value={wizAnswers.audience}
+                        onChange={(e) => setWizAnswers({ ...wizAnswers, audience: e.target.value })}
+                        placeholder="例: 大手ファーム出身で独立1-2年目のコンサルタント、PMO案件を探している"
+                        rows={2}
+                        className="w-full p-3 border border-border text-[13px] rounded-lg resize-none focus:outline-none focus:border-[#8b5cf6]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[12px] font-bold text-[#333] mb-1.5">
+                        <Icon name="lightbulb" className="text-[14px] align-middle mr-1 text-[#8b5cf6]" />
+                        記事の切り口・アプローチは？
+                      </label>
+                      <textarea
+                        value={wizAnswers.angle}
+                        onChange={(e) => setWizAnswers({ ...wizAnswers, angle: e.target.value })}
+                        placeholder="例: 実体験ベースの失敗談から学ぶ形式、データ駆動の分析記事"
+                        rows={2}
+                        className="w-full p-3 border border-border text-[13px] rounded-lg resize-none focus:outline-none focus:border-[#8b5cf6]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[12px] font-bold text-[#333] mb-1.5">
+                        <Icon name="star" className="text-[14px] align-middle mr-1 text-[#8b5cf6]" />
+                        他記事との差別化ポイントは？
+                      </label>
+                      <textarea
+                        value={wizAnswers.differentiator}
+                        onChange={(e) => setWizAnswers({ ...wizAnswers, differentiator: e.target.value })}
+                        placeholder="例: 具体的な単価交渉テクニック、実際の案件紹介事例を交える"
+                        rows={2}
+                        className="w-full p-3 border border-border text-[13px] rounded-lg resize-none focus:outline-none focus:border-[#8b5cf6]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[12px] font-bold text-[#333] mb-1.5">
+                        <Icon name="checklist" className="text-[14px] align-middle mr-1 text-[#8b5cf6]" />
+                        必ず含めたいポイントは？
+                      </label>
+                      <textarea
+                        value={wizAnswers.keyPoints}
+                        onChange={(e) => setWizAnswers({ ...wizAnswers, keyPoints: e.target.value })}
+                        placeholder="例: PMO案件の実例、報酬相場（125万円〜）、PERSONAの登録メリット"
+                        rows={2}
+                        className="w-full p-3 border border-border text-[13px] rounded-lg resize-none focus:outline-none focus:border-[#8b5cf6]"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[12px] font-bold text-[#333] mb-1.5">
+                          <Icon name="tune" className="text-[14px] align-middle mr-1 text-[#8b5cf6]" />
+                          トーン
+                        </label>
+                        <select
+                          value={wizAnswers.tone}
+                          onChange={(e) => setWizAnswers({ ...wizAnswers, tone: e.target.value })}
+                          className="w-full p-3 border border-border text-[13px] rounded-lg bg-white focus:outline-none focus:border-[#8b5cf6]"
+                        >
+                          <option value="実践的">実践的（具体的で行動に繋がる）</option>
+                          <option value="専門的">専門的（深い知識を示す）</option>
+                          <option value="カジュアル">カジュアル（読みやすさ重視）</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[12px] font-bold text-[#333] mb-1.5">
+                          <Icon name="edit_note" className="text-[14px] align-middle mr-1 text-[#8b5cf6]" />
+                          その他要望（任意）
+                        </label>
+                        <textarea
+                          value={wizAnswers.additionalNotes}
+                          onChange={(e) => setWizAnswers({ ...wizAnswers, additionalNotes: e.target.value })}
+                          placeholder="自由記述"
+                          rows={2}
+                          className="w-full p-3 border border-border text-[13px] rounded-lg resize-none focus:outline-none focus:border-[#8b5cf6]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Generating */}
+              {wizardStep === 2 && (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <div className="w-16 h-16 border-4 border-[#8b5cf6] border-t-transparent rounded-full animate-spin mb-6" />
+                  <p className="text-lg font-bold text-[#091747] mb-2">
+                    Claude が記事を執筆中...
+                  </p>
+                  <p className="text-[13px] text-[#888]">
+                    キーワード「{wizardKeyword}」に最適化された記事を生成しています
+                  </p>
+                  <p className="text-[11px] text-[#aaa] mt-2">
+                    通常15〜30秒かかります
+                  </p>
+                </div>
+              )}
+
+              {/* Step 3: Preview & Edit */}
+              {wizardStep === 3 && generatedArticle && (
+                <div>
+                  <div className="mb-4 bg-[#f0fdf4] border border-[#bbf7d0] rounded-lg p-3">
+                    <p className="text-[12px] text-[#16a34a] font-bold">
+                      <Icon name="check_circle" className="text-[16px] align-middle mr-1" />
+                      記事が生成されました！内容を確認・編集して保存してください。
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#888] mb-1">
+                        タイトル
+                      </label>
+                      <input
+                        type="text"
+                        value={generatedArticle.title}
+                        onChange={(e) => setGeneratedArticle({ ...generatedArticle, title: e.target.value })}
+                        className="w-full p-3 border border-border text-[13px] rounded-lg focus:outline-none focus:border-[#8b5cf6]"
+                      />
+                      <p className="text-[10px] text-[#aaa] mt-0.5">{generatedArticle.title.length}文字</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-[#888] mb-1">
+                          メタディスクリプション
+                        </label>
+                        <textarea
+                          value={generatedArticle.description}
+                          onChange={(e) => setGeneratedArticle({ ...generatedArticle, description: e.target.value })}
+                          rows={2}
+                          className="w-full p-3 border border-border text-[13px] rounded-lg resize-none focus:outline-none focus:border-[#8b5cf6]"
+                        />
+                        <p className="text-[10px] text-[#aaa] mt-0.5">
+                          {generatedArticle.description.length}文字
+                          {generatedArticle.description.length >= 120 && generatedArticle.description.length <= 160 && (
+                            <span className="text-[#10b981]"> — 適切な長さ</span>
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-[#888] mb-1">
+                          カテゴリ
+                        </label>
+                        <select
+                          value={generatedArticle.category}
+                          onChange={(e) => setGeneratedArticle({ ...generatedArticle, category: e.target.value })}
+                          className="w-full p-3 border border-border text-[13px] rounded-lg bg-white focus:outline-none focus:border-[#8b5cf6]"
+                        >
+                          <option value="ノウハウ">ノウハウ</option>
+                          <option value="キャリア">キャリア</option>
+                          <option value="業界トレンド">業界トレンド</option>
+                          <option value="企業向け">企業向け</option>
+                          <option value="サービス紹介">サービス紹介</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#888] mb-1">
+                        記事本文（Markdown）
+                        <span className="text-[10px] font-normal text-[#aaa] ml-2">
+                          {generatedArticle.content.length}文字
+                        </span>
+                      </label>
+                      <textarea
+                        value={generatedArticle.content}
+                        onChange={(e) => setGeneratedArticle({ ...generatedArticle, content: e.target.value })}
+                        className="w-full min-h-[350px] p-4 border border-border text-[13px] font-mono leading-relaxed rounded-lg resize-y focus:outline-none focus:border-[#8b5cf6]"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Wizard Footer */}
+            <div className="px-6 py-4 border-t border-border bg-[#fafafa] flex items-center gap-3">
+              {wizardStep === 1 && (
+                <>
+                  <div className="flex-1 text-[11px] text-[#aaa]">
+                    未記入の項目があってもAIが自動補完します
+                  </div>
+                  <button
+                    onClick={() => setWizardOpen(false)}
+                    className="px-5 py-2.5 border border-border text-[13px] text-[#888] rounded-lg hover:border-navy hover:text-navy transition-colors"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    onClick={handleGenerateArticle}
+                    className="px-6 py-2.5 bg-gradient-to-r from-[#8b5cf6] to-[#6d28d9] text-white text-[13px] font-bold rounded-lg hover:from-[#7c3aed] hover:to-[#5b21b6] transition-all flex items-center gap-2"
+                  >
+                    <Icon name="auto_awesome" className="text-[18px]" />
+                    記事を生成する
+                  </button>
+                </>
+              )}
+              {wizardStep === 3 && (
+                <>
+                  <div className="flex-1" />
+                  <button
+                    onClick={() => {
+                      setWizardStep(1);
+                      setGeneratedArticle(null);
+                    }}
+                    className="px-5 py-2.5 border border-border text-[13px] text-[#888] rounded-lg hover:border-[#8b5cf6] hover:text-[#8b5cf6] transition-colors flex items-center gap-1.5"
+                  >
+                    <Icon name="refresh" className="text-[16px]" />
+                    再生成
+                  </button>
+                  <button
+                    onClick={handleSaveGeneratedArticle}
+                    className="px-6 py-2.5 bg-[#1FABE9] text-white text-[13px] font-bold rounded-lg hover:bg-[#1890c8] transition-colors flex items-center gap-2"
+                  >
+                    <Icon name="edit_note" className="text-[18px]" />
+                    ブログエディタで開く
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {showArticleDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* Backdrop */}
